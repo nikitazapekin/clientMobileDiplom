@@ -1,3 +1,4 @@
+import { COLORS } from "appStyles";
 import { StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
@@ -5,10 +6,12 @@ export const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    padding: 10
   },
   title: {
     fontSize: 32,
     marginBottom: 20,
+    color: COLORS.WHITE,
   },
   gap: {
     height: 20,
@@ -18,4 +21,17 @@ export const styles = StyleSheet.create({
     height: 356,
     marginBottom: 30,
   },
+
+  button: {
+    backgroundColor: "#1280b2",
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  buttonText: {
+    color: COLORS.WHITE,
+    fontSize: 16,
+    fontWeight: "bold",
+  }
 });

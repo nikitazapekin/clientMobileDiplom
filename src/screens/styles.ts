@@ -4,7 +4,7 @@ import { COLORS } from "appStyles";
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.TURQUOISE_LIGHT,
+    backgroundColor: COLORS.GRAY_DARK,
   },
   containerWhite: {
     flex: 1,
@@ -32,6 +32,7 @@ export const styles = StyleSheet.create({
     fontWeight: "bold",
     marginTop: 20,
     marginBottom: 10,
-    color: "black",
+    
+    color: COLORS.WHITE,
   },
 });

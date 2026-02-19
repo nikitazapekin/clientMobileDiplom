@@ -1,39 +1,42 @@
-import { Image, Text, View } from "react-native";
+import { Button, Image, Text, View } from "react-native";
 import type { StackNavigationProp } from "@react-navigation/stack";
-
-import CustomButton from "../shared/Button";
 
 import { styles } from "./styled";
 
-import { LogoImage } from "@/constants/icons";
 import { ROUTES } from "@/navigation/routes";
 
+import LogoImage from "@assets/BigLogo.png"
+import CustomButton from "../Button";
 type RootStackParamList = {
   Home: undefined;
   [ROUTES.STACK.AUTH]: undefined;
-  [ROUTES.STACK.REGISTER]: undefined;
+
   [ROUTES.STACK.MAIN]: undefined;
-  [ROUTES.STACK.DOCTOR]: undefined;
+
 };
 
-type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, "Home">;
-
-interface HomeScreenProps {
-  navigation: HomeScreenNavigationProp;
-}
-
-const WelcomeComponent = ({ navigation }: HomeScreenProps) => {
-  const handleContinue = () => {
-    navigation.navigate(ROUTES.STACK.AUTH);
-  };
+const WelcomeComponent = () => {
 
   return (
     <View style={styles.centerContent}>
       <Text style={styles.title}>Добро пожаловать</Text>
       <Image source={LogoImage} style={styles.image} resizeMode="contain" />
-      <CustomButton handler={handleContinue} text="Продолжить" backgroundColor="#1280b2" />
+      {/*  <CustomButton handler={handleContinue} text="Продолжить" backgroundColor="#1280b2" />  */}
       <View style={styles.gap} />
 
+
+      {/* <Button
+        title="Продолжить"
+        onPress={() => { }}
+
+        style={styles.button}
+      /> */}
+
+      <CustomButton 
+      fullWidth={true}
+      text="Продолжить"
+      handler={() => { }}
+      />
     </View>
   );
 };

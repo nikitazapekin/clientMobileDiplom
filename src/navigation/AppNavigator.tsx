@@ -6,7 +6,7 @@ import type { RootStackParamList } from "./types";
 
 import { ROUTES } from "@/navigation/routes";
 import AuthScreen from "@/screens/AuthScreen"; 
-
+import WelcomeScreen from "@/screens/Welcome";
 const Stack = createStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
@@ -18,7 +18,9 @@ export default function AppNavigator() {
         }}
       >
        
-        <Stack.Screen name={ROUTES.STACK.AUTH} component={AuthScreen} />
+        <Stack.Screen name={ROUTES.STACK.AUTH} component={WelcomeScreen} />
+
+
         
       </Stack.Navigator>
     </NavigationContainer>
