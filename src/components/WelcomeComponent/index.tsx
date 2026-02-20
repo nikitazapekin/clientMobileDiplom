@@ -7,15 +7,17 @@ import { ROUTES } from "@/navigation/routes";
 
 import LogoImage from "@assets/BigLogo.png"
 import CustomButton from "../Button";
-type RootStackParamList = {
-  Home: undefined;
-  [ROUTES.STACK.AUTH]: undefined;
-
-  [ROUTES.STACK.MAIN]: undefined;
-
-};
+import { useNavigation } from "@react-navigation/native";
+import { FormNavigationProp } from "@/navigation/types";
+ 
 
 const WelcomeComponent = () => {
+
+ const navigation = useNavigation<FormNavigationProp>();
+
+    const handleNavigate= () => {
+    navigation.navigate(ROUTES.STACK.PROFILE);
+  };
 
   return (
     <View style={styles.centerContent}>
@@ -35,7 +37,7 @@ const WelcomeComponent = () => {
       <CustomButton 
       fullWidth={true}
       text="Продолжить"
-      handler={() => { }}
+      handler={handleNavigate}
       />
     </View>
   );

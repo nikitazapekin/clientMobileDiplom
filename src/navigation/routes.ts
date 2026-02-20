@@ -2,6 +2,7 @@ export const ROUTES = {
   STACK: {
     MAIN: "Main",
     AUTH: "Auth",
+    PROFILE: "Profile",
     
   },
   TABS: {
