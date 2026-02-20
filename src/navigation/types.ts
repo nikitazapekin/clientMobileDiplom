@@ -8,6 +8,7 @@ export type RootStackParamList = {
   [ROUTES.STACK.MAIN]: undefined;
   [ROUTES.STACK.AUTH]: undefined;
   [ROUTES.STACK.PROFILE]: undefined;
+ [ROUTES.STACK.REGISTER]: undefined;
  
 };
 export type FormNavigationProp = StackNavigationProp<RootStackParamList>;

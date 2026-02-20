@@ -3,7 +3,7 @@ export const ROUTES = {
     MAIN: "Main",
     AUTH: "Auth",
     PROFILE: "Profile",
-    
+    REGISTER: "Register",
   },
   TABS: {
     HOME: "HomeTab",

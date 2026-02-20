@@ -52,26 +52,16 @@ export const styles = StyleSheet.create({
 
 
     error: {
-color: COLORS.ERROR
-    }
+        color: COLORS.ERROR,
+        maxWidth: 200,
+
+        textAlign: "right",
 
 
+    },
 
-    /*  button: {
-    borderRadius: 5,
-    width: 356,
-    height: 48,
-    backgroundColor: "#993B4A",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  text: {
-    fontWeight: "600",
-    fontSize: 13,
-    color: "#fff",
-    textAlign: "center",
-  },
-  disabled: {
-    opacity: 0.6,
-  }, */
+    inputError: {
+        backgroundColor: COLORS.ERROR,
+        opacity: 0.8,
+    },
 });

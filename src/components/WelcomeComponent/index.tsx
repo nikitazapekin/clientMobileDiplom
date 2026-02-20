@@ -23,17 +23,9 @@ const WelcomeComponent = () => {
     <View style={styles.centerContent}>
       <Text style={styles.title}>Добро пожаловать</Text>
       <Image source={LogoImage} style={styles.image} resizeMode="contain" />
-      {/*  <CustomButton handler={handleContinue} text="Продолжить" backgroundColor="#1280b2" />  */}
+     
       <View style={styles.gap} />
-
-
-      {/* <Button
-        title="Продолжить"
-        onPress={() => { }}
-
-        style={styles.button}
-      /> */}
-
+ 
       <CustomButton 
       fullWidth={true}
       text="Продолжить"
