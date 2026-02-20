@@ -1,3 +1,5 @@
+import type { DimensionValue } from "react-native";
+
 export interface CustomButtonProps {
   text: string;
   handler: () => void;
@@ -5,4 +7,5 @@ export interface CustomButtonProps {
   disabled?: boolean;
   color?: string;
   fullWidth?: boolean;
+  maxWidth?: DimensionValue;
 }

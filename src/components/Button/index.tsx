@@ -11,10 +11,17 @@ const CustomButton: React.FC<CustomButtonProps> = ({
   disabled = false,
   color = "#fff",
   fullWidth = false,
+  maxWidth,  
 }) => {
   return (
     <TouchableOpacity
-      style={[styles.button, fullWidth && { width: "100%" }, { backgroundColor }, disabled && styles.disabled]}
+      style={[
+        styles.button,
+        fullWidth && { width: "100%" },
+        maxWidth != null && { width: "100%", maxWidth },
+        { backgroundColor },
+        disabled && styles.disabled,
+      ]}
       onPress={handler}
       disabled={disabled}
       activeOpacity={0.8}

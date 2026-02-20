@@ -16,7 +16,7 @@ const WelcomeComponent = () => {
  const navigation = useNavigation<FormNavigationProp>();
 
     const handleNavigate= () => {
-    navigation.navigate(ROUTES.STACK.PROFILE);
+    navigation.navigate(ROUTES.STACK.AUTH);
   };
 
   return (

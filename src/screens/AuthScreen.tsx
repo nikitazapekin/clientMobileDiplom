@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text } from "react-native";
 
 import { styles } from "./styles";
+import AuthForm from "@/components/AuthForm";
 
 
 export default function HomeScreen() {
@@ -14,9 +15,7 @@ export default function HomeScreen() {
 
       <View style={styles.container}>
 
-        <Text>
-           auth 
-        </Text>
+        <AuthForm />
       </View>
     </>
   );

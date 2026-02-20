@@ -19,10 +19,11 @@ export default function AppNavigator() {
         }}
       >
        
-        <Stack.Screen name={ROUTES.STACK.AUTH} component={WelcomeScreen} />
+        <Stack.Screen name={ROUTES.STACK.MAIN} component={WelcomeScreen} />
    <Stack.Screen name={ROUTES.STACK.PROFILE} component={ProfileScreen} />
 
-        
+           <Stack.Screen name={ROUTES.STACK.AUTH} component={AuthScreen} />
+
       </Stack.Navigator>
     </NavigationContainer>
   );
