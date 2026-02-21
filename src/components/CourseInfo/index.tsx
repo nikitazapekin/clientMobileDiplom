@@ -1,18 +1,24 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Image, ScrollView, ActivityIndicator, TouchableOpacity } from "react-native";
+import { View, Text, Image, ScrollView, ActivityIndicator, TouchableOpacity, Modal, StyleSheet } from "react-native";
 import CourseService from "@/http/courses";
 import type { CourseResponse } from "@/http/types/course";
-import Button from "../Button"; // предположим, что у вас есть такой компонент
+import Button from "../Button";
 import Certificate from "@/assets/utils/Certificate.jpg";
+import { ROUTES } from "@/navigation/routes";
+import { useNavigation } from "@react-navigation/native";
+import type { RootStackNavigationProp } from "@/navigation/types";
+
 interface CourseInfoProps {
   id: string;
-  onViewMap?: () => void;
+
 }
 
-const CourseInfo = ({ id, onViewMap }: CourseInfoProps) => {
+const CourseInfo = ({ id,  }: CourseInfoProps) => {
+  const navigation = useNavigation<RootStackNavigationProp>();
   const [course, setCourse] = useState<CourseResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
     fetchCourseDetails();
@@ -32,12 +38,27 @@ const CourseInfo = ({ id, onViewMap }: CourseInfoProps) => {
     }
   };
 
+  const handleSubscribe = () => {
+    setShowSuccessModal(true);
+  };
+
+  const handleGoToProfile = () => {
+    setShowSuccessModal(false);
+  
+  };
+
+  const handleGoToMap = () => {
+    setShowSuccessModal(false);
+navigation.navigate(ROUTES.STACK.MAP, { id });
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#9F0FA7" />
       </View>
     );
+
   }
 
   if (error || !course) {
@@ -109,12 +130,46 @@ const CourseInfo = ({ id, onViewMap }: CourseInfoProps) => {
         <View style={styles.actionsContainer}>
           <Button
             text="Добавить в мои курсы"
-            handler={()=>{}}
-           
+            handler={handleSubscribe}
             color="#fff"
-     backgroundColor="#9F0FA7"
+            backgroundColor="#9F0FA7"
           />
         </View>
+
+        <Modal
+          visible={showSuccessModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowSuccessModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Поздравляем!</Text>
+              <Text style={styles.modalMessage}>
+                Вы успешно подписались на курс{"\n"}
+                <Text style={styles.modalCourseTitle}>"{course?.title}"</Text>
+              </Text>
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalButtonPrimary]}
+                  onPress={handleGoToProfile}
+                >
+                  <Text style={styles.modalButtonText}>Перейти в профиль</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalButtonSecondary]}
+                  onPress={handleGoToMap}
+                >
+                  <Text style={[styles.modalButtonText, styles.modalButtonTextSecondary]}>
+                    Перейти к карте курса
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
  
         <View style={styles.metaInfo}>
           <Text style={styles.metaText}>Тип: {course.type}</Text>
@@ -300,6 +355,66 @@ const styles = {
     fontSize: 14,
     color: '#888',
     marginBottom: 4,
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  modalCourseTitle: {
+    fontWeight: 'bold',
+    color: '#9F0FA7',
+  },
+  modalButtons: {
+    width: '100%',
+    gap: 12,
+  },
+  modalButton: {
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalButtonPrimary: {
+    backgroundColor: '#9F0FA7',
+  },
+  modalButtonSecondary: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: '#9F0FA7',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  modalButtonTextSecondary: {
+    color: '#9F0FA7',
   },
 } as const;
 

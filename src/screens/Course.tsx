@@ -23,17 +23,17 @@ export default function CourseScreen() {
 
     return (
         <>
-           
+
             <View style={styles.containerLight}>
                 <Header title="Course" />
 
 
                 <View style={styles.content}>
-                    <Text>Course</Text>
-    <CourseInfo 
-      id={id} 
-      onViewMap={()=>{}}
-    />
+
+                    <CourseInfo
+                        id={id}
+                       
+                    />
                 </View>
 
                 <Footer activeTab={activeTab} />

@@ -15,6 +15,7 @@ import AchievementsScreen from "@/screens/Achievements";
 import ChatsScreen from "@/screens/Chats";
 import SandboxScreen from "@/screens/Sandbox";
 import CourseScreen from "@/screens/Course";
+import MapScreen from "@/screens/Map";
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -54,7 +55,7 @@ export default function AppNavigator() {
         <Stack.Screen name={ROUTES.STACK.MAIN} component={MainTabs} />
         <Stack.Screen name={ROUTES.STACK.COURSES} component={CoursesScreen} />
         <Stack.Screen name={ROUTES.STACK.COURSE} component={CourseScreen} />
-
+        <Stack.Screen name={ROUTES.STACK.MAP} component={MapScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

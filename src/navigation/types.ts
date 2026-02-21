@@ -17,6 +17,9 @@ export type RootStackParamList = {
   [ROUTES.SCREENS.PROFILE]: undefined;
 
     [ROUTES.STACK.COURSE]: { id: string };
+
+
+        [ROUTES.STACK.MAP]: { id: string };
 };
 
 export type MainTabParamList = {
