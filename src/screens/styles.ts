@@ -20,7 +20,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     marginTop: 0,
     marginBottom: 0,
-    backgroundColor:"red"
+ 
   },
  
   contentContainer: {

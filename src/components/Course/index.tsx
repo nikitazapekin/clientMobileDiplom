@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { CourseResponse } from '@/http/types/course';
+import { ROUTES } from '@/navigation/routes';
+import type { RootStackNavigationProp } from '@/navigation/types';
 
 const { width } = Dimensions.get('window');
 
@@ -27,7 +29,7 @@ const getValidImageSrc = (logo: string): string | null => {
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
   
   if (trimmed.startsWith('/')) {
-    const baseUrl = 'https://your-api-domain.com'; // Замените на ваш базовый URL
+    const baseUrl = 'https://your-api-domain.com'; 
     return `${baseUrl}${trimmed}`;
   }
 
@@ -35,16 +37,22 @@ const getValidImageSrc = (logo: string): string | null => {
 };
 
 const Course: React.FC<CourseProps> = ({ item, onPress }) => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<RootStackNavigationProp>();
   const imageSrc = getValidImageSrc(item.logo);
 
-  const handlePress = () => {
-    // Навигация пока закомментирована
+   const handlePress = () => {
+    if (onPress) {
+     
+      onPress();
+    } else {
+      
+      navigation.navigate(ROUTES.STACK.COURSE, { id: item.id });
+    }
   };
 
   return (
     <TouchableOpacity style={styles.course} onPress={handlePress} activeOpacity={0.7}>
-      {/* Изображение сверху по центру */}
+      
       <View style={styles.imageContainer}>
         {imageSrc ? (
           <Image
@@ -57,7 +65,7 @@ const Course: React.FC<CourseProps> = ({ item, onPress }) => {
         )}
       </View>
       
-      {/* Контент по центру */}
+      
       <View style={styles.course__preview}>
         <Text style={styles.course__title} numberOfLines={2}>
           {item.title}
@@ -99,7 +107,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     marginBottom: 24,
     flexDirection: 'column',
-    alignItems: 'center', // Центрирование по горизонтали всего контента
+    alignItems: 'center', 
     padding: 16,
     borderRadius: 8,
     shadowColor: '#000',
@@ -126,25 +134,25 @@ const styles = StyleSheet.create({
   },
   course__preview: {
     width: '100%',
-    alignItems: 'center', // Центрирование всего текстового контента
+    alignItems: 'center', 
     paddingHorizontal: 8,
   },
   course__title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 8,
-    textAlign: 'center', // Текст по центру
+    textAlign: 'center', 
   },
   course__description: {
     fontSize: 20,
     fontWeight: '400',
     marginBottom: 12,
-    textAlign: 'center', // Текст по центру
+    textAlign: 'center', 
     color: '#666',
   },
   statsContainer: {
     flexDirection: 'row',
-    justifyContent: 'center', // Центрирование статистики
+    justifyContent: 'center', 
     gap: 24,
     marginBottom: 12,
     flexWrap: 'wrap',

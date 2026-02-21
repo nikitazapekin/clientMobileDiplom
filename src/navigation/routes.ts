@@ -5,12 +5,13 @@ export const ROUTES = {
     PROFILE: "Profile",
     REGISTER: "Register",
     WELCOME: "Welcome",
- COURSES: "Courses",
+    COURSES: "Courses",
     ACHIEVEMENTS: "Achievements",
     CHATS: "Chats",
     SANDBOX: "Sandbox",
-    
-    
+    COURSE: "Course"
+
+
   },
   TABS: {
     HOME: "HomeTab",
