@@ -8,6 +8,8 @@ import {
   Image,
   StatusBar,
   ScrollView,
+  Modal,
+  Alert,
 } from "react-native";
 import { styles } from "./styled";
 import { MapService } from "@/http/map";
@@ -87,6 +89,14 @@ interface CheckpointData {
   isPublished: boolean;
 }
 
+interface ModalData {
+  type: "lesson" | "checkpoint";
+  elementId: string;
+  title: string;
+  description: string;
+  targetId?: string;
+}
+
 interface MapProps {
   courseId: string;
   onElementPress?: (element: MapElement) => void;
@@ -107,6 +117,8 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
   const [lessonsData, setLessonsData] = useState<Record<string, LessonData>>({});
   const [checkpointsData, setCheckpointsData] = useState<Record<string, CheckpointData>>({});
   const [containerWidth, setContainerWidth] = useState(SCREEN_WIDTH);
+  const [modalData, setModalData] = useState<ModalData | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   // Загрузка карты
   useEffect(() => {
@@ -287,13 +299,56 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
         break;
 
       case "free":
-        // Для свободного позиционирования используем ПРОЦЕНТЫ от размеров карты
-        x = (element.position.x / 100) * containerWidth; // X масштабируем по ширине экрана
-        y = (element.position.y / 100) * mapSize.height; // Y используем высоту карты из БД
+        x = (element.position.x / 100) * containerWidth;
+        y = (element.position.y / 100) * mapSize.height;
         break;
     }
 
     return { x, y };
+  };
+
+  // Обработчик клика на элемент
+  const handleElementClick = (element: MapElement) => {
+    if (element.type === "lesson") {
+      const lessonData = lessonsData[element.id];
+      if (lessonData) {
+        setModalData({
+          type: "lesson",
+          elementId: element.id,
+          title: lessonData.title,
+          description: lessonData.description,
+          targetId: lessonData.id,
+        });
+        setModalVisible(true);
+      }
+    } else if (element.type === "checkpoint") {
+      const checkpointData = checkpointsData[element.id];
+      if (checkpointData) {
+        setModalData({
+          type: "checkpoint",
+          elementId: element.id,
+          title: checkpointData.title,
+          description: checkpointData.description,
+          targetId: checkpointData.id,
+        });
+        setModalVisible(true);
+      }
+    }
+    
+    // Вызываем внешний обработчик если есть
+    if (onElementPress) {
+      onElementPress(element);
+    }
+  };
+
+  // Обработчик перехода к уроку или контрольной точке
+  const handleNavigate = () => {
+    if (!modalData || !modalData.targetId) return;
+    
+    setModalVisible(false);
+    // Здесь можно добавить навигацию к уроку или контрольной точке
+    // Например: router.push(`/lesson/${modalData.targetId}`)
+    Alert.alert("Навигация", `Переход к ${modalData.type} с ID: ${modalData.targetId}`);
   };
 
   // Рендер элемента
@@ -312,19 +367,15 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
       ],
     };
 
-    const handlePress = () => {
-      if (onElementPress) {
-        onElementPress(element);
-      }
-    };
+    const isClickable = element.type === "lesson" || element.type === "checkpoint";
 
     switch (element.type) {
       case "circle":
         return (
           <TouchableOpacity
             key={element.id}
-            onPress={handlePress}
-            activeOpacity={0.7}
+            onPress={() => handleElementClick(element)}
+            activeOpacity={isClickable ? 0.7 : 1}
             style={[
               elementStyle,
               {
@@ -341,8 +392,8 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
         return (
           <TouchableOpacity
             key={element.id}
-            onPress={handlePress}
-            activeOpacity={0.7}
+            onPress={() => handleElementClick(element)}
+            activeOpacity={isClickable ? 0.7 : 1}
             style={[
               elementStyle,
               {
@@ -372,7 +423,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
         return (
           <TouchableOpacity
             key={element.id}
-            onPress={handlePress}
+            onPress={() => handleElementClick(element)}
             activeOpacity={0.7}
             style={[
               elementStyle,
@@ -415,8 +466,8 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
         return (
           <TouchableOpacity
             key={element.id}
-            onPress={handlePress}
-            activeOpacity={0.7}
+            onPress={() => handleElementClick(element)}
+            activeOpacity={isClickable ? 0.7 : 1}
           >
             <Text
               style={[
@@ -442,7 +493,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
         return (
           <TouchableOpacity
             key={element.id}
-            onPress={handlePress}
+            onPress={() => handleElementClick(element)}
             activeOpacity={0.7}
             style={[
               elementStyle,
@@ -474,8 +525,8 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
         return (
           <TouchableOpacity
             key={element.id}
-            onPress={handlePress}
-            activeOpacity={0.7}
+            onPress={() => handleElementClick(element)}
+            activeOpacity={isClickable ? 0.7 : 1}
           >
             <Text
               style={[
@@ -497,6 +548,32 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
       default:
         return null;
     }
+  };
+
+  // Получение стилей для фонового изображения
+  const getBackgroundImageStyle = () => {
+    const style: any = {
+      position: 'absolute',
+      width: '100%',
+      height: mapSize.height,
+    };
+
+    // Устанавливаем resizeMode в зависимости от backgroundSize
+    switch (mapBackground.size) {
+      case 'cover':
+        style.resizeMode = 'cover';
+        break;
+      case 'contain':
+        style.resizeMode = 'contain';
+        break;
+      case 'auto':
+        style.resizeMode = 'repeat';
+        break;
+      default:
+        style.resizeMode = 'cover';
+    }
+
+    return style;
   };
 
   if (isLoading && !elements.length) {
@@ -541,16 +618,18 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
           ]}
           onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
         >
-          {/* Фоновое изображение */}
+          {/* Фоновое изображение с учетом повторения */}
           {mapBackground.image && (
             <Image
               source={{ uri: mapBackground.image }}
-              style={{
-                position: 'absolute',
-                width: '100%',
-                height: mapSize.height,
-                resizeMode: mapBackground.size as any || 'cover',
-              }}
+              style={getBackgroundImageStyle()}
+              resizeMethod="resize"
+              resizeMode={
+                mapBackground.repeat === 'repeat' ? 'repeat' :
+                mapBackground.repeat === 'repeat-x' ? 'repeat' :
+                mapBackground.repeat === 'repeat-y' ? 'repeat' :
+                mapBackground.size as any || 'cover'
+              }
             />
           )}
           
@@ -567,6 +646,55 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
           КТ: {Object.keys(checkpointsData).length}
         </Text>
       </View>
+
+      {/* Модальное окно для уроков и контрольных точек */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity 
+              style={styles.closeButton} 
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.closeButtonText}>×</Text>
+            </TouchableOpacity>
+            
+            <Text style={styles.modalTitle}>
+              {modalData?.type === "lesson" ? "Урок" : "Контрольная точка"}
+            </Text>
+            
+            <Text style={styles.modalSubtitle}>{modalData?.title}</Text>
+            
+            <View style={styles.modalDescription}>
+              <Text style={styles.modalDescriptionText}>
+                {modalData?.description}
+              </Text>
+            </View>
+            
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                style={styles.cancelButton}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Закрыть</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.navigateButton}
+                onPress={handleNavigate}
+              >
+                <Text style={styles.navigateButtonText}>
+                  {modalData?.type === "lesson" ? "Перейти к уроку" : "Перейти к контрольной точке"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
