@@ -5,8 +5,8 @@ import { styles } from "./styles";
 import Header from "../components/Header";
 import Footer, { TabName } from "../components/Footer";
 
-export default function ProfileScreen() {
-  const [activeTab, setActiveTab] = useState<TabName>("profile");
+export default function CoursesScreen() {
+  const [activeTab, setActiveTab] = useState<TabName>("courses");
 
   const handleTabPress = (tab: TabName) => {
     setActiveTab(tab);
@@ -16,11 +16,11 @@ export default function ProfileScreen() {
   return (
     <>
       <View style={styles.containerLight}>
-        <Header title="Profile" />
+        <Header title="Courses" />
 
         {/* Content */}
         <View style={styles.content}>
-          {/* Profile content goes here */}
+          {/* Courses content goes here */}
         </View>
 
         <Footer activeTab={activeTab} onTabPress={handleTabPress} />

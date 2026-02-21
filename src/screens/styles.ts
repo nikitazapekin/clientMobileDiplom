@@ -6,9 +6,14 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.GRAY_DARK,
   },
-  containerWhite: {
+
+   containerLight: {
     flex: 1,
     backgroundColor: COLORS.WHITE,
+  },
+  containerWhite: {
+    flex: 1,
+    backgroundColor: COLORS.GRAY_LIGHT,
   },
 
   content: {
@@ -32,7 +37,7 @@ export const styles = StyleSheet.create({
     fontWeight: "bold",
     marginTop: 20,
     marginBottom: 10,
-    
+
     color: COLORS.WHITE,
   },
 });
