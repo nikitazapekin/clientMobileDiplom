@@ -1,6 +1,10 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
-
+import { View, Text, TouchableOpacity, Image, ImageSourcePropType } from "react-native";
+import HomeIcon from "@/assets/tabs/home.png";
+import AchievementsIcon from "@/assets/tabs/badge.png";
+import ChatsIcon from "@/assets/tabs/chat.png";
+import SandboxIcon from "@/assets/tabs/coding.png";
+import ProfileIcon from "@/assets/tabs/user.png";
 import { styles } from "./styles";
 
 export type TabName = "courses" | "achievements" | "chats" | "sandbox" | "profile";
@@ -11,12 +15,12 @@ interface FooterProps {
 }
 
 export default function Footer({ activeTab, onTabPress }: FooterProps) {
-  const tabs: { name: TabName; label: string }[] = [
-    { name: "courses", label: "Home" },
-    { name: "achievements", label: "Achievements" },
-    { name: "chats", label: "Chats" },
-    { name: "sandbox", label: "Sandbox" }, 
-      { name: "profile", label: "Profile" },
+  const tabs: { name: TabName; label: string , icon: ImageSourcePropType}[] = [
+    { name: "courses", label: "Home", icon: HomeIcon},
+    { name: "achievements", label: "Achievements" , icon: AchievementsIcon},
+    { name: "chats", label: "Chats", icon: ChatsIcon },  
+    { name: "sandbox", label: "Sandbox", icon: SandboxIcon }, 
+      { name: "profile", label: "Profile", icon: ProfileIcon },
   ];
 
   return (
@@ -30,14 +34,8 @@ export default function Footer({ activeTab, onTabPress }: FooterProps) {
           ]}
           onPress={() => onTabPress(tab.name)}
         >
-          <Text
-            style={[
-              styles.footerButtonText,
-              activeTab === tab.name && styles.footerButtonTextActive,
-            ]}
-          >
-            {tab.label}
-          </Text>
+          <Image source={tab.icon} style={styles.footerButtonIcon} />
+         
         </TouchableOpacity>
       ))}
     </View>

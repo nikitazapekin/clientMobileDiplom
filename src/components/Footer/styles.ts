@@ -4,31 +4,33 @@ import { COLORS } from "appStyles";
 export const styles = StyleSheet.create({
   footer: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent: "space-between",
     alignItems: "center",
     paddingBottom: 40,
     paddingTop: 10,
-    backgroundColor: COLORS.WHITE,
+    paddingHorizontal: 10,
+    backgroundColor: COLORS.GRAY_DARK,
   },
   footerButton: {
     width: 60,
     height: 60,
-    borderRadius: 30,
+    borderRadius: 65,
     backgroundColor: COLORS.GRAY_LIGHT,
     justifyContent: "center",
     alignItems: "center",
-    marginHorizontal: 4,
+//    marginHorizontal: 4,
+    padding: 8,
   },
   footerButtonActive: {
     borderWidth: 2,
     borderColor: COLORS.GRAY_DARK,
   },
-  footerButtonText: {
-    fontSize: 10,
-    fontWeight: "bold",
-    color: COLORS.GRAY_DARK,
-    textAlign: "center",
+  footerButtonIcon: {
+    width: 34,
+    height: 34,
+    marginBottom: 2,
   },
+ 
   footerButtonTextActive: {
     color: COLORS.GRAY_DARK,
   },
