@@ -7,18 +7,20 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  
-  mapScrollContent: {
-    flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  
-  mapContainer: {
+
+  responsiveContainer: {
+    flex: 1,
     position: 'relative',
     overflow: 'hidden',
   },
-  
+
+  backgroundContainer: {
+    flex: 1,
+    position: 'relative',
+    width: '100%',
+    height: '100%',
+  },
+
   breakpointInfo: {
     position: 'absolute',
     bottom: 16,
@@ -35,7 +37,6 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Стили для загрузки и ошибок
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',

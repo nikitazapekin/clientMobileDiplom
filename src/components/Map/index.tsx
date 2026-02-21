@@ -8,7 +8,7 @@ import {
   Image,
   StatusBar,
   StyleSheet,
-  ScrollView,
+  LayoutChangeEvent,
 } from "react-native";
 import { styles } from "./styled";
 import { MapService } from "@/http/map";
@@ -108,18 +108,28 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
   const [lessonsData, setLessonsData] = useState<Record<string, LessonData>>({});
   const [checkpointsData, setCheckpointsData] = useState<Record<string, CheckpointData>>({});
   const [activeBreakpoint, setActiveBreakpoint] = useState<string>("desktop");
-  const [mapScale, setMapScale] = useState(1);
-  const scrollViewRef = useRef<ScrollView>(null);
+  const [containerWidth, setContainerWidth] = useState(SCREEN_WIDTH);
+  const [containerHeight, setContainerHeight] = useState(SCREEN_HEIGHT);
 
-  // Определяем брейкпоинт на основе ширины экрана (как в конструкторе)
+  // Определяем брейкпоинт на основе ширины контейнера
   useEffect(() => {
-    if (SCREEN_WIDTH <= 375) {
+    if (containerWidth <= 375) {
       setActiveBreakpoint("mobile");
-    } else if (SCREEN_WIDTH <= 768) {
+    } else if (containerWidth <= 768) {
       setActiveBreakpoint("tablet");
     } else {
       setActiveBreakpoint("desktop");
     }
+  }, [containerWidth]);
+
+  // Следим за изменением размера экрана
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setContainerWidth(window.width);
+      setContainerHeight(window.height);
+    });
+
+    return () => subscription?.remove();
   }, []);
 
   // Загрузка карты
@@ -279,7 +289,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
     return (weight && validWeights[weight]) || 'normal';
   };
 
-  // Получение настроек элемента для текущего брейкпоинта (как в конструкторе)
+  // Получение настроек элемента для текущего брейкпоинта
   const getElementBreakpointSettings = (element: MapElement) => {
     if (!element.breakpoints || !element.breakpoints[activeBreakpoint]) {
       return {};
@@ -287,8 +297,8 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
     return element.breakpoints[activeBreakpoint];
   };
 
-  // ТОЧНАЯ КОПИЯ функции calculateElementPosition из конструктора
-  const calculateElementPosition = (element: MapElement, targetMapSize: MapSize): Position => {
+  // ПРАВИЛЬНОЕ вычисление позиции элемента относительно текущего размера экрана
+  const calculateElementPosition = (element: MapElement): Position => {
     const breakpointSettings = getElementBreakpointSettings(element);
     const isHidden = breakpointSettings.hidden;
 
@@ -299,44 +309,56 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
     const currentPositioning = breakpointSettings.positioning || element.positioning;
     const currentOffset = breakpointSettings.offset || element.offset;
 
-    const basePosition = { x: 0, y: 0 };
+    let x = 0;
+    let y = currentOffset.y; // Y всегда отступ сверху
 
     switch (currentPositioning) {
       case "left":
-        basePosition.x = currentOffset.x;
+        // От левого края: позиция = отступ
+        x = currentOffset.x;
         break;
 
       case "center":
-        basePosition.x = targetMapSize.width / 2 + currentOffset.x;
+        // От центра: позиция = половина ширины экрана + смещение
+        x = containerWidth / 2 + currentOffset.x;
         break;
 
       case "right":
-        basePosition.x = targetMapSize.width + currentOffset.x;
+        // От правого края: позиция = ширина экрана - отступ
+        x = containerWidth - currentOffset.x;
         break;
 
       case "free":
-        basePosition.x = (element.position.x / 100) * targetMapSize.width;
-        basePosition.y = (element.position.y / 100) * targetMapSize.height;
+        // Процентное позиционирование относительно исходного размера карты
+        // Но масштабируем относительно текущего экрана
+        const scaleX = containerWidth / mapSize.width;
+        const scaleY = containerHeight / mapSize.height;
+        
+        x = (element.position.x / 100) * mapSize.width * scaleX;
+        y = (element.position.y / 100) * mapSize.height * scaleY;
         break;
     }
 
-    if (currentPositioning !== "free") {
-      basePosition.y = currentOffset.y;
-    }
-
-    return basePosition;
+    return { x, y };
   };
 
-  // Рендер элемента (максимально приближенный к конструктору)
+  // Обработчик изменения размера контейнера
+  const onContainerLayout = (event: LayoutChangeEvent) => {
+    const { width, height } = event.nativeEvent.layout;
+    setContainerWidth(width);
+    setContainerHeight(height);
+  };
+
+  // Рендер элемента
   const renderElement = (element: MapElement) => {
-    const position = calculateElementPosition(element, mapSize);
+    const position = calculateElementPosition(element);
     const breakpointSettings = getElementBreakpointSettings(element);
     const isHidden = breakpointSettings.hidden;
     const rotation = element.rotation || 0;
 
     if (isHidden) return null;
 
-    // Стиль с translate(-50%, -50%) как в конструкторе
+    // Стиль с translate(-50%, -50%) для центрирования элемента относительно его позиции
     const elementStyle: any = {
       position: 'absolute',
       left: position.x,
@@ -581,38 +603,30 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
     <View style={styles.studentContainer}>
       <StatusBar backgroundColor="#f5f5f5" barStyle="dark-content" />
       
-      {/* ScrollView для возможности просмотра большой карты */}
-      <ScrollView
-        ref={scrollViewRef}
-        horizontal
-        showsHorizontalScrollIndicator={true}
-        showsVerticalScrollIndicator={true}
-        bounces={true}
-        maximumZoomScale={3}
-        minimumZoomScale={0.5}
-        contentContainerStyle={styles.mapScrollContent}
+      {/* Резиновый контейнер на весь экран */}
+      <View 
+        style={styles.responsiveContainer}
+        onLayout={onContainerLayout}
       >
-        <View
+        {/* Фон карты (растягивается на весь экран) */}
+        <View 
           style={[
-            styles.mapContainer,
-            {
-              width: mapSize.width,
-              height: mapSize.height,
-              ...getMapBackgroundStyle(),
-            } as any,
+            styles.backgroundContainer,
+            getMapBackgroundStyle() as any,
           ]}
         >
+          {/* Элементы карты */}
           {elements.map(renderElement)}
         </View>
-      </ScrollView>
 
-      {/* Информация о брейкпоинте */}
-      <View style={styles.breakpointInfo}>
-        <Text style={styles.breakpointInfoText}>
-          {activeBreakpoint === 'mobile' ? '📱' : 
-           activeBreakpoint === 'tablet' ? '📟' : '💻'} 
-          {' '}{activeBreakpoint} | {mapSize.width}×{mapSize.height}
-        </Text>
+        {/* Информация о брейкпоинте */}
+        <View style={styles.breakpointInfo}>
+          <Text style={styles.breakpointInfoText}>
+            {activeBreakpoint === 'mobile' ? '📱' : 
+             activeBreakpoint === 'tablet' ? '📟' : '💻'} 
+            {' '}{activeBreakpoint}
+          </Text>
+        </View>
       </View>
     </View>
   );
