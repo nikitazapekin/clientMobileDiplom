@@ -73,7 +73,7 @@ const RegisterForm = () => {
         setLoading(true);
         await AuthService.register(formData as RegisterFormData);
         Alert.alert("Успех", "Регистрация прошла успешно", [
-          { text: "OK", onPress: () => navigation.navigate(ROUTES.STACK.PROFILE) }
+          { text: "OK", onPress: () => navigation.navigate(ROUTES.STACK.MAIN) }
         ]);
       } catch (error: any) {
         Alert.alert("Ошибка", error.message || "Не удалось зарегистрироваться");

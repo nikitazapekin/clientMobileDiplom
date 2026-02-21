@@ -4,11 +4,25 @@ export const ROUTES = {
     AUTH: "Auth",
     PROFILE: "Profile",
     REGISTER: "Register",
+    WELCOME: "Welcome",
+ COURSES: "Courses",
+    ACHIEVEMENTS: "Achievements",
+    CHATS: "Chats",
+    SANDBOX: "Sandbox",
+    
+    
   },
   TABS: {
     HOME: "HomeTab",
     PROFILE: "ProfileTab",
     SETTINGS: "SettingsTab",
+  },
+  SCREENS: {
+    COURSES: "Courses",
+    ACHIEVEMENTS: "Achievements",
+    CHATS: "Chats",
+    SANDBOX: "Sandbox",
+    PROFILE: "Profile",
   },
 } as const;
 

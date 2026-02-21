@@ -6,18 +6,18 @@ import { styles } from "./styles";
 import Header from "../components/Header";
 import Footer, { TabName } from "../components/Footer";
 
-export default function CoursesScreen() {
+export default function SandboxScreen() {
   const route = useRoute();
-  const activeTab: TabName = route.name === "Courses" ? "courses" : "courses";
+  const activeTab: TabName = route.name === "Sandbox" ? "sandbox" : "sandbox";
 
   return (
     <>
       <View style={styles.containerLight}>
-        <Header title="Courses" />
+        <Header title="Sandbox" />
 
         {/* Content */}
         <View style={styles.content}>
-          {/* Courses content goes here */}
+          {/* Sandbox content goes here */}
         </View>
 
         <Footer activeTab={activeTab} />

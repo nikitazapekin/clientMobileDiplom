@@ -6,18 +6,18 @@ import { styles } from "./styles";
 import Header from "../components/Header";
 import Footer, { TabName } from "../components/Footer";
 
-export default function CoursesScreen() {
+export default function ChatsScreen() {
   const route = useRoute();
-  const activeTab: TabName = route.name === "Courses" ? "courses" : "courses";
+  const activeTab: TabName = route.name === "Chats" ? "chats" : "chats";
 
   return (
     <>
       <View style={styles.containerLight}>
-        <Header title="Courses" />
+        <Header title="Chats" />
 
         {/* Content */}
         <View style={styles.content}>
-          {/* Courses content goes here */}
+          {/* Chats content goes here */}
         </View>
 
         <Footer activeTab={activeTab} />

@@ -1,5 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image, ImageSourcePropType } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import type { MainTabNavigationProp } from "@/navigation/types";
 import HomeIcon from "@/assets/tabs/home.png";
 import AchievementsIcon from "@/assets/tabs/badge.png";
 import ChatsIcon from "@/assets/tabs/chat.png";
@@ -9,19 +11,28 @@ import { styles } from "./styles";
 
 export type TabName = "courses" | "achievements" | "chats" | "sandbox" | "profile";
 
+type RouteName = "Courses" | "Achievements" | "Chats" | "Sandbox" | "Profile";
+
 interface FooterProps {
   activeTab: TabName;
-  onTabPress: (tab: TabName) => void;
 }
 
-export default function Footer({ activeTab, onTabPress }: FooterProps) {
-  const tabs: { name: TabName; label: string , icon: ImageSourcePropType}[] = [
-    { name: "courses", label: "Home", icon: HomeIcon},
-    { name: "achievements", label: "Achievements" , icon: AchievementsIcon},
-    { name: "chats", label: "Chats", icon: ChatsIcon },  
-    { name: "sandbox", label: "Sandbox", icon: SandboxIcon }, 
-      { name: "profile", label: "Profile", icon: ProfileIcon },
+export default function Footer({ activeTab }: FooterProps) {
+  const navigation = useNavigation<MainTabNavigationProp>();
+
+  const tabs: { name: TabName; label: string; route: RouteName; icon: ImageSourcePropType }[] = [
+    { name: "courses", label: "Home", route: "Courses", icon: HomeIcon },
+    { name: "achievements", label: "Achievements", route: "Achievements", icon: AchievementsIcon },
+    { name: "chats", label: "Chats", route: "Chats", icon: ChatsIcon },
+    { name: "sandbox", label: "Sandbox", route: "Sandbox", icon: SandboxIcon },
+    { name: "profile", label: "Profile", route: "Profile", icon: ProfileIcon },
   ];
+
+  const handleTabPress = (route: RouteName) => {
+
+    console.log("NAVIGATE")
+    navigation.navigate(route);
+  };
 
   return (
     <View style={styles.footer}>
@@ -32,10 +43,9 @@ export default function Footer({ activeTab, onTabPress }: FooterProps) {
             styles.footerButton,
             activeTab === tab.name && styles.footerButtonActive,
           ]}
-          onPress={() => onTabPress(tab.name)}
+          onPress={() => handleTabPress(tab.route)}
         >
           <Image source={tab.icon} style={styles.footerButtonIcon} />
-         
         </TouchableOpacity>
       ))}
     </View>

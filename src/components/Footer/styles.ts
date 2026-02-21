@@ -22,8 +22,8 @@ export const styles = StyleSheet.create({
     padding: 8,
   },
   footerButtonActive: {
-    borderWidth: 2,
-    borderColor: COLORS.GRAY_DARK,
+borderColor: "#9F0FA7",
+borderWidth: 2,
   },
   footerButtonIcon: {
     width: 34,
@@ -32,6 +32,9 @@ export const styles = StyleSheet.create({
   },
  
   footerButtonTextActive: {
-    color: COLORS.GRAY_DARK,
+    //color: COLORS.GRAY_DARK,
+borderColor: "#9F0FA7",
+borderWidth: 2,
+
   },
 });
