@@ -7,8 +7,7 @@ import {
   Dimensions,
   Image,
   StatusBar,
-  StyleSheet,
-  LayoutChangeEvent,
+  ScrollView,
 } from "react-native";
 import { styles } from "./styled";
 import { MapService } from "@/http/map";
@@ -107,30 +106,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
   const [error, setError] = useState<string | null>(null);
   const [lessonsData, setLessonsData] = useState<Record<string, LessonData>>({});
   const [checkpointsData, setCheckpointsData] = useState<Record<string, CheckpointData>>({});
-  const [activeBreakpoint, setActiveBreakpoint] = useState<string>("desktop");
   const [containerWidth, setContainerWidth] = useState(SCREEN_WIDTH);
-  const [containerHeight, setContainerHeight] = useState(SCREEN_HEIGHT);
-
-  // Определяем брейкпоинт на основе ширины контейнера
-  useEffect(() => {
-    if (containerWidth <= 375) {
-      setActiveBreakpoint("mobile");
-    } else if (containerWidth <= 768) {
-      setActiveBreakpoint("tablet");
-    } else {
-      setActiveBreakpoint("desktop");
-    }
-  }, [containerWidth]);
-
-  // Следим за изменением размера экрана
-  useEffect(() => {
-    const subscription = Dimensions.addEventListener('change', ({ window }) => {
-      setContainerWidth(window.width);
-      setContainerHeight(window.height);
-    });
-
-    return () => subscription?.remove();
-  }, []);
 
   // Загрузка карты
   useEffect(() => {
@@ -215,12 +191,12 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
             orderIndex: lessonData.orderIndex,
             isPublished: lessonData.isPublished,
           };
-          console.log(`✅ Загружены данные урока для элемента: ${element.id}`);
+          console.log(`✅ Загружены данные урока для элемента: ${element.id}, название: "${lessonData.title}"`);
         } catch (error) {
           console.warn(`⚠️ Не удалось загрузить данные урока для элемента: ${element.id}`, error);
           lessons[element.id] = {
             mapElementId: element.id,
-            title: element.title || `Урок ${element.id.substring(0, 8)}`,
+            title: element.title || "Урок",
             description: element.text || "",
             orderIndex: 0,
             isPublished: true,
@@ -245,7 +221,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
             instructions: checkpointData.instructions,
             isPublished: checkpointData.isPublished,
           };
-          console.log(`✅ Загружены данные контрольной точки для элемента: ${element.id}`);
+          console.log(`✅ Загружены данные контрольной точки для элемента: ${element.id}, название: "${checkpointData.title}"`);
         } catch (error) {
           console.warn(
             `⚠️ Не удалось загрузить данные контрольной точки для элемента: ${element.id}`,
@@ -253,7 +229,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
           );
           checkpoints[element.id] = {
             mapElementId: element.id,
-            title: element.title || `Контрольная точка ${element.id.substring(0, 8)}`,
+            title: element.title || "Контрольная точка",
             description: element.text || "",
             type: "quiz",
             isPublished: true,
@@ -263,15 +239,12 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
 
       setLessonsData(lessons);
       setCheckpointsData(checkpoints);
-      console.log(
-        `✅ Загружено данных: ${Object.keys(lessons).length} уроков, ${Object.keys(checkpoints).length} контрольных точек`
-      );
     } catch (error) {
       console.error("❌ Ошибка загрузки дополнительных данных:", error);
     }
   };
 
-  // Функция для преобразования строки fontWeight в допустимый тип
+  // Функция для преобразования строки fontWeight
   const getValidFontWeight = (weight?: string): any => {
     const validWeights: Record<string, any> = {
       'normal': 'normal',
@@ -289,76 +262,45 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
     return (weight && validWeights[weight]) || 'normal';
   };
 
-  // Получение настроек элемента для текущего брейкпоинта
-  const getElementBreakpointSettings = (element: MapElement) => {
-    if (!element.breakpoints || !element.breakpoints[activeBreakpoint]) {
-      return {};
-    }
-    return element.breakpoints[activeBreakpoint];
-  };
-
-  // ПРАВИЛЬНОЕ вычисление позиции элемента относительно текущего размера экрана
+  // Вычисление позиции элемента - ТОЧНО КАК В КОНСТРУКТОРЕ
   const calculateElementPosition = (element: MapElement): Position => {
-    const breakpointSettings = getElementBreakpointSettings(element);
-    const isHidden = breakpointSettings.hidden;
-
-    if (isHidden) {
-      return { x: -1000, y: -1000 };
-    }
-
-    const currentPositioning = breakpointSettings.positioning || element.positioning;
-    const currentOffset = breakpointSettings.offset || element.offset;
+    const currentPositioning = element.positioning;
+    const currentOffset = element.offset;
 
     let x = 0;
-    let y = currentOffset.y; // Y всегда отступ сверху
+    let y = 0;
 
     switch (currentPositioning) {
       case "left":
-        // От левого края: позиция = отступ
         x = currentOffset.x;
+        y = currentOffset.y;
         break;
 
       case "center":
-        // От центра: позиция = половина ширины экрана + смещение
         x = containerWidth / 2 + currentOffset.x;
+        y = currentOffset.y;
         break;
 
       case "right":
-        // От правого края: позиция = ширина экрана - отступ
         x = containerWidth - currentOffset.x;
+        y = currentOffset.y;
         break;
 
       case "free":
-        // Процентное позиционирование относительно исходного размера карты
-        // Но масштабируем относительно текущего экрана
-        const scaleX = containerWidth / mapSize.width;
-        const scaleY = containerHeight / mapSize.height;
-        
-        x = (element.position.x / 100) * mapSize.width * scaleX;
-        y = (element.position.y / 100) * mapSize.height * scaleY;
+        // Для свободного позиционирования используем ПРОЦЕНТЫ от размеров карты
+        x = (element.position.x / 100) * containerWidth; // X масштабируем по ширине экрана
+        y = (element.position.y / 100) * mapSize.height; // Y используем высоту карты из БД
         break;
     }
 
     return { x, y };
   };
 
-  // Обработчик изменения размера контейнера
-  const onContainerLayout = (event: LayoutChangeEvent) => {
-    const { width, height } = event.nativeEvent.layout;
-    setContainerWidth(width);
-    setContainerHeight(height);
-  };
-
   // Рендер элемента
   const renderElement = (element: MapElement) => {
     const position = calculateElementPosition(element);
-    const breakpointSettings = getElementBreakpointSettings(element);
-    const isHidden = breakpointSettings.hidden;
     const rotation = element.rotation || 0;
 
-    if (isHidden) return null;
-
-    // Стиль с translate(-50%, -50%) для центрирования элемента относительно его позиции
     const elementStyle: any = {
       position: 'absolute',
       left: position.x,
@@ -370,7 +312,6 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
       ],
     };
 
-    // Обработчик нажатия на элемент
     const handlePress = () => {
       if (onElementPress) {
         onElementPress(element);
@@ -427,7 +368,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
 
       case "lesson":
         const lessonData = lessonsData[element.id];
-        const displayTitle = lessonData?.title || element.title;
+        const displayTitle = lessonData?.title || element.title || "Урок";
         return (
           <TouchableOpacity
             key={element.id}
@@ -450,7 +391,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
               ]}
             >
               <Text style={styles.lessonCircleText}>
-                {displayTitle?.charAt(0) || "У"}
+                {displayTitle.charAt(0).toUpperCase()}
               </Text>
             </View>
             <View style={styles.starsArc}>
@@ -464,7 +405,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
                 />
               ))}
             </View>
-            <Text style={styles.lessonTitle} numberOfLines={1}>
+            <Text style={styles.lessonTitle} numberOfLines={2}>
               {displayTitle}
             </Text>
           </TouchableOpacity>
@@ -497,7 +438,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
 
       case "checkpoint":
         const checkpointData = checkpointsData[element.id];
-        const checkpointTitle = checkpointData?.title || element.title;
+        const checkpointTitle = checkpointData?.title || element.title || "Контрольная точка";
         return (
           <TouchableOpacity
             key={element.id}
@@ -523,7 +464,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
             >
               <View style={styles.checkpointInner} />
             </View>
-            <Text style={styles.checkpointTitle} numberOfLines={1}>
+            <Text style={styles.checkpointTitle} numberOfLines={2}>
               {checkpointTitle}
             </Text>
           </TouchableOpacity>
@@ -558,27 +499,6 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
     }
   };
 
-  // Получение стилей для фона карты
-  const getMapBackgroundStyle = () => {
-    const style: any = {
-      backgroundColor: mapBackground.color,
-    };
-
-    if (mapBackground.image) {
-      style.backgroundImage = `url(${mapBackground.image})`;
-    }
-
-    if (mapBackground.repeat) {
-      style.backgroundRepeat = mapBackground.repeat;
-    }
-
-    if (mapBackground.size) {
-      style.backgroundSize = mapBackground.size;
-    }
-
-    return style;
-  };
-
   if (isLoading && !elements.length) {
     return (
       <View style={styles.loadingContainer}>
@@ -603,30 +523,49 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
     <View style={styles.studentContainer}>
       <StatusBar backgroundColor="#f5f5f5" barStyle="dark-content" />
       
-      {/* Резиновый контейнер на весь экран */}
-      <View 
-        style={styles.responsiveContainer}
-        onLayout={onContainerLayout}
+      {/* Вертикальный ScrollView */}
+      <ScrollView
+        showsVerticalScrollIndicator={true}
+        bounces={true}
+        contentContainerStyle={styles.scrollContent}
       >
-        {/* Фон карты (растягивается на весь экран) */}
+        {/* Контейнер карты с фиксированной высотой из БД */}
         <View 
           style={[
-            styles.backgroundContainer,
-            getMapBackgroundStyle() as any,
+            styles.mapContainer,
+            { 
+              width: '100%',
+              height: mapSize.height,
+              backgroundColor: mapBackground.color,
+            }
           ]}
+          onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
         >
+          {/* Фоновое изображение */}
+          {mapBackground.image && (
+            <Image
+              source={{ uri: mapBackground.image }}
+              style={{
+                position: 'absolute',
+                width: '100%',
+                height: mapSize.height,
+                resizeMode: mapBackground.size as any || 'cover',
+              }}
+            />
+          )}
+          
           {/* Элементы карты */}
           {elements.map(renderElement)}
         </View>
+      </ScrollView>
 
-        {/* Информация о брейкпоинте */}
-        <View style={styles.breakpointInfo}>
-          <Text style={styles.breakpointInfoText}>
-            {activeBreakpoint === 'mobile' ? '📱' : 
-             activeBreakpoint === 'tablet' ? '📟' : '💻'} 
-            {' '}{activeBreakpoint}
-          </Text>
-        </View>
+      {/* Информационная панель */}
+      <View style={styles.infoPanel}>
+        <Text style={styles.infoText}>
+          {mapSize.width}×{mapSize.height} | Эл: {elements.length} | 
+          Ур: {Object.keys(lessonsData).length} | 
+          КТ: {Object.keys(checkpointsData).length}
+        </Text>
       </View>
     </View>
   );

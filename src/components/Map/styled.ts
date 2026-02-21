@@ -1,6 +1,4 @@
-import { StyleSheet, Dimensions } from 'react-native';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   studentContainer: {
@@ -8,20 +6,16 @@ export const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
 
-  responsiveContainer: {
-    flex: 1,
-    position: 'relative',
-    overflow: 'hidden',
+  scrollContent: {
+    flexGrow: 1,
+    alignItems: 'center',
   },
 
-  backgroundContainer: {
-    flex: 1,
+  mapContainer: {
     position: 'relative',
-    width: '100%',
-    height: '100%',
   },
 
-  breakpointInfo: {
+  infoPanel: {
     position: 'absolute',
     bottom: 16,
     right: 16,
@@ -31,7 +25,7 @@ export const styles = StyleSheet.create({
     borderRadius: 20,
     zIndex: 1000,
   },
-  breakpointInfoText: {
+  infoText: {
     color: '#fff',
     fontSize: 12,
     fontWeight: '600',
@@ -113,9 +107,15 @@ export const styles = StyleSheet.create({
     backgroundColor: '#FFD700',
   },
   lessonTitle: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#333',
     marginTop: 4,
+    maxWidth: 80,
+    textAlign: 'center',
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   checkpointElement: {
     borderRadius: 4,
@@ -129,8 +129,14 @@ export const styles = StyleSheet.create({
     borderRadius: 2,
   },
   checkpointTitle: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#333',
     marginTop: 4,
+    maxWidth: 80,
+    textAlign: 'center',
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
 });
