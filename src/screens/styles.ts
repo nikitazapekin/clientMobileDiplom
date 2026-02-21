@@ -18,14 +18,11 @@ export const styles = StyleSheet.create({
 
   content: {
     flex: 1,
-    marginTop: 60,
-    marginBottom: 80,
+    marginTop: 0,
+    marginBottom: 0,
+    backgroundColor:"red"
   },
-  doctorContent: {
-    flex: 1,
-    marginTop: 60,
-    marginBottom: 10,
-  },
+ 
   contentContainer: {
     paddingLeft: 16,
     paddingRight: 16,
