@@ -5,23 +5,25 @@ import { useRoute } from "@react-navigation/native";
 import { styles } from "./styles";
 import Header from "../components/Header";
 import Footer, { TabName } from "../components/Footer";
+import CoursesList from "@/components/Courses";
 
 export default function CoursesScreen() {
-  const route = useRoute();
-  const activeTab: TabName = route.name === "Courses" ? "courses" : "courses";
+    const route = useRoute();
+    const activeTab: TabName = route.name === "Courses" ? "courses" : "courses";
 
-  return (
-    <>
-      <View style={styles.containerLight}>
-        <Header title="Courses" />
+    return (
+        <>
+            <View style={styles.containerLight}>
+                <Header title="Courses" />
 
-        {/* Content */}
-        <View style={styles.content}>
-          {/* Courses content goes here */}
-        </View>
+             
+                <View style={styles.content}>
 
-        <Footer activeTab={activeTab} />
-      </View>
-    </>
-  );
+                    <CoursesList />
+                </View>
+
+                <Footer activeTab={activeTab} />
+            </View>
+        </>
+    );
 }

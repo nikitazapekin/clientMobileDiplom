@@ -57,7 +57,7 @@ const AuthForm = () => {
       try {
         setLoading(true);
         await AuthService.login(formData as AuthFormData);
-        navigation.navigate(ROUTES.STACK.MAIN);
+        navigation.navigate(ROUTES.STACK.COURSES);
       } catch (error: any) {
         Alert.alert("Ошибка", error.message || "Не удалось войти");
       } finally {

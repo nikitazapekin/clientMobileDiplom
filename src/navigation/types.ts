@@ -10,7 +10,7 @@ export type RootStackParamList = {
   [ROUTES.STACK.REGISTER]: undefined;
   [ROUTES.STACK.MAIN]: undefined;
 
-    [ROUTES.SCREENS.COURSES]: undefined;
+  [ROUTES.SCREENS.COURSES]: undefined;
   [ROUTES.SCREENS.ACHIEVEMENTS]: undefined;
   [ROUTES.SCREENS.CHATS]: undefined;
   [ROUTES.SCREENS.SANDBOX]: undefined;
@@ -27,7 +27,5 @@ export type MainTabParamList = {
 
 export type RootStackNavigationProp = StackNavigationProp<RootStackParamList>;
 export type MainTabNavigationProp = BottomTabNavigationProp<MainTabParamList>;
-
 export type FormNavigationProp = StackNavigationProp<RootStackParamList>;
 
- 

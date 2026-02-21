@@ -59,8 +59,8 @@ export default function AppNavigator() {
         <Stack.Screen name={ROUTES.STACK.AUTH} component={AuthScreen} />
         <Stack.Screen name={ROUTES.STACK.REGISTER} component={RegisterScreen} />
         <Stack.Screen name={ROUTES.STACK.MAIN} component={MainTabs} />
+        <Stack.Screen name={ROUTES.STACK.COURSES} component={CoursesScreen} />
 
-        
       </Stack.Navigator>
     </NavigationContainer>
   );
