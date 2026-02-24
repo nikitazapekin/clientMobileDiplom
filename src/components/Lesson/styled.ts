@@ -317,4 +317,46 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
     alignItems: 'center',
   },
+
+
+  // Добавьте эти стили в ваш файл styled.ts
+ 
+
+image: {
+  width: '100%',
+  height: 200,
+  backgroundColor: COLORS.GRAY_LIGHT,
+},
+
+imageLoading: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: COLORS.GRAY_LIGHT,
+},
+
+imageError: {
+  padding: 20,
+  alignItems: 'center',
+  justifyContent: 'center',
+  minHeight: 100,
+},
+
+imageErrorText: {
+  fontSize: 14,
+  color: COLORS.ERROR,
+  marginBottom: 10,
+  textAlign: 'center',
+},
+
+imageUrl: {
+  fontSize: 12,
+ 
+  textAlign: 'center',
+  paddingHorizontal: 10,
+},
 });

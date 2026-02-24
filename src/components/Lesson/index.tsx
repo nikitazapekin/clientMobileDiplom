@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
+  Image
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -81,13 +82,41 @@ const TableBlockView = ({ block }: { block: TableBlock }) => {
 // Компонент для изображения
 const ImageBlockView = ({ block }: { block: ImageBlock }) => {
   if (!block.url) return null;
+  
+  const [imageError, setImageError] = useState(false);
+  const [loading, setLoading] = useState(true);
+
   return (
     <View style={styles.imageBlock}>
-      <Text  >🖼️ Изображение</Text>
-      <Text  >{block.url}</Text>
+      {loading && !imageError && (
+        <View style={styles.imageLoading}>
+          <ActivityIndicator size="small" color={COLORS.BLACK} />
+        </View>
+      )}
+      
+      {!imageError ? (
+        <Image
+          source={{ uri: block.url }}
+          style={styles.image}
+          resizeMode="contain"
+          onLoadStart={() => setLoading(true)}
+          onLoadEnd={() => setLoading(false)}
+          onError={() => {
+            setImageError(true);
+            setLoading(false);
+          }}
+        />
+      ) : (
+        <View style={styles.imageError}>
+          <Text style={styles.imageErrorText}>❌ Не удалось загрузить изображение</Text>
+          <Text style={styles.imageUrl}>{block.url}</Text>
+        </View>
+      )}
     </View>
   );
 };
+
+
 
 // Компонент для задачи с кодом
 const CodeTaskBlockView = ({ block }: { block: CodeTaskBlock }) => {
@@ -407,9 +436,9 @@ const Lesson = ({ id }: { id: string }) => {
                   case "table":
                       return <TableBlockView key={block.id} block={block} />;
                       
-                      /*    
-              case "image":
-                  return <ImageBlockView key={block.id} block={block} />;
+                      case "image":
+                          return <ImageBlockView key={block.id} block={block} />;
+                          /*    
                   */
             
                  case "codeTask":
