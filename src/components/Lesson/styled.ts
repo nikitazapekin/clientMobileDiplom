@@ -310,4 +310,11 @@ export const styles = StyleSheet.create({
     fontSize: 14,
   //  color: COLORS.GRAY,
   },
+  unknownBlock: {
+    padding: 10,
+    backgroundColor: COLORS.GRAY_LIGHT,
+    borderRadius: 5,
+    marginBottom: 10,
+    alignItems: 'center',
+  },
 });
