@@ -8,7 +8,6 @@ import {
   Modal,
   TouchableOpacity,
   ActivityIndicator,
-  TextInput,
   Image
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -37,6 +36,248 @@ import { COLORS } from "appStyles";
 // Функция для сортировки блоков
 const sortBlocks = (blocks: any[]) => {
   return [...blocks].sort((a, b) => (a.order || 0) - (b.order || 0));
+};
+
+// Функция для извлечения имени функции
+const extractFunctionName = (code: string, lang: CodeLanguage): string | null => {
+  if (!code) return null;
+
+  try {
+    switch (lang) {
+      case "javascript":
+        const jsMatch = code.match(
+          /function\s+(\w+)|const\s+(\w+)\s*=\s*\([^)]*\)\s*=>|let\s+(\w+)\s*=\s*\([^)]*\)\s*=>|var\s+(\w+)\s*=\s*\([^)]*\)\s*=>/
+        );
+        return jsMatch
+          ? jsMatch[1] || jsMatch[2] || jsMatch[3] || jsMatch[4]
+          : null;
+
+      case "python":
+        const pyMatch = code.match(/def\s+(\w+)\s*\(/);
+        return pyMatch ? pyMatch[1] : null;
+
+      case "golang":
+        const goMatch = code.match(/func\s+(\w+)\s*\(/);
+        return goMatch ? goMatch[1] : null;
+
+      case "csharp":
+        const csMatch = code.match(
+          /public\s+static\s+[\w<>\[\]]+\s+(\w+)\s*\([^)]*\)/
+        );
+        return csMatch ? csMatch[1] : null;
+
+      case "java":
+        const javaMatch = code.match(
+          /public\s+static\s+[\w<>\[\]]+\s+(\w+)\s*\([^)]*\)/
+        );
+        return javaMatch ? javaMatch[1] : null;
+
+      default:
+        return null;
+    }
+  } catch (e) {
+    console.error("Error extracting function name:", e);
+    return null;
+  }
+};
+
+// Функция для добавления main метода в Java
+const addJavaMainMethod = (
+  code: string,
+  funcName: string | null,
+  input: string = "5"
+): string => {
+  if (!funcName || !code) return code;
+
+  if (code.includes("public static void main")) {
+    return code.replace(
+      /public\s+static\s+void\s+main\(String\[\]\s*args\)\s*\{[\s\S]*?\}/,
+      `public static void main(String[] args) {
+        try {
+            System.out.println(${funcName}(${input}));
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+        }
+    }`
+    );
+  } else {
+    const codeWithoutLastBrace = code.trim().replace(/\}\s*$/, "");
+    return `${codeWithoutLastBrace}
+
+    public static void main(String[] args) {
+        try {
+            System.out.println(${funcName}(${input}));
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+        }
+    }
+}`;
+  }
+};
+
+// Функция для создания тестового набора Java
+const buildJavaTestSuite = (
+  userCode: string,
+  testCases: { input: string; expectedOutput: string }[],
+  funcName: string | null
+): string => {
+  if (!funcName || !userCode) return userCode;
+
+  const testCasesCode = testCases
+    .map((tc, index) => {
+      let input = tc.input;
+
+      let parsedInput;
+      try {
+        parsedInput = JSON.parse(input);
+      } catch {
+        parsedInput = input;
+      }
+
+      let argsStr: string;
+      if (Array.isArray(parsedInput)) {
+        argsStr = parsedInput
+          .map((arg) => {
+            if (typeof arg === "string") return `"${arg}"`;
+            if (typeof arg === "boolean") return arg;
+            if (typeof arg === "object") return JSON.stringify(arg);
+            return arg;
+          })
+          .join(", ");
+      } else {
+        argsStr =
+          typeof parsedInput === "string" ? `"${parsedInput}"` : String(parsedInput);
+      }
+
+      return `
+        // Тест ${index + 1}
+        try {
+            Object result = ${funcName}(${argsStr});
+            System.out.println("===TEST_START_" + ${index + 1} + "===");
+            if (result == null) {
+                System.out.print("null");
+            } else if (result instanceof String) {
+                System.out.print("\\"");
+                System.out.print(result);
+                System.out.print("\\"");
+            } else if (result.getClass().isArray()) {
+                if (result instanceof int[]) {
+                    System.out.print(java.util.Arrays.toString((int[])result));
+                } else if (result instanceof Integer[]) {
+                    System.out.print(java.util.Arrays.toString((Integer[])result));
+                } else if (result instanceof String[]) {
+                    System.out.print(java.util.Arrays.toString((String[])result));
+                } else {
+                    System.out.print(java.util.Arrays.toString((Object[])result));
+                }
+            } else {
+                System.out.print(result);
+            }
+            System.out.println("===TEST_END_" + ${index + 1} + "===");
+        } catch (Exception e) {
+            System.out.println("===TEST_START_" + ${index + 1} + "===");
+            System.out.println("ERROR: " + e.getMessage());
+            System.out.println("===TEST_END_" + ${index + 1} + "===");
+        }`;
+    })
+    .join("\n");
+
+  if (userCode.includes("public static void main")) {
+    return userCode.replace(
+      /public\s+static\s+void\s+main\(String\[\]\s*args\)\s*\{[\s\S]*?\}/,
+      `public static void main(String[] args) {
+${testCasesCode}
+    }`
+    );
+  } else {
+    const codeWithoutLastBrace = userCode.trim().replace(/\}\s*$/, "");
+    return `${codeWithoutLastBrace}
+
+    public static void main(String[] args) {
+${testCasesCode}
+    }
+}`;
+  }
+};
+
+// Функция для построения тестового кода
+const buildTestCode = (
+  userCode: string,
+  input: string,
+  lang: CodeLanguage,
+  funcName: string | null
+): string => {
+  if (!funcName || !userCode) return userCode;
+
+  let parsedInput: any;
+  try {
+    parsedInput = JSON.parse(input);
+  } catch {
+    parsedInput = input;
+  }
+
+  const isArrayInput = input.trim().startsWith("[") && input.trim().endsWith("]");
+
+  switch (lang) {
+    case "javascript":
+      if (isArrayInput) {
+        return `${userCode}\nconsole.log(JSON.stringify(${funcName}(${input})));`;
+      } else {
+        const args = Array.isArray(parsedInput) ? parsedInput : [parsedInput];
+        const argsStr = args.map((arg: any) => JSON.stringify(arg)).join(", ");
+        return `${userCode}\nconsole.log(JSON.stringify(${funcName}(${argsStr})));`;
+      }
+
+    case "python":
+      if (isArrayInput) {
+        return `${userCode}\nimport json\nprint(json.dumps(${funcName}(${input})))`;
+      } else {
+        const args = Array.isArray(parsedInput) ? parsedInput : [parsedInput];
+        const argsStr = args.map((arg: any) => JSON.stringify(arg)).join(", ");
+        return `${userCode}\nimport json\nprint(json.dumps(${funcName}(${argsStr})))`;
+      }
+
+    case "csharp":
+      if (isArrayInput) {
+        const arrayValues = parsedInput.map((v: any) => v).join(", ");
+        return `${userCode}\n\npublic class Runner {\n    public static void Main() {\n        Console.WriteLine(JsonSerializer.Serialize(Program.${funcName}(new int[] { ${arrayValues} })));\n    }\n}`;
+      } else {
+        return `${userCode}\n\npublic class Runner {\n    public static void Main() {\n        Console.WriteLine(JsonSerializer.Serialize(Program.${funcName}(${input})));\n    }\n}`;
+      }
+
+    case "java":
+      return addJavaMainMethod(userCode, funcName, input);
+
+    case "golang":
+      if (isArrayInput) {
+        const arrayValues = parsedInput.map((v: any) => v).join(", ");
+        return `${userCode}\n\nfunc main() { result := ${funcName}([]int{${arrayValues}}); jsonResult, _ := json.Marshal(result); fmt.Println(string(jsonResult)) }`;
+      } else {
+        return `${userCode}\n\nfunc main() { result := ${funcName}(${input}); jsonResult, _ := json.Marshal(result); fmt.Println(string(jsonResult)) }`;
+      }
+
+    default:
+      return userCode;
+  }
+};
+
+// Функция для сравнения выводов
+const compareOutputs = (actual: any, expected: any): boolean => {
+  if (actual == null && expected == null) return true;
+  if (actual == null || expected == null) return false;
+
+  if (Array.isArray(actual) && Array.isArray(expected)) {
+    if (actual.length !== expected.length) return false;
+    return actual.every(
+      (item, index) => JSON.stringify(item) === JSON.stringify(expected[index])
+    );
+  }
+
+  if (typeof actual === "object" && typeof expected === "object") {
+    return JSON.stringify(actual) === JSON.stringify(expected);
+  }
+
+  return String(actual).trim() === String(expected).trim();
 };
 
 // Компонент для текстового блока
@@ -116,30 +357,38 @@ const ImageBlockView = ({ block }: { block: ImageBlock }) => {
   );
 };
 
-
-
-// Компонент для задачи с кодом
-const CodeTaskBlockView = ({ block }: { block: CodeTaskBlock }) => {
-  const [code, setCode] = useState(block.startCode || "");
-  const [output, setOutput] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const runCode = async () => {
-    setLoading(true);
-    setOutput("");
-    try {
-      const res = await CodeService.executeCode({
-        language: block.language || "javascript",
-        code: code,
-      });
-      setOutput(res.error ? `Ошибка: ${res.error}` : res.output || "Код выполнен успешно");
-    } catch (error: any) {
-      setOutput(`Ошибка: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+// Компонент для задачи с кодом (полная версия)
+const CodeTaskBlockView = ({ 
+  block, 
+  slideId,
+  codeValue,
+  onCodeChange,
+  onRun,
+  onCheck,
+  isRunning,
+  output,
+  testResults,
+  constraintResults,
+  testError 
+}: { 
+  block: CodeTaskBlock;
+  slideId: string;
+  codeValue: string;
+  onCodeChange: (code: string) => void;
+  onRun: () => void;
+  onCheck: () => void;
+  isRunning: boolean;
+  output?: string;
+  testResults?: { input: string; expected: string; actual: string; passed: boolean }[];
+  constraintResults?: {
+    type: CodeConstraintType;
+    name: string;
+    passed: boolean;
+    expected: string;
+    actual: string;
+  }[];
+  testError?: string;
+}) => {
   return (
     <View style={styles.codeTaskBlock}>
       {block.description && (
@@ -147,32 +396,83 @@ const CodeTaskBlockView = ({ block }: { block: CodeTaskBlock }) => {
       )}
 
       <CodeEditor
-        value={code}
-        onChange={setCode}
+        value={codeValue}
+        onChange={onCodeChange}
         language={block.language || "javascript"}
         height={200}
       />
 
       <View style={styles.buttonRow}>
         <CustomButton
-          text={loading ? "Запуск..." : "Запустить"}
-          handler={runCode}
-          disabled={loading}
+          text={isRunning ? "Запуск..." : "Запустить"}
+          handler={onRun}
+          disabled={isRunning}
+          backgroundColor={COLORS.BLACK}
+          maxWidth={120}
+        />
+        <CustomButton
+          text="Проверить"
+          handler={onCheck}
+          disabled={isRunning}
           backgroundColor={COLORS.BLACK}
           maxWidth={120}
         />
       </View>
 
-      {output !== "" && (
+      {output !== "" && output !== undefined && (
         <View style={styles.consoleOutput}>
-          <Text style={styles.consoleTitle}>Результат:</Text>
+          <Text style={styles.consoleTitle}>Результат запуска:</Text>
           <Text style={styles.consoleText}>{output}</Text>
         </View>
       )}
 
-      {block.testCases && block.testCases.length > 0 && (
-        <View >
-          <Text >Тест-кейсы: {block.testCases.length}</Text>
+      {testResults && testResults.length > 0 && (
+        <View style={styles.testResults}>
+          <Text style={styles.resultsTitle}>
+            Результаты тестов: {testResults.filter(r => r.passed).length}/{testResults.length}
+          </Text>
+          {testResults.map((result, index) => (
+            <View 
+              key={index} 
+              style={[
+                styles.testCaseResult,
+                result.passed ? styles.passedTest : styles.failedTest
+              ]}
+            >
+              <Text style={styles.testCaseTitle}>Тест #{index + 1}</Text>
+              <Text>Вход: {result.input}</Text>
+              <Text>Ожидалось: {result.expected}</Text>
+              <Text>Получено: {result.actual}</Text>
+              <Text>{result.passed ? "✅ Пройден" : "❌ Провален"}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {constraintResults && constraintResults.length > 0 && (
+        <View style={styles.constraintResults}>
+          <Text style={styles.resultsTitle}>
+            Ограничения: {constraintResults.filter(c => c.passed).length}/{constraintResults.length}
+          </Text>
+          {constraintResults.map((constraint, index) => (
+            <View 
+              key={index} 
+              style={[
+             
+                constraint.passed ? styles.passedConstraint : styles.failedConstraint
+              ]}
+            >
+              <Text style={styles.constraintName}>{constraint.name}</Text>
+              <Text>Ожидалось: {constraint.expected}</Text>
+              <Text>Получено: {constraint.actual}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {testError && testError !== "" && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{testError}</Text>
         </View>
       )}
     </View>
@@ -209,8 +509,7 @@ const TheoryQuestionBlockView = ({ block }: { block: TheoryQuestionBlock }) => {
             style={[
               styles.optionItem,
               selected === index && styles.selectedOption,
-           //   showResult && index === block.correctIndex  ,
-           //   showResult && selected === index && selected !== block.correctIndex && styles.wrongOption,
+              
             ]}
             onPress={() => !showResult && setSelected(index)}
             disabled={showResult}
@@ -288,6 +587,24 @@ const Lesson = ({ id }: { id: string }) => {
   const [sourcesModalVisible, setSourcesModalVisible] = useState(false);
   const [currentSources, setCurrentSources] = useState<{ url: string; note?: string }[]>([]);
 
+  // Состояния для тестов и ответов
+  const [testAnswers, setTestAnswers] = useState<{ [slideId: string]: string }>({});
+  const [testErrors, setTestErrors] = useState<{ [slideId: string]: string }>({});
+  const [testResults, setTestResults] = useState<{
+    [slideId: string]: { input: string; expected: string; actual: string; passed: boolean }[];
+  }>({});
+  const [constraintResults, setConstraintResults] = useState<{
+    [slideId: string]: {
+      type: CodeConstraintType;
+      name: string;
+      passed: boolean;
+      expected: string;
+      actual: string;
+    }[];
+  }>({});
+  const [codeRunOutput, setCodeRunOutput] = useState<{ [blockId: string]: string }>({});
+  const [codeRunLoading, setCodeRunLoading] = useState<{ [blockId: string]: boolean }>({});
+
   useEffect(() => {
     loadLessonDetails();
   }, [id]);
@@ -362,6 +679,125 @@ const Lesson = ({ id }: { id: string }) => {
     setSourcesModalVisible(true);
   }, []);
 
+  const runCode = useCallback(async (blockId: string, language: CodeLanguage, code: string) => {
+    setCodeRunLoading(prev => ({ ...prev, [blockId]: true }));
+    setCodeRunOutput(prev => ({ ...prev, [blockId]: "" }));
+
+    try {
+      const res = await CodeService.executeCode({ language, code });
+      const text = res.error ? `Ошибка: ${res.error}` : res.output || "Код выполнен успешно";
+      setCodeRunOutput(prev => ({ ...prev, [blockId]: text }));
+    } catch (error: any) {
+      setCodeRunOutput(prev => ({ ...prev, [blockId]: `Ошибка: ${error.message}` }));
+    } finally {
+      setCodeRunLoading(prev => ({ ...prev, [blockId]: false }));
+    }
+  }, []);
+
+  const checkCodeTask = useCallback(async (block: CodeTaskBlock, slideId: string) => {
+    const userCode = testAnswers[slideId] || block.startCode || "";
+    
+    setTestErrors(prev => ({ ...prev, [slideId]: "" }));
+    setTestResults(prev => ({ ...prev, [slideId]: [] }));
+    setConstraintResults(prev => ({ ...prev, [slideId]: [] }));
+
+    if (!block.testCases || block.testCases.length === 0) {
+      setTestErrors(prev => ({ ...prev, [slideId]: "Нет тест-кейсов для проверки" }));
+      return;
+    }
+
+    const funcName = extractFunctionName(userCode, block.language || "javascript");
+    
+    if (!funcName) {
+      setTestErrors(prev => ({ 
+        ...prev, 
+        [slideId]: `Не удалось найти имя функции в коде. Убедитесь, что функция определена правильно.` 
+      }));
+      return;
+    }
+
+    try {
+      const results: any = [];
+      
+      for (const tc of block.testCases) {
+        if (!tc.input || !tc.expectedOutput) {
+          setTestErrors(prev => ({ 
+            ...prev, 
+            [slideId]: "Заполните все тест-кейсы" 
+          }));
+          return;
+        }
+
+        const codeToRun = buildTestCode(
+          userCode,
+          tc.input,
+          block.language || "javascript",
+          funcName
+        );
+
+        const res = await CodeService.executeCode({
+          language: block.language || "javascript",
+          code: codeToRun,
+        });
+
+        if (res.error) {
+          setTestErrors(prev => ({ 
+            ...prev, 
+            [slideId]: `Ошибка выполнения: ${res.error}` 
+          }));
+          return;
+        }
+
+        const actualOutput = (res.output || "").trim();
+        let expectedOutput = (tc.expectedOutput || "").trim();
+
+        let actualParsed: any;
+        let expectedParsed: any;
+
+        try {
+          actualParsed = JSON.parse(actualOutput);
+        } catch {
+          actualParsed = actualOutput;
+        }
+
+        try {
+          expectedParsed = JSON.parse(expectedOutput);
+        } catch {
+          expectedParsed = expectedOutput;
+        }
+
+        const passed = compareOutputs(actualParsed, expectedParsed);
+
+        results.push({
+          input: tc.input,
+          expected: expectedOutput,
+          actual: actualOutput,
+          passed,
+        });
+      }
+
+      setTestResults(prev => ({ ...prev, [slideId]: results }));
+
+      const allPassed = results.every((r: any) => r.passed);
+      
+      if (allPassed) {
+        Alert.alert("Отлично!", "Все тесты пройдены!");
+      } else {
+        const failedCount = results.filter((r: any) => !r.passed).length;
+        setTestErrors(prev => ({ 
+          ...prev, 
+          [slideId]: `Провалено тестов: ${failedCount} из ${results.length}` 
+        }));
+      }
+
+    } catch (error: any) {
+      setTestErrors(prev => ({ 
+        ...prev, 
+        [slideId]: `Ошибка проверки: ${error.message}` 
+      }));
+    }
+  }, [testAnswers]);
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -432,27 +868,39 @@ const Lesson = ({ id }: { id: string }) => {
             case "codeExample":
               return <CodeExampleBlockView key={block.id} block={block} />; 
             
-          
-                  case "table":
-                      return <TableBlockView key={block.id} block={block} />;
+            case "table":
+              return <TableBlockView key={block.id} block={block} />;
                       
-                      case "image":
-                          return <ImageBlockView key={block.id} block={block} />;
-                          /*    
-                  */
+            case "image":
+              return <ImageBlockView key={block.id} block={block} />;
             
-                 case "codeTask":
-                     return <CodeTaskBlockView key={block.id} block={block} />; 
-             
+            case "codeTask":
+              return (
+                <CodeTaskBlockView
+                  key={block.id}
+                  block={block}
+                  slideId={currentSlide.id}
+                  codeValue={testAnswers[currentSlide.id] || block.startCode || ""}
+                  onCodeChange={(code) => setTestAnswers(prev => ({ ...prev, [currentSlide.id]: code }))}
+                  onRun={() => {
+                    const code = testAnswers[currentSlide.id] || block.startCode || "";
+                    runCode(block.id, block.language || "javascript", code);
+                  }}
+                  onCheck={() => checkCodeTask(block, currentSlide.id)}
+                  isRunning={codeRunLoading[block.id]}
+                  output={codeRunOutput[block.id]}
+                  testResults={testResults[currentSlide.id]}
+                  constraintResults={constraintResults[currentSlide.id]}
+                  testError={testErrors[currentSlide.id]}
+                />
+              );
             
-
-                     case "theoryQuestion":
-                         return <TheoryQuestionBlockView key={block.id} block={block} />;
-                         /*     
+            case "theoryQuestion":
+              return <TheoryQuestionBlockView key={block.id} block={block} />;
             
-              */
             case "source":
-              return null; // Источники отображаются в модальном окне
+              return null;
+              
             default:
               return (
                 <View key={block.id} style={styles.unknownBlock}>

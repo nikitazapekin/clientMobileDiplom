@@ -1,4 +1,6 @@
+// http/codeService.ts
 import $api from "./api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export type CodeLanguage = "javascript" | "python" | "csharp" | "golang" | "java";
 
@@ -14,9 +16,18 @@ export interface ExecuteCodeResponse {
 }
 
 export class CodeService {
+  private static async getToken(): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem("accessToken");
+    } catch (error) {
+      console.error("Error getting token:", error);
+      return null;
+    }
+  }
+
   static async executeCode(data: ExecuteCodeRequest): Promise<ExecuteCodeResponse> {
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+      const token = await this.getToken();
 
       const response = await $api.post(
         "/code/execute",
