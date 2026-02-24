@@ -12,7 +12,7 @@ export const ROUTES = {
     COURSE: "Course", 
     MAP: "Map",
 
-
+    LESSON: "Lesson",
   },
   TABS: {
     HOME: "HomeTab",

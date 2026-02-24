@@ -18,6 +18,10 @@ import { CheckpointService } from "@/http/checkpoint";
 import type {
   MapElementResponse,
 } from "@/http/types/map";
+import CustomButton from "../Button";
+import { useNavigation } from "@react-navigation/native";
+import { ROUTES } from "@/navigation/routes";
+import { MainTabNavigationProp, RootStackParamList, RootStackNavigationProp } from "@/navigation/types";
 
 interface Position {
   x: number;
@@ -66,7 +70,7 @@ interface MapBackground {
 }
 
 interface LessonData {
-  id?: string;
+  id: string;
   mapElementId: string;
   title: string;
   description: string;
@@ -77,7 +81,7 @@ interface LessonData {
 }
 
 interface CheckpointData {
-  id?: string;
+  id: string;
   mapElementId: string;
   title: string;
   description: string;
@@ -94,7 +98,7 @@ interface ModalData {
   elementId: string;
   title: string;
   description: string;
-  targetId?: string;
+  targetId: string;
 }
 
 interface MapProps {
@@ -190,67 +194,95 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
 
       // Загружаем данные для каждого урока
       const lessonElements = elements.filter((el) => el.type === "lesson");
-      for (const element of lessonElements) {
-        try {
-          const lessonData = await LessonService.getLessonByMapElementId(element.id);
+      
+      // Сначала устанавливаем данные из элементов карты как запасной вариант
+      lessonElements.forEach((element) => {
+        if (element.title) {
           lessons[element.id] = {
-            id: lessonData.id,
-            mapElementId: lessonData.mapElementId,
-            title: lessonData.title,
-            description: lessonData.description,
-            content: lessonData.content,
-            duration: lessonData.duration,
-            orderIndex: lessonData.orderIndex,
-            isPublished: lessonData.isPublished,
-          };
-          console.log(`✅ Загружены данные урока для элемента: ${element.id}, название: "${lessonData.title}"`);
-        } catch (error) {
-          console.warn(`⚠️ Не удалось загрузить данные урока для элемента: ${element.id}`, error);
-          lessons[element.id] = {
+            id: `temp_${element.id}`,
             mapElementId: element.id,
-            title: element.title || "Урок",
+            title: element.title,
             description: element.text || "",
             orderIndex: 0,
             isPublished: true,
           };
         }
-      }
+      });
+
+      // Затем пытаемся загрузить реальные данные с сервера
+      await Promise.all(
+        lessonElements.map(async (element) => {
+          try {
+            const lessonData = await LessonService.getLessonByMapElementId(element.id);
+            lessons[element.id] = {
+              id: lessonData.id,
+              mapElementId: lessonData.mapElementId,
+              title: lessonData.title,
+              description: lessonData.description,
+              content: lessonData.content,
+              duration: lessonData.duration,
+              orderIndex: lessonData.orderIndex,
+              isPublished: lessonData.isPublished,
+            };
+            console.log(`✅ Загружены данные урока для элемента: ${element.id}, название: "${lessonData.title}"`);
+          } catch (error) {
+            console.warn(`⚠️ Не удалось загрузить данные урока для элемента: ${element.id}, использую данные из элемента карты`);
+            // Оставляем данные из элемента карты
+          }
+        })
+      );
 
       // Загружаем данные для каждой контрольной точки
       const checkpointElements = elements.filter((el) => el.type === "checkpoint");
-      for (const element of checkpointElements) {
-        try {
-          const checkpointData = await CheckpointService.getCheckpointByMapElementId(element.id);
+      
+      // Сначала устанавливаем данные из элементов карты как запасной вариант
+      checkpointElements.forEach((element) => {
+        if (element.title) {
           checkpoints[element.id] = {
-            id: checkpointData.id,
-            mapElementId: checkpointData.mapElementId,
-            title: checkpointData.title,
-            description: checkpointData.description,
-            type: checkpointData.type || "quiz",
-            passingScore: checkpointData.passingScore,
-            maxAttempts: checkpointData.maxAttempts,
-            timeLimit: checkpointData.timeLimit,
-            instructions: checkpointData.instructions,
-            isPublished: checkpointData.isPublished,
-          };
-          console.log(`✅ Загружены данные контрольной точки для элемента: ${element.id}, название: "${checkpointData.title}"`);
-        } catch (error) {
-          console.warn(
-            `⚠️ Не удалось загрузить данные контрольной точки для элемента: ${element.id}`,
-            error
-          );
-          checkpoints[element.id] = {
+            id: `temp_${element.id}`,
             mapElementId: element.id,
-            title: element.title || "Контрольная точка",
+            title: element.title,
             description: element.text || "",
             type: "quiz",
             isPublished: true,
           };
         }
-      }
+      });
+
+      // Затем пытаемся загрузить реальные данные с сервера
+      await Promise.all(
+        checkpointElements.map(async (element) => {
+          try {
+            const checkpointData = await CheckpointService.getCheckpointByMapElementId(element.id);
+            checkpoints[element.id] = {
+              id: checkpointData.id,
+              mapElementId: checkpointData.mapElementId,
+              title: checkpointData.title,
+              description: checkpointData.description,
+              type: checkpointData.type || "quiz",
+              passingScore: checkpointData.passingScore,
+              maxAttempts: checkpointData.maxAttempts,
+              timeLimit: checkpointData.timeLimit,
+              instructions: checkpointData.instructions,
+              isPublished: checkpointData.isPublished,
+            };
+            console.log(`✅ Загружены данные контрольной точки для элемента: ${element.id}, название: "${checkpointData.title}"`);
+          } catch (error) {
+            console.warn(
+              `⚠️ Не удалось загрузить данные контрольной точки для элемента: ${element.id}, использую данные из элемента карты`
+            );
+            // Оставляем данные из элемента карты
+          }
+        })
+      );
 
       setLessonsData(lessons);
       setCheckpointsData(checkpoints);
+      
+      console.log("📚 Итоговые данные уроков:", Object.keys(lessons).length);
+      Object.entries(lessons).forEach(([id, data]) => {
+        console.log(`   ${id}: "${data.title}"`);
+      });
     } catch (error) {
       console.error("❌ Ошибка загрузки дополнительных данных:", error);
     }
@@ -334,24 +366,24 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
         setModalVisible(true);
       }
     }
-    
-    // Вызываем внешний обработчик если есть
+     
     if (onElementPress) {
       onElementPress(element);
     }
   };
 
-  // Обработчик перехода к уроку или контрольной точке
+
+  const navigation = useNavigation<RootStackNavigationProp>()
+
   const handleNavigate = () => {
     if (!modalData || !modalData.targetId) return;
     
+navigation.navigate(ROUTES.STACK.LESSON, { id: modalData.targetId });
+//navigation.navigate(ROUTES.STACK.LESSON, { id: modalData.targetId });
     setModalVisible(false);
-    // Здесь можно добавить навигацию к уроку или контрольной точке
-    // Например: router.push(`/lesson/${modalData.targetId}`)
     Alert.alert("Навигация", `Переход к ${modalData.type} с ID: ${modalData.targetId}`);
   };
-
-  // Рендер элемента
+ 
   const renderElement = (element: MapElement) => {
     const position = calculateElementPosition(element);
     const rotation = element.rotation || 0;
@@ -419,6 +451,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
 
       case "lesson":
         const lessonData = lessonsData[element.id];
+        // Используем данные из lessonsData, если они есть
         const displayTitle = lessonData?.title || element.title || "Урок";
         return (
           <TouchableOpacity
@@ -528,20 +561,20 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
             onPress={() => handleElementClick(element)}
             activeOpacity={isClickable ? 0.7 : 1}
           >
-            <Text
-              style={[
-                elementStyle,
-                {
+            <View style={[elementStyle, { width: element.width || 40, height: element.height || 40 }]}>
+              <Text
+                style={{
                   fontSize: element.fontSize || 40,
-                  width: element.width || 40,
-                  height: element.height || 40,
                   textAlign: 'center',
                   textAlignVertical: 'center',
-                } as any,
-              ]}
-            >
-              {element.emoji}
-            </Text>
+                  width: '100%',
+                  height: '100%',
+                  includeFontPadding: false,
+                }}
+              >
+                {element.emoji}
+              </Text>
+            </View>
           </TouchableOpacity>
         );
 
@@ -558,19 +591,30 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
       height: mapSize.height,
     };
 
-    // Устанавливаем resizeMode в зависимости от backgroundSize
-    switch (mapBackground.size) {
-      case 'cover':
-        style.resizeMode = 'cover';
-        break;
-      case 'contain':
-        style.resizeMode = 'contain';
-        break;
-      case 'auto':
-        style.resizeMode = 'repeat';
-        break;
-      default:
-        style.resizeMode = 'cover';
+    // Устанавливаем режим повторения
+    if (mapBackground.repeat === 'repeat') {
+      style.resizeMode = 'repeat';
+    } else if (mapBackground.repeat === 'repeat-x') {
+      style.resizeMode = 'repeat';
+      style.transform = [{ scaleX: 1 }];
+    } else if (mapBackground.repeat === 'repeat-y') {
+      style.resizeMode = 'repeat';
+      style.transform = [{ scaleY: 1 }];
+    } else {
+      // Устанавливаем resizeMode в зависимости от backgroundSize
+      switch (mapBackground.size) {
+        case 'cover':
+          style.resizeMode = 'cover';
+          break;
+        case 'contain':
+          style.resizeMode = 'contain';
+          break;
+        case 'auto':
+          style.resizeMode = 'center';
+          break;
+        default:
+          style.resizeMode = 'cover';
+      }
     }
 
     return style;
@@ -618,18 +662,12 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
           ]}
           onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
         >
-          {/* Фоновое изображение с учетом повторения */}
+          {/* Фоновое изображение с учетом повторения и размера */}
           {mapBackground.image && (
             <Image
               source={{ uri: mapBackground.image }}
               style={getBackgroundImageStyle()}
               resizeMethod="resize"
-              resizeMode={
-                mapBackground.repeat === 'repeat' ? 'repeat' :
-                mapBackground.repeat === 'repeat-x' ? 'repeat' :
-                mapBackground.repeat === 'repeat-y' ? 'repeat' :
-                mapBackground.size as any || 'cover'
-              }
             />
           )}
           
@@ -676,7 +714,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
             </View>
             
             <View style={styles.modalActions}>
-              <TouchableOpacity 
+             {/*  <TouchableOpacity 
                 style={styles.cancelButton}
                 onPress={() => setModalVisible(false)}
               >
@@ -690,7 +728,22 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
                 <Text style={styles.navigateButtonText}>
                   {modalData?.type === "lesson" ? "Перейти к уроку" : "Перейти к контрольной точке"}
                 </Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
+
+
+              <CustomButton 
+              handler={() => setModalVisible(false)}
+              text="Закрыть"
+              maxWidth={120}
+              />
+              <CustomButton 
+              handler={handleNavigate}
+              text={modalData?.type === "lesson" ? "Перейти к уроку" : "Перейти к контрольной точке"}
+              backgroundColor="#D8D8D8"
+              maxWidth={120}
+
+              color="#000"
+              />
             </View>
           </View>
         </View>

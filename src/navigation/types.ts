@@ -16,10 +16,12 @@ export type RootStackParamList = {
   [ROUTES.SCREENS.SANDBOX]: undefined;
   [ROUTES.SCREENS.PROFILE]: undefined;
 
-    [ROUTES.STACK.COURSE]: { id: string };
+  [ROUTES.STACK.COURSE]: { id: string };
 
 
-        [ROUTES.STACK.MAP]: { id: string };
+  [ROUTES.STACK.MAP]: { id: string };
+
+  [ROUTES.STACK.LESSON]: { id: string };
 };
 
 export type MainTabParamList = {
@@ -28,6 +30,7 @@ export type MainTabParamList = {
   [ROUTES.SCREENS.CHATS]: undefined;
   [ROUTES.SCREENS.SANDBOX]: undefined;
   [ROUTES.SCREENS.PROFILE]: undefined;
+  [ROUTES.STACK.LESSON]: { id: string };
 };
 
 export type RootStackNavigationProp = StackNavigationProp<RootStackParamList>;

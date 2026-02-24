@@ -217,6 +217,7 @@ export const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#9F0FA7',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   navigateButtonText: {
     color: '#fff',
