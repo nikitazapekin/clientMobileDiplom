@@ -10,7 +10,7 @@ const BASE_URL = 'http://192.168.1.6:3002';
 const $api = axios.create({
   baseURL: BASE_URL,
   withCredentials: true, // Важно для отправки cookies
-  timeout: 10000,
+  timeout: 30000, // 30 seconds timeout
 });
 
 $api.interceptors.request.use(

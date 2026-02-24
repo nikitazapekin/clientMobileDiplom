@@ -5,6 +5,7 @@ import Footer, { TabName } from "../components/Footer";
 import CourseInfo from "@/components/CourseInfo";
 import { useRoute } from "@react-navigation/native";
 import Map from "@/components/Map";
+import Lesson from "@/components/Lesson";
 
 type CourseScreenRouteParams = {
     id: string;
@@ -17,14 +18,14 @@ const LessonScreen = () => {
         const activeTab: TabName = route.name === "Courses" ? "courses" : "courses";
         const { id } = route.params as CourseScreenRouteParams;
 
-        
+        console.log("PARENT", id)
     return (
       <View style={styles.containerLight}>
                 <Header title="Map" />
 
 
                 <View style={styles.content}>
- 
+ <Lesson  id={id} />
                 </View>
 
                 <Footer activeTab={activeTab} />
