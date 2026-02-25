@@ -359,4 +359,205 @@ imageUrl: {
   textAlign: 'center',
   paddingHorizontal: 10,
 },
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Добавьте в конец файла styles.ts
+
+starsContainer: {
+  position: 'relative',
+  height: 100,
+  marginVertical: 20,
+  overflow: 'hidden',
+  backgroundColor: '#1a1a2e',
+  borderRadius: 10,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+
+starWrapper: {
+  position: 'absolute',
+  top: 0,
+  width: 50,
+  height: 50,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+
+star: {
+  fontSize: 48,
+  textShadowColor: 'rgba(255, 255, 255, 0.3)',
+  textShadowOffset: { width: 0, height: 0 },
+  textShadowRadius: 10,
+},
+
+starFilled: {
+  color: '#ffd700',
+  textShadowColor: '#ffd700',
+  textShadowRadius: 20,
+},
+
+starEmpty: {
+  color: '#4a4a4a',
+},
+
+resultsModalContent: {
+  width: '90%',
+  maxHeight: '80%',
+  backgroundColor: COLORS.WHITE,
+  borderRadius: 10,
+  padding: 20,
+},
+
+resultsSummary: {
+  flexDirection: 'row',
+  justifyContent: 'space-around',
+  marginVertical: 20,
+  padding: 15,
+  backgroundColor: '#f5f5f5',
+  borderRadius: 8,
+},
+
+summaryItem: {
+  alignItems: 'center',
+  gap: 5,
+},
+
+summaryLabel: {
+  fontSize: 14,
+  color: '#666',
+},
+
+summaryValue: {
+  fontSize: 24,
+  fontWeight: 'bold',
+  color: '#333',
+},
+
+resultsList: {
+  maxHeight: 300,
+},
+
+resultsListTitle: {
+  fontSize: 16,
+  fontWeight: '600',
+  marginBottom: 10,
+  color: '#333',
+},
+
+resultItem: {
+  padding: 10,
+  marginBottom: 8,
+  borderRadius: 6,
+  backgroundColor: '#f9f9f9',
+},
+
+resultPassed: {
+  borderLeftWidth: 4,
+  borderLeftColor: '#4caf50',
+},
+
+resultFailed: {
+  borderLeftWidth: 4,
+  borderLeftColor: '#f44336',
+},
+
+resultTitle: {
+  fontWeight: '500',
+  marginBottom: 5,
+},
+
+resultDetails: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  fontSize: 14,
+  color: '#666',
+},
+
+modalFooter: {
+  marginTop: 20,
+  alignItems: 'center',
+},
+
+testSummary: {
+  fontSize: 16,
+  fontWeight: '600',
+  marginBottom: 10,
+},
+
+constraintSummary: {
+  fontSize: 16,
+  fontWeight: '600',
+  marginBottom: 10,
+},
+
+testCaseHeader: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 5,
+},
+
+passedText: {
+  color: '#4caf50',
+  fontWeight: '600',
+},
+
+failedText: {
+  color: '#f44336',
+  fontWeight: '600',
+},
+
+constraintHeader: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 5,
+},
+
+theoryImage: {
+  width: '100%',
+  height: 200,
+  marginVertical: 10,
+  backgroundColor: '#f5f5f5',
+},
+
+correctOption: {
+  backgroundColor: '#E8F5E9',
+  borderColor: '#4caf50',
+},
+
+wrongOption: {
+  backgroundColor: '#FFEBEE',
+  borderColor: '#f44336',
+},
+
+correctMark: {
+  color: '#4caf50',
+  fontSize: 18,
+  fontWeight: 'bold',
+  marginLeft: 10,
+},
 });
+
+
+
+
+
+
+
