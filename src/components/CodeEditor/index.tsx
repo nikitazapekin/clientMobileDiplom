@@ -1,333 +1,614 @@
-// components/CodeEditor/index.tsx
-import React, { useRef, useEffect, useState } from "react";
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-  Platform,
-  KeyboardAvoidingView,
+  StyleSheet,
   ScrollView,
-  Modal,
+  TouchableOpacity,
   Text,
-} from "react-native";
-import { WebView } from "react-native-webview";
-import { styles } from "./styled";
-import type { CodeLanguage } from "../Lesson/types";
+  Platform,
+  Keyboard,
+  findNodeHandle,
+  NativeModules,
+  UIManager
+} from 'react-native';
 
-export interface CodeEditorProps {
+type CodeLanguage = 'javascript' | 'python' | 'java' | 'csharp' | 'golang' | 'cpp';
+
+interface CodeEditorProps {
   value: string;
   onChange: (value: string) => void;
   language: CodeLanguage;
   readOnly?: boolean;
   height?: number;
-  /** При наличии показывается зелёная кнопка "Запуск" справа сверху */
   onRun?: () => void;
   runLoading?: boolean;
 }
 
-// Простой редактор для мобильных устройств с подсветкой синтаксиса через WebView
+const KEYWORDS: Record<CodeLanguage, string[]> = {
+  javascript: [
+    'function', 'const', 'let', 'var', 'if', 'else', 'for', 'while', 
+    'return', 'class', 'this', 'new', 'try', 'catch', 'finally', 
+    'switch', 'case', 'break', 'continue', 'typeof', 'instanceof',
+    'console.log', 'Array', 'Object', 'String', 'Number', 'Boolean',
+  ],
+  python: [
+    'def', 'if', 'elif', 'else', 'for', 'while', 'return', 'import', 
+    'from', 'as', 'class', 'try', 'except', 'finally', 'with', 
+    'print', 'len', 'range', 'enumerate', 'zip', 'open', 'None',
+    'True', 'False', 'and', 'or', 'not', 'in', 'is', 'lambda',
+  ],
+  java: [
+    'public', 'private', 'protected', 'class', 'void', 'static', 
+    'final', 'if', 'else', 'for', 'while', 'return', 'new', 'try', 
+    'catch', 'System.out.println', 'String', 'int', 'double', 'boolean',
+    'this', 'super', 'extends', 'implements', 'interface', 'enum',
+  ],
+  csharp: [
+    'public', 'private', 'protected', 'class', 'void', 'static', 
+    'readonly', 'if', 'else', 'for', 'foreach', 'while', 'return', 
+    'using', 'namespace', 'Console.WriteLine', 'string', 'int', 'bool',
+    'var', 'get', 'set', 'value', 'this', 'base', 'virtual', 'override',
+  ],
+  golang: [
+    'func', 'var', 'const', 'if', 'else', 'for', 'range', 'return', 
+    'package', 'import', 'type', 'struct', 'interface', 'go', 'defer',
+    'chan', 'map', 'make', 'new', 'fmt.Println', 'len', 'cap', 'append',
+  ],
+  cpp: [
+    'int', 'char', 'float', 'double', 'void', 'class', 'public', 
+    'private', 'protected', 'if', 'else', 'for', 'while', 'return', 
+    'new', 'delete', 'cout', 'cin', 'endl', 'std', 'using', 'namespace',
+    'virtual', 'override', 'const', 'static', 'template', 'typename',
+  ]
+};
+
+const COLORS = {
+  background: '#0D1117',
+  surface: '#161B22',
+  text: '#E6EDF3',
+  keyword: '#FF79C6',
+  string: '#A6E22E',
+  number: '#E6DB74',
+  comment: '#7E8C9A',
+  function: '#66D9EF',
+  type: '#A6E22E',
+  operator: '#66D9EF',
+  punctuation: '#E6EDF3',
+  accent: '#FF79C6',
+  selection: '#264F78',
+  lineNumber: '#6E7681',
+  autocompleteBg: '#1F2937',
+  autocompleteBorder: '#374151',
+  autocompleteSelected: '#2D3748',
+};
+
 const CodeEditor: React.FC<CodeEditorProps> = ({
   value,
   onChange,
   language,
   readOnly = false,
-  height = 240,
+  height = 400,
   onRun,
   runLoading = false,
 }) => {
-  const [localValue, setLocalValue] = useState(value);
-  const [isFocused, setIsFocused] = useState(false);
-  const webViewRef = useRef<WebView>(null);
+  const inputRef = useRef<TextInput>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const contentRef = useRef<View>(null);
+  const [selection, setSelection] = useState({ start: 0, end: 0 });
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<string[]>([]);
+  const [selectedSuggestion, setSelectedSuggestion] = useState(0);
+  const [cursorPosition, setCursorPosition] = useState({ line: 0, column: 0 });
+  const [cursorVisible, setCursorVisible] = useState(true);
 
-  // Обновление локального состояния при изменении value извне
+  // Мигание курсора
   useEffect(() => {
-    setLocalValue(value);
+    const interval = setInterval(() => {
+      setCursorVisible(prev => !prev);
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Получение текущего слова
+  const getCurrentWord = useCallback((text: string, pos: number) => {
+    const beforeCursor = text.slice(0, pos);
+    const afterCursor = text.slice(pos);
+    
+    const beforeMatch = beforeCursor.match(/[a-zA-Z0-9_.]*$/);
+    const afterMatch = afterCursor.match(/^[a-zA-Z0-9_]*/);
+    
+    return (beforeMatch ? beforeMatch[0] : '') + (afterMatch ? afterMatch[0] : '');
+  }, []);
+
+  // Обновление автокомплита
+  useEffect(() => {
+    const word = getCurrentWord(value, selection.start);
+
+    if (word.length >= 2 && !readOnly) {
+      const suggestions = KEYWORDS[language]
+        .filter(keyword => 
+          keyword.toLowerCase().startsWith(word.toLowerCase()) &&
+          keyword !== word
+        )
+        .slice(0, 6);
+      
+      setAutocompleteSuggestions(suggestions);
+      setShowAutocomplete(suggestions.length > 0);
+      setSelectedSuggestion(0);
+    } else {
+      setShowAutocomplete(false);
+    }
+  }, [value, selection.start, language, readOnly]);
+
+  // Вставка сниппета
+  const insertSnippet = useCallback((snippet: string) => {
+    const beforeCursor = value.slice(0, selection.start);
+    const afterCursor = value.slice(selection.end);
+    const word = getCurrentWord(value, selection.start);
+    
+    const newText = beforeCursor.slice(0, -word.length) + snippet + afterCursor;
+    onChange(newText);
+    
+    const newPosition = beforeCursor.length - word.length + snippet.length;
+    setSelection({ start: newPosition, end: newPosition });
+    setShowAutocomplete(false);
+  }, [value, selection, onChange]);
+
+  // Обработка клавиш
+  const handleKeyPress = useCallback((e: any) => {
+    const { key } = e.nativeEvent;
+
+    if (showAutocomplete) {
+      if (key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedSuggestion(prev => 
+          prev < autocompleteSuggestions.length - 1 ? prev + 1 : prev
+        );
+        return;
+      } else if (key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedSuggestion(prev => prev > 0 ? prev - 1 : 0);
+        return;
+      } else if (key === 'Enter' || key === 'Tab') {
+        e.preventDefault();
+        if (autocompleteSuggestions[selectedSuggestion]) {
+          insertSnippet(autocompleteSuggestions[selectedSuggestion]);
+        }
+        return;
+      } else if (key === 'Escape') {
+        setShowAutocomplete(false);
+        return;
+      }
+    }
+
+    if (key === 'Enter') {
+      e.preventDefault();
+      
+      const lines = value.split('\n');
+      const textBeforeCursor = value.slice(0, selection.start);
+      const currentLineIndex = textBeforeCursor.split('\n').length - 1;
+      const currentLine = lines[currentLineIndex] || '';
+      
+      const indentMatch = currentLine.match(/^\s*/);
+      const currentIndent = indentMatch ? indentMatch[0] : '';
+      
+      const shouldIncreaseIndent = /[{([][^}\])]*$/.test(currentLine.trim()) || 
+                                   currentLine.trim().endsWith(':');
+      
+      const newIndent = shouldIncreaseIndent ? currentIndent + '  ' : currentIndent;
+      
+      const newText = value.slice(0, selection.start) + '\n' + newIndent + value.slice(selection.end);
+      onChange(newText);
+      
+      setTimeout(() => {
+        const newPosition = selection.start + 1 + newIndent.length;
+        setSelection({ start: newPosition, end: newPosition });
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 0);
+    } 
+    else if (key === 'Tab') {
+      e.preventDefault();
+      const newText = value.slice(0, selection.start) + '  ' + value.slice(selection.end);
+      onChange(newText);
+      setTimeout(() => {
+        setSelection({ start: selection.start + 2, end: selection.start + 2 });
+      }, 0);
+    }
+  }, [value, selection, showAutocomplete, autocompleteSuggestions, selectedSuggestion]);
+
+  // Обновление позиции курсора
+  const handleSelectionChange = useCallback((event: any) => {
+    const { selection } = event.nativeEvent;
+    setSelection(selection);
+
+    // Вычисляем позицию курсора (строка и колонка)
+    const textBeforeCursor = value.slice(0, selection.start);
+    const lines = textBeforeCursor.split('\n');
+    const line = lines.length - 1;
+    const column = lines[lines.length - 1].length;
+    setCursorPosition({ line, column });
   }, [value]);
 
-  // Отправка изменений в WebView
-  useEffect(() => {
-    if (webViewRef.current && !isFocused) {
-      const script = `
-        if (window.editor && window.editor.getValue() !== ${JSON.stringify(localValue)}) {
-          window.editor.setValue(${JSON.stringify(localValue)});
+  // Функция для раскрашивания кода
+  const renderHighlightedCode = useCallback(() => {
+    if (!value) {
+      return (
+        <View style={styles.lineContainer}>
+          <Text style={styles.lineNumber}>1</Text>
+          <View style={styles.lineContent}>
+            <Text style={{ color: COLORS.comment }}>Введите код...</Text>
+            {inputRef.current?.isFocused() && cursorVisible && cursorPosition.line === 0 && cursorPosition.column === 0 && (
+              <View style={[styles.cursor, { marginLeft: 0 }]} />
+            )}
+          </View>
+        </View>
+      );
+    }
+
+    const lines = value.split('\n');
+    
+    return lines.map((line, lineIndex) => {
+      const tokens: React.ReactNode[] = [];
+      let i = 0;
+      const length = line.length;
+
+      while (i < length) {
+        const char = line[i];
+        const nextChar = line[i + 1];
+
+        if (char === '/' && nextChar === '/') {
+          tokens.push(
+            <Text key={`comment-${i}`} style={{ color: COLORS.comment }}>
+              {line.slice(i)}
+            </Text>
+          );
+          break;
         }
-      `;
-      webViewRef.current.injectJavaScript(script);
-    }
-  }, [localValue, isFocused]);
 
-  const handleChange = (newValue: string) => {
-    setLocalValue(newValue);
-    onChange(newValue);
-  };
-
-  // HTML для WebView с Monaco Editor
-  const getEditorHTML = () => {
-    const monacoLang = {
-      javascript: "javascript",
-      python: "python",
-      csharp: "csharp",
-      java: "java",
-      golang: "go",
-    }[language] || "plaintext";
-
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-        <style>
-          body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            overflow: hidden;
-            background-color: #1e1e1e;
+        if (char === '"' || char === "'" || char === '`') {
+          const quote = char;
+          let j = i + 1;
+          while (j < length && line[j] !== quote) {
+            if (line[j] === '\\') j += 2;
+            else j++;
           }
-          #container {
-            width: 100%;
-            height: 100%;
+          const str = line.slice(i, j + 1);
+          tokens.push(
+            <Text key={`string-${i}`} style={{ color: COLORS.string }}>
+              {str}
+            </Text>
+          );
+          i = j + 1;
+          continue;
+        }
+
+        if (/[0-9]/.test(char) && (i === 0 || !/[a-zA-Z_]/.test(line[i-1]))) {
+          let j = i;
+          while (j < length && /[0-9.]/.test(line[j])) j++;
+          const num = line.slice(i, j);
+          tokens.push(
+            <Text key={`number-${i}`} style={{ color: COLORS.number }}>
+              {num}
+            </Text>
+          );
+          i = j;
+          continue;
+        }
+
+        if (/[a-zA-Z_]/.test(char)) {
+          let j = i;
+          while (j < length && /[a-zA-Z0-9_]/.test(line[j])) j++;
+          const word = line.slice(i, j);
+          
+          const keywords = KEYWORDS[language] || [];
+          let color = COLORS.text;
+          
+          if (keywords.includes(word)) {
+            color = COLORS.keyword;
+          } else if (['function', 'def', 'func'].includes(word)) {
+            color = COLORS.function;
+          } else if (['class', 'interface', 'struct', 'enum'].includes(word)) {
+            color = COLORS.type;
           }
-          .run-button {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            z-index: 1000;
-            width: 32px;
-            height: 32px;
-            border: none;
-            border-radius: 4px;
-            background: #2ea043;
-            color: #fff;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.15s;
-          }
-          .run-button:hover:not(:disabled) {
-            background: #238636;
-          }
-          .run-button:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-          }
-          .run-icon {
-            width: 0;
-            height: 0;
-            margin-left: 2px;
-            border-style: solid;
-            border-width: 6px 0 6px 10px;
-            border-color: transparent transparent transparent currentColor;
-          }
-          .loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #fff;
-            font-family: system-ui;
-          }
-        </style>
-        <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.34.1/min/vs/editor/editor.main.min.css">
-        <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.34.1/min/vs/loader.js"></script>
-      </head>
-      <body>
-        <div id="container"></div>
-        ${onRun ? `
-          <button class="run-button" id="runButton" ${runLoading ? 'disabled' : ''}>
-            <span class="run-icon"></span>
-          </button>
-        ` : ''}
-        <script>
-          (function() {
-            const container = document.getElementById('container');
-            const runButton = document.getElementById('runButton');
-            
-            let editor = null;
-            let isUpdating = false;
+          
+          tokens.push(
+            <Text key={`word-${i}`} style={{ color }}>
+              {word}
+            </Text>
+          );
+          i = j;
+          continue;
+        }
 
-            require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.34.1/min/vs' } });
-            
-            require(['vs/editor/editor.main'], function() {
-              monaco.editor.defineTheme('custom-dark', {
-                base: 'vs-dark',
-                inherit: true,
-                rules: [],
-                colors: {
-                  'editor.background': '#1e1e1e',
-                  'editor.lineHighlightBackground': '#2a2a2a',
-                  'editorLineNumber.foreground': '#6e6e6e',
-                }
-              });
+        if (/[+\-*/%=<>!&|^~?:]/.test(char)) {
+          tokens.push(
+            <Text key={`op-${i}`} style={{ color: COLORS.operator }}>
+              {char}
+            </Text>
+          );
+          i++;
+          continue;
+        }
 
-              editor = monaco.editor.create(container, {
-                value: ${JSON.stringify(localValue)},
-                language: '${monacoLang}',
-                theme: 'custom-dark',
-                readOnly: ${readOnly},
-                minimap: { enabled: false },
-                fontSize: 13,
-                lineNumbers: 'on',
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-                wordWrap: 'on',
-                suggest: { showKeywords: true, showSnippets: true },
-                quickSuggestions: true,
-                tabSize: 2,
-                padding: { top: 8 },
-                lineHeight: 18,
-                fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-              });
+        if (/[{}()[\];,.]/.test(char)) {
+          tokens.push(
+            <Text key={`punc-${i}`} style={{ color: COLORS.punctuation }}>
+              {char}
+            </Text>
+          );
+          i++;
+          continue;
+        }
 
-              window.editor = editor;
-
-              editor.onDidChangeModelContent(() => {
-                if (!isUpdating) {
-                  const newValue = editor.getValue();
-                  window.ReactNativeWebView.postMessage(JSON.stringify({
-                    type: 'change',
-                    value: newValue
-                  }));
-                }
-              });
-
-              editor.onDidFocusEditorText(() => {
-                window.ReactNativeWebView.postMessage(JSON.stringify({
-                  type: 'focus'
-                }));
-              });
-
-              editor.onDidBlurEditorText(() => {
-                window.ReactNativeWebView.postMessage(JSON.stringify({
-                  type: 'blur'
-                }));
-              });
-            });
-
-            if (runButton) {
-              runButton.addEventListener('click', function() {
-                if (!this.disabled) {
-                  window.ReactNativeWebView.postMessage(JSON.stringify({
-                    type: 'run'
-                  }));
-                }
-              });
-            }
-
-            window.setEditorValue = function(newValue) {
-              if (editor && editor.getValue() !== newValue) {
-                isUpdating = true;
-                editor.setValue(newValue);
-                isUpdating = false;
-              }
-            };
-          })();
-        </script>
-      </body>
-      </html>
-    `;
-  };
-
-  const handleMessage = (event: any) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
-      
-      switch (data.type) {
-        case 'change':
-          handleChange(data.value);
-          break;
-        case 'focus':
-          setIsFocused(true);
-          break;
-        case 'blur':
-          setIsFocused(false);
-          break;
-        case 'run':
-          if (onRun && !runLoading) {
-            onRun();
-          }
-          break;
+        tokens.push(
+          <Text key={`text-${i}`} style={{ color: COLORS.text }}>
+            {char}
+          </Text>
+        );
+        i++;
       }
-    } catch (error) {
-      console.error('Error parsing message from WebView:', error);
-    }
-  };
+
+      // Если текущая строка - это строка с курсором, добавляем мигающий курсор
+      const isCursorLine = lineIndex === cursorPosition.line;
+      const showCursor = isCursorLine && inputRef.current?.isFocused() && cursorVisible;
+
+      return (
+        <View key={`line-${lineIndex}`} style={styles.lineContainer}>
+          <Text style={styles.lineNumber}>{lineIndex + 1}</Text>
+          <View style={styles.lineContent}>
+            {tokens}
+            {showCursor && cursorPosition.column === line.length && (
+              <View style={[styles.cursor, { marginLeft: 0 }]} />
+            )}
+          </View>
+        </View>
+      );
+    });
+  }, [value, language, cursorPosition, cursorVisible]);
 
   return (
     <View style={[styles.container, { height }]}>
-      <WebView
-        ref={webViewRef}
-        source={{ html: getEditorHTML() }}
-        onMessage={handleMessage}
-        style={styles.webView}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        scrollEnabled={false}
-        showsHorizontalScrollIndicator={false}
-        showsVerticalScrollIndicator={false}
-      /*   onError={(syntheticEvent) => {
-          const { nativeEvent } = syntheticEvent;
-          console.error('WebView error: ', nativeEvent);
-        }} */
-        renderLoading={() => (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator color="#2ea043" />
-          </View>
-        )}
-        startInLoadingState={true}
-      />
+      <View style={styles.toolbar}>
+        <Text style={styles.languageText}>{language.toUpperCase()}</Text>
+        <View style={styles.toolbarButtons}>
+          <Text style={styles.statsText}>
+            {value.split('\n').length} строк
+          </Text>
+          
+          {onRun && (
+            <TouchableOpacity
+              style={[styles.runButton, runLoading && styles.runButtonDisabled]}
+              onPress={onRun}
+              disabled={runLoading}
+            >
+              <Text style={styles.runButtonText}>
+                {runLoading ? '...' : '▶ Запустить'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      <TouchableOpacity 
+        activeOpacity={1} 
+        style={styles.editorTouchable}
+        onPress={() => inputRef.current?.focus()}
+      >
+        <View style={styles.editorContainer}>
+          <ScrollView
+            ref={scrollViewRef}
+            style={styles.editorScroll}
+            contentContainerStyle={styles.editorContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={true}
+            showsHorizontalScrollIndicator={true}
+          >
+            <View ref={contentRef} style={styles.editor}>
+              {renderHighlightedCode()}
+            </View>
+          </ScrollView>
+
+          {/* Полностью невидимый TextInput */}
+          <TextInput
+            ref={inputRef}
+            style={styles.hiddenInput}
+            value={value}
+            onChangeText={onChange}
+            onSelectionChange={handleSelectionChange}
+            multiline
+            editable={!readOnly}
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            keyboardType="default"
+            keyboardAppearance="dark"
+            blurOnSubmit={false}
+            onKeyPress={handleKeyPress}
+            textAlignVertical="top"
+            showSoftInputOnFocus={true}
+            selectionColor={COLORS.selection}
+            // Делаем текст абсолютно невидимым
+            contextMenuHidden={true}
+          />
+        </View>
+      </TouchableOpacity>
+
+      {showAutocomplete && (
+        <View style={styles.autocompleteContainer}>
+          <ScrollView 
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled={true}
+          >
+            {autocompleteSuggestions.map((item, index) => (
+              <TouchableOpacity
+                key={item}
+                style={[
+                  styles.suggestionItem,
+                  index === selectedSuggestion && styles.suggestionItemSelected
+                ]}
+                onPress={() => insertSnippet(item)}
+              >
+                <Text style={[
+                  styles.suggestionText,
+                  index === selectedSuggestion && styles.suggestionTextSelected
+                ]}>
+                  {item}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
     </View>
   );
 };
 
-// Альтернативный простой редактор для случаев, когда WebView не подходит
-export const SimpleCodeEditor: React.FC<CodeEditorProps> = ({
-  value,
-  onChange,
-  language,
-  readOnly = false,
-  height = 240,
-  onRun,
-  runLoading = false,
-}) => {
-  return (
-    <View style={[styles.simpleContainer, { height }]}>
-      {onRun && (
-        <TouchableOpacity
-          style={[styles.simpleRunButton, runLoading && styles.simpleRunButtonDisabled]}
-          onPress={onRun}
-          disabled={runLoading}
-        >
-          {runLoading ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <View style={styles.simpleRunIcon} />
-          )}
-        </TouchableOpacity>
-      )}
-      <TextInput
-        style={[
-          styles.simpleInput,
-          readOnly && styles.simpleInputReadOnly,
-          { fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }
-        ]}
-        value={value}
-        onChangeText={onChange}
-        editable={!readOnly}
-        multiline
-        numberOfLines={Math.floor(height / 20)}
-        textAlignVertical="top"
-        placeholder={`Введите код на ${language}...`}
-        placeholderTextColor="#666"
-        autoCapitalize="none"
-        autoCorrect={false}
-        spellCheck={false}
-      />
-    </View>
-  );
-};
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.surface,
+  },
+  toolbar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.autocompleteBorder,
+  },
+  languageText: {
+    color: COLORS.accent,
+    fontSize: 13,
+    fontWeight: '600',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  toolbarButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  statsText: {
+    color: COLORS.comment,
+    fontSize: 12,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  runButton: {
+    backgroundColor: COLORS.string,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  runButtonDisabled: {
+    opacity: 0.5,
+  },
+  runButtonText: {
+    color: COLORS.background,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  editorTouchable: {
+    flex: 1,
+  },
+  editorContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  editorScroll: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  editorContent: {
+    flexGrow: 1,
+  },
+  editor: {
+    paddingVertical: 8,
+  },
+  lineContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 8,
+    minHeight: 20,
+  },
+  lineNumber: {
+    width: 40,
+    color: COLORS.lineNumber,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontSize: 14,
+    textAlign: 'right',
+    paddingRight: 8,
+  },
+  lineContent: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+  },
+  cursor: {
+    width: 2,
+    height: 18,
+    backgroundColor: COLORS.text,
+    opacity: 0.8,
+  },
+  hiddenInput: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    // Делаем полностью прозрачным
+    opacity: 0,
+    // Оставляем только необходимые стили для позиционирования
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontSize: 14,
+    lineHeight: 20,
+    textAlignVertical: 'top',
+    paddingLeft: 48,
+    paddingTop: 8,
+    paddingBottom: 8,
+    paddingRight: 8,
+    // Убираем возможные артефакты
+    color: 'transparent',
+    backgroundColor: 'transparent',
+  },
+  autocompleteContainer: {
+    position: 'absolute',
+    bottom: 8,
+    left: 48,
+    right: 8,
+    maxHeight: 200,
+    backgroundColor: COLORS.autocompleteBg,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.autocompleteBorder,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    zIndex: 1000,
+  },
+  suggestionItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.autocompleteBorder,
+  },
+  suggestionItemSelected: {
+    backgroundColor: COLORS.autocompleteSelected,
+  },
+  suggestionText: {
+    color: COLORS.text,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontSize: 14,
+  },
+  suggestionTextSelected: {
+    color: COLORS.accent,
+  },
+});
 
 export default CodeEditor;
