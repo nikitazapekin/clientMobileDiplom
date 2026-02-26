@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image, ImageSourcePropType } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import type { MainTabNavigationProp } from "@/navigation/types";
+import type { MainTabNavigationProp, RootStackNavigationProp } from "@/navigation/types";
 import HomeIcon from "@/assets/tabs/home.png";
 import AchievementsIcon from "@/assets/tabs/badge.png";
 import ChatsIcon from "@/assets/tabs/chat.png";
@@ -18,7 +18,7 @@ interface FooterProps {
 }
 
 export default function Footer({ activeTab }: FooterProps) {
-  const navigation = useNavigation<MainTabNavigationProp>();
+  const navigation = useNavigation<RootStackNavigationProp>();
 
   const tabs: { name: TabName; label: string; route: RouteName; icon: ImageSourcePropType }[] = [
     { name: "courses", label: "Home", route: "Courses", icon: HomeIcon },

@@ -33,7 +33,7 @@ function MainTabs() {
       <Tab.Screen name={ROUTES.SCREENS.ACHIEVEMENTS} component={AchievementsScreen} />
       <Tab.Screen name={ROUTES.SCREENS.CHATS} component={ChatsScreen} />
       <Tab.Screen name={ROUTES.SCREENS.SANDBOX} component={SandboxScreen} />
-      <Tab.Screen name={ROUTES.SCREENS.PROFILE} component={ProfileScreen} />
+      {/* <Tab.Screen name={ROUTES.SCREENS.PROFILE} component={ProfileScreen} /> */}
  
 
   
@@ -58,6 +58,8 @@ export default function AppNavigator() {
         <Stack.Screen name={ROUTES.STACK.COURSE} component={CourseScreen} />
         <Stack.Screen name={ROUTES.STACK.MAP} component={MapScreen} />
         <Stack.Screen name={ROUTES.STACK.LESSON} component={LessonScreen} />
+
+         <Stack.Screen name={ROUTES.STACK.PROFILE} component={ProfileScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

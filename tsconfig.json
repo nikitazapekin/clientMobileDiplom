@@ -4,11 +4,15 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@components/*": ["./src/components/*"],
-      "@assets/*": ["./src/assets/*"],
-      "@constants/*": ["./src/constants/*"],
-      "@screens/*": ["./src/screens/*"]
-    }
+      "@/*": ["src/*"],
+      "@components/*": ["src/components/*"],
+      "@assets/*": ["src/assets/*"],
+      "@constants/*": ["src/constants/*"],
+      "@screens/*": ["src/screens/*"]
+    },
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true
   }
 }
