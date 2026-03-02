@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ProfileService } from '../../http/profile';
 import type { FullClientInfo, StudentResultResponse } from '../../http/types/profile';
 import AvatarPicker from '../AvatarPicker';
+import { COLORS } from 'appStyles';
 
 const UserProfile = () => {
   const [profile, setProfile] = useState<FullClientInfo | null>(null);
@@ -26,10 +27,7 @@ const UserProfile = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [avatarPickerVisible, setAvatarPickerVisible] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-
-  // components/UserProfile.tsx
-
-  // В функции loadProfile добавьте обработку base64 изображения
+ 
   const loadProfile = useCallback(async () => {
     try {
       setLoading(true);
@@ -49,8 +47,7 @@ const UserProfile = () => {
       if (profileData.avatar) {
         console.log('Avatar data:', profileData.avatar);
 
-        // Если imageUrl уже содержит data:image, оставляем как есть
-        // Если это просто base64, добавляем префикс
+     
         if (profileData.avatar.imageUrl && !profileData.avatar.imageUrl.startsWith('data:')) {
           profileData.avatar.imageUrl = `data:${profileData.avatar.mimeType};base64,${profileData.avatar.imageUrl}`;
         }
@@ -64,12 +61,11 @@ const UserProfile = () => {
       setRefreshing(false);
     }
   }, []);
-
-  // В функции handleAvatarUploaded
+ 
   const handleAvatarUploaded = (avatarUrl: string) => {
     if (profile) {
       if (avatarUrl) {
-      // Обновляем аватар
+    
         setProfile({
           ...profile,
           avatar: {
@@ -78,10 +74,10 @@ const UserProfile = () => {
           },
         });
 
-        // Перезагружаем профиль для получения актуальных данных
+        
         loadProfile();
       } else {
-      // Удаляем аватар
+      
         setProfile({
           ...profile,
           avatar: undefined,
@@ -143,7 +139,7 @@ const UserProfile = () => {
     <TouchableOpacity
       style={styles.resultCard}
       onPress={() => {
-        // Navigate to lesson details
+       
         Alert.alert('Lesson', `View lesson ${item.lessonId}`);
       }}
     >
@@ -202,7 +198,7 @@ const UserProfile = () => {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
-        {/* Header with Avatar */}
+       
         <View style={styles.header}>
           <TouchableOpacity
             onPress={handleAvatarPress}
@@ -226,8 +222,7 @@ const UserProfile = () => {
                 </Text>
               </View>
             )}
-
-            {/* Camera indicator */}
+ 
             <View style={styles.cameraBadge}>
               <Text style={styles.cameraBadgeText}>📷</Text>
             </View>
@@ -239,58 +234,37 @@ const UserProfile = () => {
           </Text>
 
           <View style={styles.emailContainer}>
-            <Text style={styles.emailIcon}>✉️</Text>
+      
             <Text style={styles.email}>{profile.email}</Text>
           </View>
 
-          <View style={styles.roleContainer}>
-            <Text style={styles.roleIcon}>👤</Text>
-            <Text style={styles.role}>{profile.role}</Text>
-          </View>
+          
         </View>
 
-        {/* Statistics */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{profile.totalLessons}</Text>
-            <Text style={styles.statLabel}>Lessons</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{profile.averageStars.toFixed(1)}</Text>
-            <Text style={styles.statLabel}>Avg. Stars</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{profile.studentResults.length}</Text>
-            <Text style={styles.statLabel}>Results</Text>
-          </View>
-        </View>
-
-        {/* Personal Information */}
+    
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📋 Personal Information</Text>
+          <Text style={styles.sectionTitle}>Личная информация</Text>
 
           <View style={styles.infoGrid}>
             <View style={styles.infoItem}>
-              <Text style={styles.infoItemLabel}>📱 Phone</Text>
+              <Text style={styles.infoItemLabel}>Телефон</Text>
               <Text style={styles.infoItemValue}>{profile.phone}</Text>
             </View>
 
             <View style={styles.infoItem}>
-              <Text style={styles.infoItemLabel}>🌍 Country</Text>
+              <Text style={styles.infoItemLabel}>Страна</Text>
               <Text style={styles.infoItemValue}>{profile.country}</Text>
             </View>
 
             {profile.description ? (
               <View style={[styles.infoItem, styles.infoItemFull]}>
-                <Text style={styles.infoItemLabel}>📝 About</Text>
+                <Text style={styles.infoItemLabel}>Описание</Text>
                 <Text style={styles.infoItemValue}>{profile.description}</Text>
               </View>
             ) : null}
 
             <View style={styles.infoItem}>
-              <Text style={styles.infoItemLabel}>📅 Registered</Text>
+              <Text style={styles.infoItemLabel}>Зарегистрирован</Text>
               <Text style={styles.infoItemValue}>
                 {new Date(profile.registeredAt).toLocaleDateString('en-US', {
                   year: 'numeric',
@@ -302,7 +276,7 @@ const UserProfile = () => {
 
             {profile.lastLoginAt && (
               <View style={styles.infoItem}>
-                <Text style={styles.infoItemLabel}>🕐 Last Login</Text>
+                <Text style={styles.infoItemLabel}>Последний вход</Text>
                 <Text style={styles.infoItemValue}>
                   {new Date(profile.lastLoginAt).toLocaleDateString('en-US', {
                     year: 'numeric',
@@ -344,14 +318,14 @@ const UserProfile = () => {
         {/* Status Badge */}
         <View style={styles.statusContainer}>
           <View style={[styles.statusBadge, profile.isActive ? styles.statusActive : styles.statusInactive]}>
-            <Text style={styles.statusIcon}>{profile.isActive ? '✅' : '⭕'}</Text>
+           
             <Text style={styles.statusText}>
-              {profile.isActive ? 'Active Account' : 'Inactive Account'}
+              {profile.isActive ? 'В сети' : 'Не в сети'}
             </Text>
           </View>
         </View>
 
-        {/* Logout Button */}
+      
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={() => {
@@ -366,19 +340,18 @@ const UserProfile = () => {
                   onPress: async () => {
                     await AsyncStorage.removeItem('accessToken');
                     await AsyncStorage.removeItem('auditoryId');
-                    // Navigate to login screen
+                   
                   },
                 },
               ]
             );
           }}
         >
-          <Text style={styles.logoutIcon}>🚪</Text>
-          <Text style={styles.logoutText}>Logout</Text>
+         
+          <Text style={styles.logoutText}>Выйти</Text>
         </TouchableOpacity>
       </ScrollView>
-
-      {/* Avatar Picker Modal */}
+ 
       {auditoryId && (
         <AvatarPicker
           visible={avatarPickerVisible}
@@ -391,7 +364,11 @@ const UserProfile = () => {
     </>
   );
 };
+/*
+  GRAY_DARK: "#303027", 
+  GRAY_TEXT: "#222121", 
 
+  */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -414,8 +391,7 @@ const styles = StyleSheet.create({
     paddingTop: 40,
     paddingBottom: 30,
     alignItems: 'center',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+   
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -472,11 +448,9 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 26,
     fontWeight: 'bold',
-    color: '#fff',
+    color:  COLORS.BLACK,
     marginTop: 5,
-    textShadowColor: 'rgba(0,0,0,0.2)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    
   },
   emailContainer: {
     flexDirection: 'row',
@@ -486,12 +460,12 @@ const styles = StyleSheet.create({
   emailIcon: {
     fontSize: 16,
     marginRight: 8,
-    color: '#fff',
+    color:  COLORS.BLACK,
     opacity: 0.9,
   },
   email: {
     fontSize: 16,
-    color: '#fff',
+    color: COLORS.BLACK,
     opacity: 0.9,
   },
   roleContainer: {
