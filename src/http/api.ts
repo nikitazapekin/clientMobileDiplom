@@ -4,7 +4,7 @@ import axios from 'axios';
 
 
 // Используйте ваш IP адрес
-//const BASE_URL = 'http://192.168.1.6:3002';
+//const BASE_URL = 'http://192.168.1.6:3002';  192.168.1.6
 const BASE_URL = 'http://192.168.1.6:3002';
 
 const $api = axios.create({

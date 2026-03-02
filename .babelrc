@@ -1,0 +1,19 @@
+{
+  "presets": [
+    ["babel-preset-expo", {
+      "jsxRuntime": "automatic"
+    }]
+  ],
+  "plugins": [
+    ["module-resolver", {
+      "root": ["./src"],
+      "alias": {
+        "@": "./src",
+        "@components": "./src/components",
+        "@assets": "./src/assets",
+        "@constants": "./src/constants",
+        "@screens": "./src/screens"
+      }
+    }]
+  ]
+}
