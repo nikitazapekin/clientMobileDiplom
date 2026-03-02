@@ -1,4 +1,4 @@
- 
+
 export interface AvatarResponse {
   id: string;
   auditoryId: string;
@@ -38,28 +38,28 @@ export interface FullClientInfo {
   totalLessons: number;
   averageStars: number;
 }
- 
+
 export interface CreateAvatarRequest {
   auditoryId: string;
   imageData: string; // base64 без префикса
   mimeType: string;
 }
- 
+
 export interface UpdateAvatarRequest {
   imageData?: string;
   mimeType?: string;
 }
- 
+
 export interface CreateStudentResultRequest {
   clientId: string;
   lessonId: string;
   countOfStars: number;
 }
- 
+
 export interface UpdateStudentResultRequest {
   countOfStars?: number;
 }
- 
+
 export interface StudentProgress {
   totalLessons: number;
   averageStars: number;

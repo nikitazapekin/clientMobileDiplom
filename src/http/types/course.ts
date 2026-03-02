@@ -33,6 +33,3 @@ export interface CourseResponse {
 }
 
 export type CourseStatus = "draft" | "published" | "archived";
-
-
- 

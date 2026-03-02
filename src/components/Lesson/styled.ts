@@ -15,7 +15,7 @@ export const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-   // color: COLORS.GRAY,
+    // color: COLORS.GRAY,
   },
   header: {
     padding: 20,
@@ -39,7 +39,7 @@ export const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-   // backgroundColor: COLORS.PURPLE,
+    // backgroundColor: COLORS.PURPLE,
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 10,
@@ -51,7 +51,7 @@ export const styles = StyleSheet.create({
   },
   progress: {
     fontSize: 14,
-  //  color: COLORS.GRAY,
+    //  color: COLORS.GRAY,
     textAlign: "right",
   },
   content: {
@@ -226,7 +226,7 @@ export const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-  //  borderColor: COLORS.GRAY,
+    //  borderColor: COLORS.GRAY,
     marginRight: 10,
     justifyContent: "center",
     alignItems: "center",
@@ -235,7 +235,7 @@ export const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-//    backgroundColor: COLORS.PURPLE,
+    //    backgroundColor: COLORS.PURPLE,
   },
   optionText: {
     fontSize: 16,
@@ -244,7 +244,7 @@ export const styles = StyleSheet.create({
   },
   correctText: {
     marginTop: 10,
-//color: COLORS.GREEN,
+    //color: COLORS.GREEN,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -283,14 +283,14 @@ export const styles = StyleSheet.create({
   },
   modalCloseText: {
     fontSize: 20,
- //   color: COLORS.GRAY,
+    //   color: COLORS.GRAY,
   },
   modalBody: {
     maxHeight: 300,
   },
   noSourcesText: {
     fontSize: 16,
- //   color: COLORS.GRAY,
+    //   color: COLORS.GRAY,
     textAlign: "center",
     padding: 20,
   },
@@ -302,7 +302,7 @@ export const styles = StyleSheet.create({
   },
   sourceUrl: {
     fontSize: 14,
- //   color: COLORS.BLUE,
+    //   color: COLORS.BLUE,
     textDecorationLine: "underline",
     marginBottom: 5,
   },
@@ -318,246 +318,220 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-
   // Добавьте эти стили в ваш файл styled.ts
- 
 
-image: {
-  width: '100%',
-  height: 200,
-  backgroundColor: COLORS.GRAY_LIGHT,
-},
+  image: {
+    width: '100%',
+    height: 200,
+    backgroundColor: COLORS.GRAY_LIGHT,
+  },
 
-imageLoading: {
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  justifyContent: 'center',
-  alignItems: 'center',
-  backgroundColor: COLORS.GRAY_LIGHT,
-},
+  imageLoading: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.GRAY_LIGHT,
+  },
 
-imageError: {
-  padding: 20,
-  alignItems: 'center',
-  justifyContent: 'center',
-  minHeight: 100,
-},
+  imageError: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 100,
+  },
 
-imageErrorText: {
-  fontSize: 14,
-  color: COLORS.ERROR,
-  marginBottom: 10,
-  textAlign: 'center',
-},
+  imageErrorText: {
+    fontSize: 14,
+    color: COLORS.ERROR,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
 
-imageUrl: {
-  fontSize: 12,
- 
-  textAlign: 'center',
-  paddingHorizontal: 10,
-},
+  imageUrl: {
+    fontSize: 12,
 
+    textAlign: 'center',
+    paddingHorizontal: 10,
+  },
 
+  // Добавьте в конец файла styles.ts
 
+  starsContainer: {
+    position: 'relative',
+    height: 100,
+    marginVertical: 20,
+    overflow: 'hidden',
+    backgroundColor: '#1a1a2e',
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
+  starWrapper: {
+    position: 'absolute',
+    top: 0,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
+  star: {
+    fontSize: 48,
+    textShadowColor: 'rgba(255, 255, 255, 0.3)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
+  },
 
+  starFilled: {
+    color: '#ffd700',
+    textShadowColor: '#ffd700',
+    textShadowRadius: 20,
+  },
 
+  starEmpty: {
+    color: '#4a4a4a',
+  },
 
+  resultsModalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    backgroundColor: COLORS.WHITE,
+    borderRadius: 10,
+    padding: 20,
+  },
 
+  resultsSummary: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginVertical: 20,
+    padding: 15,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+  },
 
+  summaryItem: {
+    alignItems: 'center',
+    gap: 5,
+  },
 
+  summaryLabel: {
+    fontSize: 14,
+    color: '#666',
+  },
 
+  summaryValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+  },
 
+  resultsList: {
+    maxHeight: 300,
+  },
 
+  resultsListTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 10,
+    color: '#333',
+  },
 
+  resultItem: {
+    padding: 10,
+    marginBottom: 8,
+    borderRadius: 6,
+    backgroundColor: '#f9f9f9',
+  },
 
+  resultPassed: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#4caf50',
+  },
 
+  resultFailed: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#f44336',
+  },
 
-// Добавьте в конец файла styles.ts
+  resultTitle: {
+    fontWeight: '500',
+    marginBottom: 5,
+  },
 
-starsContainer: {
-  position: 'relative',
-  height: 100,
-  marginVertical: 20,
-  overflow: 'hidden',
-  backgroundColor: '#1a1a2e',
-  borderRadius: 10,
-  justifyContent: 'center',
-  alignItems: 'center',
-},
+  resultDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    fontSize: 14,
+    color: '#666',
+  },
 
-starWrapper: {
-  position: 'absolute',
-  top: 0,
-  width: 50,
-  height: 50,
-  justifyContent: 'center',
-  alignItems: 'center',
-},
+  modalFooter: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
 
-star: {
-  fontSize: 48,
-  textShadowColor: 'rgba(255, 255, 255, 0.3)',
-  textShadowOffset: { width: 0, height: 0 },
-  textShadowRadius: 10,
-},
+  testSummary: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 10,
+  },
 
-starFilled: {
-  color: '#ffd700',
-  textShadowColor: '#ffd700',
-  textShadowRadius: 20,
-},
+  constraintSummary: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 10,
+  },
 
-starEmpty: {
-  color: '#4a4a4a',
-},
+  testCaseHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
 
-resultsModalContent: {
-  width: '90%',
-  maxHeight: '80%',
-  backgroundColor: COLORS.WHITE,
-  borderRadius: 10,
-  padding: 20,
-},
+  passedText: {
+    color: '#4caf50',
+    fontWeight: '600',
+  },
 
-resultsSummary: {
-  flexDirection: 'row',
-  justifyContent: 'space-around',
-  marginVertical: 20,
-  padding: 15,
-  backgroundColor: '#f5f5f5',
-  borderRadius: 8,
-},
+  failedText: {
+    color: '#f44336',
+    fontWeight: '600',
+  },
 
-summaryItem: {
-  alignItems: 'center',
-  gap: 5,
-},
+  constraintHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
 
-summaryLabel: {
-  fontSize: 14,
-  color: '#666',
-},
+  theoryImage: {
+    width: '100%',
+    height: 200,
+    marginVertical: 10,
+    backgroundColor: '#f5f5f5',
+  },
 
-summaryValue: {
-  fontSize: 24,
-  fontWeight: 'bold',
-  color: '#333',
-},
+  correctOption: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#4caf50',
+  },
 
-resultsList: {
-  maxHeight: 300,
-},
+  wrongOption: {
+    backgroundColor: '#FFEBEE',
+    borderColor: '#f44336',
+  },
 
-resultsListTitle: {
-  fontSize: 16,
-  fontWeight: '600',
-  marginBottom: 10,
-  color: '#333',
-},
-
-resultItem: {
-  padding: 10,
-  marginBottom: 8,
-  borderRadius: 6,
-  backgroundColor: '#f9f9f9',
-},
-
-resultPassed: {
-  borderLeftWidth: 4,
-  borderLeftColor: '#4caf50',
-},
-
-resultFailed: {
-  borderLeftWidth: 4,
-  borderLeftColor: '#f44336',
-},
-
-resultTitle: {
-  fontWeight: '500',
-  marginBottom: 5,
-},
-
-resultDetails: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  fontSize: 14,
-  color: '#666',
-},
-
-modalFooter: {
-  marginTop: 20,
-  alignItems: 'center',
-},
-
-testSummary: {
-  fontSize: 16,
-  fontWeight: '600',
-  marginBottom: 10,
-},
-
-constraintSummary: {
-  fontSize: 16,
-  fontWeight: '600',
-  marginBottom: 10,
-},
-
-testCaseHeader: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: 5,
-},
-
-passedText: {
-  color: '#4caf50',
-  fontWeight: '600',
-},
-
-failedText: {
-  color: '#f44336',
-  fontWeight: '600',
-},
-
-constraintHeader: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: 5,
-},
-
-theoryImage: {
-  width: '100%',
-  height: 200,
-  marginVertical: 10,
-  backgroundColor: '#f5f5f5',
-},
-
-correctOption: {
-  backgroundColor: '#E8F5E9',
-  borderColor: '#4caf50',
-},
-
-wrongOption: {
-  backgroundColor: '#FFEBEE',
-  borderColor: '#f44336',
-},
-
-correctMark: {
-  color: '#4caf50',
-  fontSize: 18,
-  fontWeight: 'bold',
-  marginLeft: 10,
-},
+  correctMark: {
+    color: '#4caf50',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 10,
+  },
 });
-
-
-
-
-
-
-

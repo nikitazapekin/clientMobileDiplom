@@ -1,38 +1,38 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  View,
-  Text,
-  ScrollView,
-  Alert,
-  Modal,
-  TouchableOpacity,
   ActivityIndicator,
-  Image,
+  Alert,
   Animated,
-  Easing
-} from "react-native";
-import { useRouter } from "expo-router";
+  Easing,
+  Image,
+  Modal,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { COLORS } from "appStyles";
+import { useRouter } from "expo-router";
 
 import { styles } from "./styled";
-import CustomButton from "@/components/Button";
-import CodeEditor from "@/components/CodeEditor";
-import { LessonDetailsService } from "@/http/lessonDetails";
-import { CodeService } from "@/http/codeService";
 import type { CodeLanguage } from "./types";
 import type {
+  CodeConstraintType,
+  CodeExampleBlock,
+  CodeTaskBlock,
+  ImageBlock,
   Slide,
   SlideBlock,
   SourceBlock,
-  TextBlock,
-  CodeExampleBlock,
   TableBlock,
-  ImageBlock,
-  CodeTaskBlock,
+  TextBlock,
   TheoryQuestionBlock,
-  CodeConstraintType,
 } from "./types";
-import { COLORS } from "appStyles";
+
+import CustomButton from "@/components/Button";
+import CodeEditor from "@/components/CodeEditor";
+import { CodeService } from "@/http/codeService";
+import { LessonDetailsService } from "@/http/lessonDetails";
 
 // Функция для сортировки блоков
 const sortBlocks = (blocks: any[]) => {
@@ -86,9 +86,11 @@ const parseArguments = (input: string): any[] => {
       current += char;
     } else if (char === "," && !inString && braceCount === 0 && bracketCount === 0) {
       const trimmed = current.trim();
+
       if (trimmed) {
         args.push(parseValue(trimmed));
       }
+
       current = "";
     } else {
       current += char;
@@ -116,8 +118,11 @@ const parseValue = (value: string): any => {
   }
 
   if (value === "true") return true;
+
   if (value === "false") return false;
+
   if (value === "null") return null;
+
   if (value === "undefined") return undefined;
 
   if (
@@ -145,9 +150,11 @@ const formatArgumentsForCode = (args: any[]): string => {
       if (typeof arg === "string") {
         return `"${arg}"`;
       }
+
       if (typeof arg === "object") {
         return JSON.stringify(arg);
       }
+
       return String(arg);
     })
     .join(", ");
@@ -163,22 +170,27 @@ const extractFunctionName = (code: string, lang: CodeLanguage): string | null =>
         const jsMatch = code.match(
           /function\s+(\w+)|const\s+(\w+)\s*=\s*\([^)]*\)\s*=>|let\s+(\w+)\s*=\s*\([^)]*\)\s*=>|var\s+(\w+)\s*=\s*\([^)]*\)\s*=>/
         );
+
         return jsMatch ? jsMatch[1] || jsMatch[2] || jsMatch[3] || jsMatch[4] : null;
 
       case "python":
         const pyMatch = code.match(/def\s+(\w+)\s*\(/);
+
         return pyMatch ? pyMatch[1] : null;
 
       case "golang":
         const goMatch = code.match(/func\s+(\w+)\s*\(/);
+
         return goMatch ? goMatch[1] : null;
 
       case "csharp":
         const csMatch = code.match(/public\s+static\s+[\w<>\[\]]+\s+(\w+)\s*\([^)]*\)/);
+
         return csMatch ? csMatch[1] : null;
 
       case "java":
         const javaMatch = code.match(/public\s+static\s+[\w<>\[\]]+\s+(\w+)\s*\([^)]*\)/);
+
         return javaMatch ? javaMatch[1] : null;
 
       default:
@@ -186,6 +198,7 @@ const extractFunctionName = (code: string, lang: CodeLanguage): string | null =>
     }
   } catch (e) {
     console.error("Error extracting function name:", e);
+
     return null;
   }
 };
@@ -248,6 +261,7 @@ const addJavaMainMethod = (code: string, funcName: string | null, input: string 
     );
   } else {
     const codeWithoutLastBrace = code.trim().replace(/\}\s*$/, "");
+
     return `${codeWithoutLastBrace}\n${mainMethod}\n}`;
   }
 };
@@ -332,6 +346,7 @@ ${testCasesCode}
     );
   } else {
     const codeWithoutLastBrace = userCode.trim().replace(/\}\s*$/, "");
+
     return `${codeWithoutLastBrace}
 
     public static void main(String[] args) {
@@ -667,10 +682,12 @@ func main() {
 // Функция для сравнения выводов
 const compareOutputs = (actual: any, expected: any): boolean => {
   if (actual == null && expected == null) return true;
+
   if (actual == null || expected == null) return false;
 
   if (Array.isArray(actual) && Array.isArray(expected)) {
     if (actual.length !== expected.length) return false;
+
     return actual.every(
       (item, index) => JSON.stringify(item) === JSON.stringify(expected[index])
     );
@@ -726,7 +743,7 @@ const TableBlockView = ({ block }: { block: TableBlock }) => {
 // Компонент для изображения
 const ImageBlockView = ({ block }: { block: ImageBlock }) => {
   if (!block.url) return null;
-  
+
   const [imageError, setImageError] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -737,7 +754,7 @@ const ImageBlockView = ({ block }: { block: ImageBlock }) => {
           <ActivityIndicator size="small" color={COLORS.BLACK} />
         </View>
       )}
-      
+
       {!imageError ? (
         <Image
           source={{ uri: block.url }}
@@ -761,8 +778,8 @@ const ImageBlockView = ({ block }: { block: ImageBlock }) => {
 };
 
 // Компонент для задачи с кодом
-const CodeTaskBlockView = ({ 
-  block, 
+const CodeTaskBlockView = ({
+  block,
   slideId,
   codeValue,
   onCodeChange,
@@ -772,8 +789,8 @@ const CodeTaskBlockView = ({
   output,
   testResults,
   constraintResults,
-  testError 
-}: { 
+  testError
+}: {
   block: CodeTaskBlock;
   slideId: string;
   codeValue: string;
@@ -838,8 +855,8 @@ const CodeTaskBlockView = ({
             Пройдено: {testResults.filter(r => r.passed).length}/{testResults.length}
           </Text>
           {testResults.map((result, index) => (
-            <View 
-              key={index} 
+            <View
+              key={index}
               style={[
                 styles.testCaseResult,
                 result.passed ? styles.passedTest : styles.failedTest
@@ -868,8 +885,8 @@ const CodeTaskBlockView = ({
             Выполнено: {constraintResults.filter(c => c.passed).length}/{constraintResults.length}
           </Text>
           {constraintResults.map((constraint, index) => (
-            <View 
-              key={index} 
+            <View
+              key={index}
               style={[
                 styles.constraintResult,
                 constraint.passed ? styles.passedConstraint : styles.failedConstraint
@@ -907,7 +924,7 @@ const TheoryQuestionBlockView = ({ block }: { block: TheoryQuestionBlock }) => {
   return (
     <View style={styles.theoryQuestionBlock}>
       {block.text && <Text style={styles.questionText}>{block.text}</Text>}
-      
+
       {block.code && (
         <CodeEditor
           value={block.code}
@@ -970,10 +987,10 @@ const TheoryQuestionBlockView = ({ block }: { block: TheoryQuestionBlock }) => {
 };
 
 // Модальное окно для источников
-const SourcesModal = ({ visible, onClose, sources }: { 
-  visible: boolean; 
-  onClose: () => void; 
-  sources: { url: string; note?: string }[] 
+const SourcesModal = ({ visible, onClose, sources }: {
+  visible: boolean;
+  onClose: () => void;
+  sources: { url: string; note?: string }[]
 }) => {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -1004,9 +1021,9 @@ const SourcesModal = ({ visible, onClose, sources }: {
 };
 
 // Модальное окно результатов с анимацией звезд
-const ResultsModal = ({ 
-  visible, 
-  onClose, 
+const ResultsModal = ({
+  visible,
+  onClose,
   results,
   totalTasks,
   completedTasks,
@@ -1014,9 +1031,9 @@ const ResultsModal = ({
   passedTestCases,
   constraintsPassed,
   slides
-}: { 
-  visible: boolean; 
-  onClose: () => void; 
+}: {
+  visible: boolean;
+  onClose: () => void;
   results: {
     slideId: string;
     title: string;
@@ -1034,20 +1051,20 @@ const ResultsModal = ({
 }) => {
   const [stars, setStars] = useState(0);
   const [showStars, setShowStars] = useState(false);
-  
+
   // Анимации для звезд
   const starAnimations = [
     useRef(new Animated.Value(-50)).current,
     useRef(new Animated.Value(-50)).current,
     useRef(new Animated.Value(-50)).current
   ];
-  
+
   const starRotations = [
     useRef(new Animated.Value(0)).current,
     useRef(new Animated.Value(0)).current,
     useRef(new Animated.Value(0)).current
   ];
-  
+
   const starOpacities = [
     useRef(new Animated.Value(0)).current,
     useRef(new Animated.Value(0)).current,
@@ -1060,42 +1077,43 @@ const ResultsModal = ({
       starAnimations.forEach(anim => anim.setValue(-50));
       starRotations.forEach(anim => anim.setValue(0));
       starOpacities.forEach(anim => anim.setValue(0));
-      
+
       setShowStars(false);
 
       // Определяем количество звезд
       const theoryTasks = results.filter((r: { slideId: string }) => {
         const slide = slides.find((s: Slide) => s.id === r.slideId);
+
         return slide?.blocks.some((b: SlideBlock) => b.type === "theoryQuestion");
       });
-      
+
       const theoryPassed = theoryTasks.every((t: { passed: boolean }) => t.passed);
       const allTestsPassed = passedTestCases === totalTestCases && totalTestCases > 0;
       const allTasksCompleted = completedTasks === totalTasks;
 
       let starCount = 0;
-      
+
       // 1 звезда: все тесты пройдены
       if (allTestsPassed) {
         starCount = 1;
       }
-      
+
       // 2 звезды: все тесты пройдены, теория верна
       if (allTestsPassed && theoryPassed) {
         starCount = 2;
       }
-      
+
       // 3 звезды: все тесты пройдены, теория верна, ограничения соблюдены
       if (allTestsPassed && theoryPassed && constraintsPassed && allTasksCompleted) {
         starCount = 3;
       }
 
       setStars(starCount);
-      
+
       // Запускаем анимацию звезд
       const animateStars = async () => {
         setShowStars(true);
-        
+
         for (let i = 0; i < starCount; i++) {
           // Анимация падения
           Animated.parallel([
@@ -1131,7 +1149,7 @@ const ResultsModal = ({
               useNativeDriver: true,
             })
           ]).start();
-          
+
           // Ждем окончания анимации текущей звезды
           await new Promise(resolve => setTimeout(resolve, 800));
         }
@@ -1298,14 +1316,14 @@ const Lesson = ({ id }: { id: string }) => {
   const loadLessonDetails = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       if (!id) throw new Error("Lesson ID is required");
 
       const data = await LessonDetailsService.getLessonDetailsByLessonId(id);
-      
+
       const allSlides: Slide[] = [];
-      
+
       if (Array.isArray(data.slides)) {
         data.slides.forEach((slide, index) => {
           allSlides.push({
@@ -1331,7 +1349,7 @@ const Lesson = ({ id }: { id: string }) => {
       }
 
       allSlides.sort((a, b) => a.order - b.order);
-      
+
       if (allSlides.length === 0) {
         setError("В уроке нет слайдов");
       } else {
@@ -1433,9 +1451,10 @@ const Lesson = ({ id }: { id: string }) => {
     try {
       const res = await CodeService.executeCode({ language, code });
       const text = res.error ? `Ошибка: ${res.error}` : res.output || "Код выполнен успешно";
-      
+
       // Парсим вывод для отделения логов от результата
       let output = "";
+
       if (res.output) {
         const lines = res.output.split("\n");
         let inLogs = false;
@@ -1449,32 +1468,40 @@ const Lesson = ({ id }: { id: string }) => {
             currentLogs = [];
             continue;
           }
+
           if (line.includes("===LOGS_END===")) {
             inLogs = false;
+
             if (currentLogs.length > 0) {
               output += "📋 Логи выполнения:\n" + currentLogs.join("\n") + "\n\n";
             }
+
             continue;
           }
+
           if (line.includes("===RESULT_START===")) {
             inResult = true;
             currentResult = [];
             continue;
           }
+
           if (line.includes("===RESULT_END===")) {
             inResult = false;
+
             if (currentResult.length > 0) {
               output += "✅ Результат функции:\n" + currentResult.join("\n");
             }
+
             continue;
           }
+
           if (inLogs) {
             currentLogs.push(line);
           } else if (inResult) {
             currentResult.push(line);
           }
         }
-        
+
         if (!output && res.output) {
           output = res.output;
         }
@@ -1490,7 +1517,7 @@ const Lesson = ({ id }: { id: string }) => {
 
   const checkCodeTask = useCallback(async (block: CodeTaskBlock, slideId: string) => {
     const userCode = testAnswers[slideId] || block.startCode || "";
-    
+
     setTestErrors(prev => ({ ...prev, [slideId]: "" }));
     setTestResults(prev => ({ ...prev, [slideId]: [] }));
     setConstraintResults(prev => ({ ...prev, [slideId]: [] }));
@@ -1498,16 +1525,18 @@ const Lesson = ({ id }: { id: string }) => {
 
     if (!block.testCases || block.testCases.length === 0) {
       setTestErrors(prev => ({ ...prev, [slideId]: "Нет тест-кейсов для проверки" }));
+
       return;
     }
 
     const funcName = extractFunctionName(userCode, block.language || "javascript");
-    
+
     if (!funcName) {
-      setTestErrors(prev => ({ 
-        ...prev, 
-        [slideId]: `Не удалось найти имя функции в коде. Убедитесь, что функция определена правильно.` 
+      setTestErrors(prev => ({
+        ...prev,
+        [slideId]: `Не удалось найти имя функции в коде. Убедитесь, что функция определена правильно.`
       }));
+
       return;
     }
 
@@ -1518,7 +1547,7 @@ const Lesson = ({ id }: { id: string }) => {
       // Специальная обработка для Java
       if (block.language === "java") {
         const codeToRun = buildJavaTestSuite(userCode, block.testCases, funcName);
-        
+
         const res = await CodeService.executeCode({
           language: "java",
           code: codeToRun,
@@ -1526,6 +1555,7 @@ const Lesson = ({ id }: { id: string }) => {
 
         if (res.error) {
           setTestErrors(prev => ({ ...prev, [slideId]: `Ошибка выполнения: ${res.error}` }));
+
           return;
         }
 
@@ -1546,22 +1576,28 @@ const Lesson = ({ id }: { id: string }) => {
               currentLogs = [];
               continue;
             }
+
             if (line.includes(`===LOGS_END_${testNum}===`)) {
               inLogs = false;
+
               if (currentLogs.length > 0) {
                 testLogs.push(`📋 Логи теста #${testNum} (вход: ${block.testCases[i].input}):`);
                 testLogs.push(currentLogs.join("\n"));
                 testLogs.push("");
               }
+
               continue;
             }
+
             if (line.includes(`===RESULT_START_${testNum}===`)) {
               inResult = true;
               currentResult = [];
               continue;
             }
+
             if (line.includes(`===RESULT_END_${testNum}===`)) {
               inResult = false;
+
               if (currentResult.length > 0) {
                 const actual = currentResult.join("\n").trim();
                 const expected = block.testCases[i].expectedOutput.trim();
@@ -1590,6 +1626,7 @@ const Lesson = ({ id }: { id: string }) => {
                   passed,
                 });
               }
+
               continue;
             }
 
@@ -1604,11 +1641,11 @@ const Lesson = ({ id }: { id: string }) => {
             allLogs.push(...testLogs);
           }
         }
-      } 
+      }
       // Специальная обработка для C#
       else if (block.language === "csharp") {
         const codeToRun = buildCSharpTestSuite(userCode, block.testCases, funcName);
-        
+
         const res = await CodeService.executeCode({
           language: "csharp",
           code: codeToRun,
@@ -1616,6 +1653,7 @@ const Lesson = ({ id }: { id: string }) => {
 
         if (res.error) {
           setTestErrors(prev => ({ ...prev, [slideId]: `Ошибка выполнения: ${res.error}` }));
+
           return;
         }
 
@@ -1636,22 +1674,28 @@ const Lesson = ({ id }: { id: string }) => {
               currentLogs = [];
               continue;
             }
+
             if (line.includes(`===LOGS_END_${testNum}===`)) {
               inLogs = false;
+
               if (currentLogs.length > 0) {
                 testLogs.push(`📋 Логи теста #${testNum} (вход: ${block.testCases[i].input}):`);
                 testLogs.push(currentLogs.join("\n"));
                 testLogs.push("");
               }
+
               continue;
             }
+
             if (line.includes(`===RESULT_START_${testNum}===`)) {
               inResult = true;
               currentResult = [];
               continue;
             }
+
             if (line.includes(`===RESULT_END_${testNum}===`)) {
               inResult = false;
+
               if (currentResult.length > 0) {
                 const actual = currentResult.join("\n").trim();
                 const expected = block.testCases[i].expectedOutput.trim();
@@ -1680,6 +1724,7 @@ const Lesson = ({ id }: { id: string }) => {
                   passed,
                 });
               }
+
               continue;
             }
 
@@ -1694,12 +1739,13 @@ const Lesson = ({ id }: { id: string }) => {
             allLogs.push(...testLogs);
           }
         }
-      } 
+      }
       // Для остальных языков
       else {
         for (const tc of block.testCases) {
           if (!tc.input || !tc.expectedOutput) {
             setTestErrors(prev => ({ ...prev, [slideId]: "Заполните все тест-кейсы" }));
+
             return;
           }
 
@@ -1717,6 +1763,7 @@ const Lesson = ({ id }: { id: string }) => {
 
           if (res.error) {
             setTestErrors(prev => ({ ...prev, [slideId]: `Ошибка выполнения: ${res.error}` }));
+
             return;
           }
 
@@ -1734,22 +1781,28 @@ const Lesson = ({ id }: { id: string }) => {
               currentLogs = [];
               continue;
             }
+
             if (line.includes("===LOGS_END===")) {
               inLogs = false;
+
               if (currentLogs.length > 0) {
                 allLogs.push(`📋 Логи для входа "${tc.input}":`);
                 allLogs.push(currentLogs.join("\n"));
                 allLogs.push("");
               }
+
               continue;
             }
+
             if (line.includes("===RESULT_START===")) {
               inResult = true;
               currentResult = [];
               continue;
             }
+
             if (line.includes("===RESULT_END===")) {
               inResult = false;
+
               if (currentResult.length > 0) {
                 const resultStr = currentResult.join("\n").trim();
 
@@ -1777,6 +1830,7 @@ const Lesson = ({ id }: { id: string }) => {
                   passed,
                 });
               }
+
               continue;
             }
 
@@ -1796,21 +1850,22 @@ const Lesson = ({ id }: { id: string }) => {
       setTestResults(prev => ({ ...prev, [slideId]: results }));
 
       const allPassed = results.every((r: any) => r.passed);
-      
+
       if (allPassed) {
         // Можно показать уведомление
       } else {
         const failedCount = results.filter((r: any) => !r.passed).length;
-        setTestErrors(prev => ({ 
-          ...prev, 
-          [slideId]: `❌ Провалено тестов: ${failedCount} из ${results.length}` 
+
+        setTestErrors(prev => ({
+          ...prev,
+          [slideId]: `❌ Провалено тестов: ${failedCount} из ${results.length}`
         }));
       }
 
     } catch (error: any) {
-      setTestErrors(prev => ({ 
-        ...prev, 
-        [slideId]: `❌ Ошибка проверки: ${error.message}` 
+      setTestErrors(prev => ({
+        ...prev,
+        [slideId]: `❌ Ошибка проверки: ${error.message}`
       }));
     }
   }, [testAnswers]);
@@ -1849,7 +1904,7 @@ const Lesson = ({ id }: { id: string }) => {
   }
 
   const currentSlide = slides[currentIndex];
-  
+
   // Собираем источники для текущего слайда
   const slideSources = currentSlide.blocks
     .filter((block): block is SourceBlock => block.type === "source")
@@ -1877,20 +1932,20 @@ const Lesson = ({ id }: { id: string }) => {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {sortBlocks(currentSlide.blocks).map((block) => {
           console.log("🔍 Rendering block type:", block.type);
-          
+
           switch (block.type) {
             case "text":
               return <TextBlockView key={block.id} block={block} />;
-            
+
             case "codeExample":
-              return <CodeExampleBlockView key={block.id} block={block} />; 
-            
+              return <CodeExampleBlockView key={block.id} block={block} />;
+
             case "table":
               return <TableBlockView key={block.id} block={block} />;
-                      
+
             case "image":
               return <ImageBlockView key={block.id} block={block} />;
-            
+
             case "codeTask":
               return (
                 <CodeTaskBlockView
@@ -1901,6 +1956,7 @@ const Lesson = ({ id }: { id: string }) => {
                   onCodeChange={(code) => setTestAnswers(prev => ({ ...prev, [currentSlide.id]: code }))}
                   onRun={() => {
                     const code = testAnswers[currentSlide.id] || block.startCode || "";
+
                     runCode(block.id, block.language || "javascript", code);
                   }}
                   onCheck={() => checkCodeTask(block, currentSlide.id)}
@@ -1911,13 +1967,13 @@ const Lesson = ({ id }: { id: string }) => {
                   testError={testErrors[currentSlide.id]}
                 />
               );
-            
+
             case "theoryQuestion":
               return <TheoryQuestionBlockView key={block.id} block={block} />;
-            
+
             case "source":
               return null;
-              
+
             default:
               return (
                 <View key={block.id} style={styles.unknownBlock}>

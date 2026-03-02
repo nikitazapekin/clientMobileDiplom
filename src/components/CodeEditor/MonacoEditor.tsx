@@ -1,7 +1,7 @@
 
-import React, { useRef, useImperativeHandle, forwardRef } from 'react';
-import { WebView, type WebViewMessageEvent } from 'react-native-webview';
+import React, { forwardRef,useImperativeHandle, useRef } from 'react';
 import { StyleSheet } from 'react-native';
+import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
 const editorHtml = require('./webview-assets/editor.html');
 
@@ -103,15 +103,18 @@ const MonacoEditor = forwardRef<MonacoEditorRef, MonacoEditorProps>(
     const handleMessage = (event: WebViewMessageEvent) => {
       try {
         const data = JSON.parse(event.nativeEvent.data);
+
         switch (data.type) {
           case 'initialized':
             initialValueSent.current = true;
             editorDidMount?.({});
             break;
+
           case 'change':
             if (!isInternalChange.current) {
               onChange(data.value);
             }
+
             break;
         }
       } catch (e) {

@@ -2,12 +2,13 @@
 import React from "react";
 import {
   Modal,
-  View,
+  Platform,
+  SafeAreaView,
   Text,
   TouchableOpacity,
-  SafeAreaView,
-  Platform,
+  View,
 } from "react-native";
+
 import CodeEditor from "../CodeEditor";
 import { styles } from "../CodeEditor/styled";
 import type { CodeLanguage } from "../Lesson/types";
@@ -66,7 +67,7 @@ const FullScreenCodeEditor: React.FC<FullScreenCodeEditorProps> = ({
           >
             <Text style={styles.modalButtonText}>Закрыть</Text>
           </TouchableOpacity>
-          
+
           {onRun && (
             <TouchableOpacity
               style={styles.modalButton}

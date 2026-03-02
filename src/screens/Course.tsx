@@ -1,43 +1,41 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { Text,View } from "react-native";
 import { useRoute } from "@react-navigation/native";
 
-import { styles } from "./styles";
+import type { TabName } from "../components/Footer";
+import Footer from "../components/Footer";
 import Header from "../components/Header";
-import Footer, { TabName } from "../components/Footer";
+
+import { styles } from "./styles";
+
 import CourseInfo from "@/components/CourseInfo";
-
-
 
 type CourseScreenRouteParams = {
     id: string;
 
 };
 
-
-
 export default function CourseScreen() {
-    const route = useRoute();
-    const activeTab: TabName = route.name === "Courses" ? "courses" : "courses";
-    const { id } = route.params as CourseScreenRouteParams;
+  const route = useRoute();
+  const activeTab: TabName = route.name === "Courses" ? "courses" : "courses";
+  const { id } = route.params as CourseScreenRouteParams;
 
-    return (
-        <>
+  return (
+    <>
 
-            <View style={styles.containerLight}>
-                <Header title="Course" />
+      <View style={styles.containerLight}>
+        <Header title="Course" />
 
+        <View style={styles.content}>
 
-                <View style={styles.content}>
+          <CourseInfo
+            id={id}
 
-                    <CourseInfo
-                        id={id}
-                       
-                    />
-                </View>
+          />
+        </View>
 
-                <Footer activeTab={activeTab} />
-            </View>
-        </>
-    );
+        <Footer activeTab={activeTab} />
+      </View>
+    </>
+  );
 }

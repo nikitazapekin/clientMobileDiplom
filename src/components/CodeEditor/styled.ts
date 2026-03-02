@@ -1,5 +1,5 @@
 // components/CodeEditor/styles.ts
-import { StyleSheet, Platform } from "react-native";
+import { Platform,StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
   container: {
@@ -145,10 +145,7 @@ export const styles = StyleSheet.create({
     backgroundColor: "#404040",
   },
 
-
-
-
-   suggestionsContainer: {
+  suggestionsContainer: {
     position: 'absolute',
     left: 10,
     right: 10,
@@ -190,7 +187,7 @@ export const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 
-    languageBadge: {
+  languageBadge: {
     position: 'absolute',
     top: 8,
     left: 12,
@@ -209,10 +206,7 @@ export const styles = StyleSheet.create({
     fontFamily: 'System',
   },
 
-
-
-
-    topBar: {
+  topBar: {
     position: 'absolute',
     top: 0,
     left: 0,
@@ -232,9 +226,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-
-
-   highlightButton: {
+  highlightButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -259,7 +251,7 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
- highlightContainer: {
+  highlightContainer: {
     flex: 1,
     backgroundColor: '#1e1e1e',
     paddingTop: 44, // Увеличено для topBar

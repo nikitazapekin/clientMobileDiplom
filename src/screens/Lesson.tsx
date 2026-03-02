@@ -1,11 +1,15 @@
-import { View, Text } from "react-native";
-import { styles } from "./styles";
-import Header from "../components/Header";
-import Footer, { TabName } from "../components/Footer";
-import CourseInfo from "@/components/CourseInfo";
+import { Text,View } from "react-native";
 import { useRoute } from "@react-navigation/native";
-import Map from "@/components/Map";
+
+import type { TabName } from "../components/Footer";
+import Footer from "../components/Footer";
+import Header from "../components/Header";
+
+import { styles } from "./styles";
+
+import CourseInfo from "@/components/CourseInfo";
 import Lesson from "@/components/Lesson";
+import Map from "@/components/Map";
 
 type CourseScreenRouteParams = {
     id: string;
@@ -14,23 +18,23 @@ type CourseScreenRouteParams = {
 
 const LessonScreen = () => {
 
-     const route = useRoute();
-        const activeTab: TabName = route.name === "Courses" ? "courses" : "courses";
-        const { id } = route.params as CourseScreenRouteParams;
+  const route = useRoute();
+  const activeTab: TabName = route.name === "Courses" ? "courses" : "courses";
+  const { id } = route.params as CourseScreenRouteParams;
 
-        console.log("PARENT", id)
-    return (
-      <View style={styles.containerLight}>
-                <Header title="Map" />
+  console.log("PARENT", id);
 
+  return (
+    <View style={styles.containerLight}>
+      <Header title="Map" />
 
-                <View style={styles.content}>
- <Lesson  id={id} />
-                </View>
+      <View style={styles.content}>
+        <Lesson  id={id} />
+      </View>
 
-                <Footer activeTab={activeTab} />
-            </View>
-    );
+      <Footer activeTab={activeTab} />
+    </View>
+  );
 };
 
 export default LessonScreen;

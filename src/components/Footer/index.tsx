@@ -1,13 +1,16 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Image, ImageSourcePropType } from "react-native";
+import type { ImageSourcePropType} from "react-native";
+import { Image,Text, TouchableOpacity, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import type { MainTabNavigationProp, RootStackNavigationProp } from "@/navigation/types";
-import HomeIcon from "@/assets/tabs/home.png";
+
+import { styles } from "./styles";
+
 import AchievementsIcon from "@/assets/tabs/badge.png";
 import ChatsIcon from "@/assets/tabs/chat.png";
 import SandboxIcon from "@/assets/tabs/coding.png";
+import HomeIcon from "@/assets/tabs/home.png";
 import ProfileIcon from "@/assets/tabs/user.png";
-import { styles } from "./styles";
+import type { MainTabNavigationProp, RootStackNavigationProp } from "@/navigation/types";
 
 export type TabName = "courses" | "achievements" | "chats" | "sandbox" | "profile";
 
@@ -30,7 +33,7 @@ export default function Footer({ activeTab }: FooterProps) {
 
   const handleTabPress = (route: RouteName) => {
 
-    console.log("NAVIGATE")
+    console.log("NAVIGATE");
     navigation.navigate(route);
   };
 

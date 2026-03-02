@@ -1,53 +1,61 @@
-// UserProfile.tsx
+// UserProfile.tsx (обновленная версия)
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback,useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Image,
   ActivityIndicator,
-  TouchableOpacity,
   Alert,
   FlatList,
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { ProfileService } from "../../http/profile"
-import type { FullClientInfo, StudentResultResponse } from "../../http/types/profile"
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import { ProfileService } from '../../http/profile';
+import type { FullClientInfo, StudentResultResponse } from '../../http/types/profile';
+import AvatarPicker from '../AvatarPicker';
 
 const UserProfile = () => {
   const [profile, setProfile] = useState<FullClientInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [avatarPickerVisible, setAvatarPickerVisible] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
+  // components/UserProfile.tsx
 
-  const getAuditoryId = async (): Promise<string | null> => {
-    try {
-      return await AsyncStorage.getItem('userId');
-    } catch (error) {
-      console.error('Error getting auditoryId:', error);
-      return null;
-    }
-  };
-
-  const loadProfile = async () => {
+  // В функции loadProfile добавьте обработку base64 изображения
+  const loadProfile = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const auditoryId = await getAuditoryId();
-      
+
+      const auditoryId = await AsyncStorage.getItem('userId');
+
       if (!auditoryId) {
         setError('User not authenticated');
+
         return;
       }
 
       const profileData = await ProfileService.getFullProfileByAuditoryId(auditoryId);
+
+      // Проверяем и обрабатываем аватар
+      if (profileData.avatar) {
+        console.log('Avatar data:', profileData.avatar);
+
+        // Если imageUrl уже содержит data:image, оставляем как есть
+        // Если это просто base64, добавляем префикс
+        if (profileData.avatar.imageUrl && !profileData.avatar.imageUrl.startsWith('data:')) {
+          profileData.avatar.imageUrl = `data:${profileData.avatar.mimeType};base64,${profileData.avatar.imageUrl}`;
+        }
+      }
+
       setProfile(profileData);
     } catch (err: any) {
       setError(err.message || 'Failed to load profile');
@@ -55,7 +63,36 @@ const UserProfile = () => {
       setLoading(false);
       setRefreshing(false);
     }
+  }, []);
+
+  // В функции handleAvatarUploaded
+  const handleAvatarUploaded = (avatarUrl: string) => {
+    if (profile) {
+      if (avatarUrl) {
+      // Обновляем аватар
+        setProfile({
+          ...profile,
+          avatar: {
+            ...profile.avatar!,
+            imageUrl: avatarUrl,
+          },
+        });
+
+        // Перезагружаем профиль для получения актуальных данных
+        loadProfile();
+      } else {
+      // Удаляем аватар
+        setProfile({
+          ...profile,
+          avatar: undefined,
+        });
+      }
+    }
   };
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -63,12 +100,34 @@ const UserProfile = () => {
   };
 
   const handleAvatarPress = () => {
-    // Здесь можно добавить логику для смены аватара
-    Alert.alert('Change Avatar', 'This feature is coming soon!');
+    setAvatarPickerVisible(true);
+  };
+
+  const handleAvatarLongPress = () => {
+    Alert.alert(
+      'Avatar Options',
+      'What would you like to do?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'View Full Size',
+          onPress: () => {
+            if (profile?.avatar) {
+              Alert.alert('Avatar', 'Full size view coming soon!');
+            }
+          },
+        },
+        {
+          text: 'Change Avatar',
+          onPress: () => setAvatarPickerVisible(true),
+        },
+      ]
+    );
   };
 
   const renderStars = (count: number) => {
     const stars = [];
+
     for (let i = 1; i <= 5; i++) {
       stars.push(
         <Text key={i} style={[styles.star, i <= count ? styles.starFilled : styles.starEmpty]}>
@@ -76,25 +135,39 @@ const UserProfile = () => {
         </Text>
       );
     }
+
     return <View style={styles.starsContainer}>{stars}</View>;
   };
 
   const renderStudentResult = ({ item }: { item: StudentResultResponse }) => (
-    <View style={styles.resultCard}>
-      <Text style={styles.resultLessonId}>Lesson: {item.lessonId}</Text>
+    <TouchableOpacity
+      style={styles.resultCard}
+      onPress={() => {
+        // Navigate to lesson details
+        Alert.alert('Lesson', `View lesson ${item.lessonId}`);
+      }}
+    >
+      <Text style={styles.resultLessonId} numberOfLines={1}>
+        Lesson: {item.lessonId}
+      </Text>
       <View style={styles.resultStars}>
         {renderStars(item.countOfStars)}
       </View>
       <Text style={styles.resultDate}>
-        Completed: {new Date(item.completedAt).toLocaleDateString()}
+        {new Date(item.completedAt).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        })}
       </Text>
-    </View>
+    </TouchableOpacity>
   );
 
   if (loading && !refreshing) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>Loading profile...</Text>
       </View>
     );
   }
@@ -102,9 +175,10 @@ const UserProfile = () => {
   if (error) {
     return (
       <View style={styles.centerContainer}>
+        <Text style={styles.errorIcon}>⚠️</Text>
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={loadProfile}>
-          <Text style={styles.retryButtonText}>Retry</Text>
+          <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
       </View>
     );
@@ -113,205 +187,337 @@ const UserProfile = () => {
   if (!profile) {
     return (
       <View style={styles.centerContainer}>
-        <Text>No profile data available</Text>
+        <Text style={styles.noDataText}>No profile data available</Text>
       </View>
     );
   }
 
+  const auditoryId = profile.auditoryId;
+
   return (
-    <ScrollView 
-      style={styles.container}
-    
-    >
-      {/* Header with Avatar */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarContainer}>
-          {profile.avatar ? (
-            <Image 
-              source={{ uri: profile.avatar.imageUrl }} 
-              style={styles.avatar}
-            />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarPlaceholderText}>
-                {profile.firstName?.[0]}{profile.lastName?.[0]}
+    <>
+      <ScrollView
+        style={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
+        {/* Header with Avatar */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={handleAvatarPress}
+            onLongPress={handleAvatarLongPress}
+            delayLongPress={500}
+            style={styles.avatarContainer}
+          >
+            {uploadingAvatar ? (
+              <View style={[styles.avatar, styles.avatarUploading]}>
+                <ActivityIndicator size="large" color="#fff" />
+              </View>
+            ) : profile.avatar ? (
+              <Image
+                source={{ uri: profile.avatar.imageUrl }}
+                style={styles.avatar}
+              />
+            ) : (
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <Text style={styles.avatarPlaceholderText}>
+                  {profile.firstName?.[0]}{profile.lastName?.[0]}
+                </Text>
+              </View>
+            )}
+
+            {/* Camera indicator */}
+            <View style={styles.cameraBadge}>
+              <Text style={styles.cameraBadgeText}>📷</Text>
+            </View>
+          </TouchableOpacity>
+
+          <Text style={styles.name}>
+            {profile.firstName} {profile.lastName}
+            {profile.middleName ? ` ${profile.middleName}` : ''}
+          </Text>
+
+          <View style={styles.emailContainer}>
+            <Text style={styles.emailIcon}>✉️</Text>
+            <Text style={styles.email}>{profile.email}</Text>
+          </View>
+
+          <View style={styles.roleContainer}>
+            <Text style={styles.roleIcon}>👤</Text>
+            <Text style={styles.role}>{profile.role}</Text>
+          </View>
+        </View>
+
+        {/* Statistics */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{profile.totalLessons}</Text>
+            <Text style={styles.statLabel}>Lessons</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{profile.averageStars.toFixed(1)}</Text>
+            <Text style={styles.statLabel}>Avg. Stars</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{profile.studentResults.length}</Text>
+            <Text style={styles.statLabel}>Results</Text>
+          </View>
+        </View>
+
+        {/* Personal Information */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>📋 Personal Information</Text>
+
+          <View style={styles.infoGrid}>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoItemLabel}>📱 Phone</Text>
+              <Text style={styles.infoItemValue}>{profile.phone}</Text>
+            </View>
+
+            <View style={styles.infoItem}>
+              <Text style={styles.infoItemLabel}>🌍 Country</Text>
+              <Text style={styles.infoItemValue}>{profile.country}</Text>
+            </View>
+
+            {profile.description ? (
+              <View style={[styles.infoItem, styles.infoItemFull]}>
+                <Text style={styles.infoItemLabel}>📝 About</Text>
+                <Text style={styles.infoItemValue}>{profile.description}</Text>
+              </View>
+            ) : null}
+
+            <View style={styles.infoItem}>
+              <Text style={styles.infoItemLabel}>📅 Registered</Text>
+              <Text style={styles.infoItemValue}>
+                {new Date(profile.registeredAt).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
               </Text>
             </View>
-          )}
-          <View style={styles.editBadge}>
-            <Text style={styles.editBadgeText}>✎</Text>
+
+            {profile.lastLoginAt && (
+              <View style={styles.infoItem}>
+                <Text style={styles.infoItemLabel}>🕐 Last Login</Text>
+                <Text style={styles.infoItemValue}>
+                  {new Date(profile.lastLoginAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </Text>
+              </View>
+            )}
           </View>
-        </TouchableOpacity>
-        
-        <Text style={styles.name}>
-          {profile.firstName} {profile.lastName} {profile.middleName}
-        </Text>
-        <Text style={styles.email}>{profile.email}</Text>
-        <Text style={styles.role}>{profile.role}</Text>
-      </View>
+        </View>
 
-      {/* Statistics */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{profile.totalLessons}</Text>
-          <Text style={styles.statLabel}>Lessons</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{profile.averageStars.toFixed(1)}</Text>
-          <Text style={styles.statLabel}>Avg. Stars</Text>
-        </View>
-      </View>
+        {/* Recent Results */}
+        {profile.studentResults.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>⭐ Recent Results</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  Alert.alert('View All', 'Navigate to all results');
+                }}
+              >
+                <Text style={styles.viewAllText}>View All →</Text>
+              </TouchableOpacity>
+            </View>
 
-      {/* Personal Information */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Personal Information</Text>
-        
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Phone:</Text>
-          <Text style={styles.infoValue}>{profile.phone}</Text>
-        </View>
-        
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Country:</Text>
-          <Text style={styles.infoValue}>{profile.country}</Text>
-        </View>
-        
-        {profile.description && (
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>About:</Text>
-            <Text style={styles.infoValue}>{profile.description}</Text>
+            <FlatList
+              data={profile.studentResults.slice(0, 5)}
+              renderItem={renderStudentResult}
+              keyExtractor={(item) => item.id}
+              scrollEnabled={false}
+              contentContainerStyle={styles.resultsList}
+            />
           </View>
         )}
-        
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Registered:</Text>
-          <Text style={styles.infoValue}>
-            {new Date(profile.registeredAt).toLocaleDateString()}
-          </Text>
-        </View>
 
-        {profile.lastLoginAt && (
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Last Login:</Text>
-            <Text style={styles.infoValue}>
-              {new Date(profile.lastLoginAt).toLocaleDateString()}
+        {/* Status Badge */}
+        <View style={styles.statusContainer}>
+          <View style={[styles.statusBadge, profile.isActive ? styles.statusActive : styles.statusInactive]}>
+            <Text style={styles.statusIcon}>{profile.isActive ? '✅' : '⭕'}</Text>
+            <Text style={styles.statusText}>
+              {profile.isActive ? 'Active Account' : 'Inactive Account'}
             </Text>
           </View>
-        )}
-      </View>
-
-      {/* Recent Results */}
-      {profile.studentResults.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Results</Text>
-          <FlatList
-            data={profile.studentResults.slice(0, 5)}
-            renderItem={renderStudentResult}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            contentContainerStyle={styles.resultsList}
-          />
         </View>
+
+        {/* Logout Button */}
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={() => {
+            Alert.alert(
+              'Logout',
+              'Are you sure you want to logout?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Logout',
+                  style: 'destructive',
+                  onPress: async () => {
+                    await AsyncStorage.removeItem('accessToken');
+                    await AsyncStorage.removeItem('auditoryId');
+                    // Navigate to login screen
+                  },
+                },
+              ]
+            );
+          }}
+        >
+          <Text style={styles.logoutIcon}>🚪</Text>
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* Avatar Picker Modal */}
+      {auditoryId && (
+        <AvatarPicker
+          visible={avatarPickerVisible}
+          onClose={() => setAvatarPickerVisible(false)}
+          auditoryId={auditoryId}
+          onAvatarUploaded={handleAvatarUploaded}
+        />
       )}
 
-      {/* Status Badge */}
-      <View style={styles.statusContainer}>
-        <View style={[styles.statusBadge, profile.isActive ? styles.statusActive : styles.statusInactive]}>
-          <Text style={styles.statusText}>
-            {profile.isActive ? 'Active' : 'Inactive'}
-          </Text>
-        </View>
-      </View>
-    </ScrollView>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8f9fa',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: '#f8f9fa',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
   },
   header: {
-    backgroundColor: '#007AFF',
+    backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     paddingTop: 40,
     paddingBottom: 30,
     alignItems: 'center',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
   avatarContainer: {
     position: 'relative',
-    marginBottom: 10,
+    marginBottom: 15,
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 3,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 4,
     borderColor: '#fff',
   },
-  avatarPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#0056b3',
+  avatarUploading: {
+    backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#fff',
+  },
+  avatarPlaceholder: {
+    backgroundColor: '#5a67d8',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarPlaceholderText: {
-    fontSize: 36,
+    fontSize: 48,
     color: '#fff',
     fontWeight: 'bold',
   },
-  editBadge: {
+  cameraBadge: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
+    bottom: 5,
+    right: 5,
     backgroundColor: '#fff',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#007AFF',
+    borderWidth: 3,
+    borderColor: '#667eea',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  editBadgeText: {
-    fontSize: 16,
-    color: '#007AFF',
+  cameraBadgeText: {
+    fontSize: 18,
   },
   name: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#fff',
     marginTop: 5,
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  emailContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  emailIcon: {
+    fontSize: 16,
+    marginRight: 8,
+    color: '#fff',
+    opacity: 0.9,
   },
   email: {
     fontSize: 16,
     color: '#fff',
     opacity: 0.9,
-    marginTop: 2,
+  },
+  roleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 15,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  roleIcon: {
+    fontSize: 14,
+    marginRight: 5,
+    color: '#fff',
   },
   role: {
     fontSize: 14,
     color: '#fff',
-    opacity: 0.8,
-    marginTop: 2,
     textTransform: 'capitalize',
   },
   statsContainer: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    margin: 20,
+    marginHorizontal: 20,
+    marginTop: -20,
     padding: 20,
     borderRadius: 15,
     shadowColor: '#000',
@@ -331,7 +537,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: '#667eea',
   },
   statLabel: {
     fontSize: 14,
@@ -341,7 +547,7 @@ const styles = StyleSheet.create({
   section: {
     backgroundColor: '#fff',
     marginHorizontal: 20,
-    marginBottom: 20,
+    marginTop: 20,
     padding: 20,
     borderRadius: 15,
     shadowColor: '#000',
@@ -350,28 +556,43 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 15,
   },
-  infoRow: {
-    flexDirection: 'row',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  infoLabel: {
-    width: 100,
+  viewAllText: {
     fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
+    color: '#667eea',
+    fontWeight: '600',
   },
-  infoValue: {
-    flex: 1,
+  infoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -5,
+  },
+  infoItem: {
+    width: '50%',
+    padding: 5,
+  },
+  infoItemFull: {
+    width: '100%',
+  },
+  infoItemLabel: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 2,
+  },
+  infoItemValue: {
     fontSize: 14,
     color: '#333',
+    fontWeight: '500',
   },
   resultsList: {
     paddingBottom: 10,
@@ -379,14 +600,16 @@ const styles = StyleSheet.create({
   resultCard: {
     backgroundColor: '#f8f9fa',
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 12,
     marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
   },
   resultLessonId: {
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 5,
+    marginBottom: 8,
   },
   resultStars: {
     marginVertical: 5,
@@ -395,11 +618,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   star: {
-    fontSize: 18,
+    fontSize: 20,
     marginHorizontal: 2,
   },
   starFilled: {
     color: '#FFD700',
+    textShadowColor: 'rgba(0,0,0,0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   starEmpty: {
     color: '#ddd',
@@ -407,43 +633,91 @@ const styles = StyleSheet.create({
   resultDate: {
     fontSize: 12,
     color: '#999',
-    marginTop: 5,
+    marginTop: 8,
+    textAlign: 'right',
   },
   statusContainer: {
     alignItems: 'center',
+    marginTop: 20,
     marginBottom: 20,
   },
   statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingVertical: 10,
+    borderRadius: 25,
   },
   statusActive: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#48bb78',
   },
   statusInactive: {
-    backgroundColor: '#f44336',
+    backgroundColor: '#f56565',
+  },
+  statusIcon: {
+    fontSize: 16,
+    marginRight: 8,
+    color: '#fff',
   },
   statusText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
   },
+  errorIcon: {
+    fontSize: 48,
+    marginBottom: 10,
+  },
   errorText: {
     fontSize: 16,
-    color: '#f44336',
+    color: '#f56565',
     textAlign: 'center',
     marginBottom: 20,
   },
+  noDataText: {
+    fontSize: 16,
+    color: '#999',
+  },
   retryButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#667eea',
     paddingHorizontal: 30,
     paddingVertical: 12,
     borderRadius: 25,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   retryButtonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    marginHorizontal: 20,
+    marginBottom: 30,
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  logoutIcon: {
+    fontSize: 18,
+    marginRight: 10,
+  },
+  logoutText: {
+    fontSize: 16,
+    color: '#f56565',
     fontWeight: '600',
   },
 });

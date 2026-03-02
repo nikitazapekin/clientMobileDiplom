@@ -1,13 +1,16 @@
-import { View, Text, TextInput, Alert } from "react-native";
-import { styles } from "./styled";
-import CustomButton from "../Button";
-import { COLORS } from "appStyles";
-import { useNavigation } from "@react-navigation/native";
-import { FormNavigationProp } from "@/navigation/types";
-import { ROUTES } from "@/navigation/routes";
-import { z } from "zod";
 import { useState } from "react";
+import { Alert,Text, TextInput, View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { COLORS } from "appStyles";
+import { z } from "zod";
+
+import CustomButton from "../Button";
+
+import { styles } from "./styled";
+
 import AuthService from "@/http/auth";
+import { ROUTES } from "@/navigation/routes";
+import type { FormNavigationProp } from "@/navigation/types";
 
 const AuthSchema = z.object({
   login: z.string().min(3, "Логин должен содержать минимум 3 символа"),
@@ -29,6 +32,7 @@ const AuthForm = () => {
 
   const handleInputChange = (field: keyof AuthFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
@@ -38,16 +42,20 @@ const AuthForm = () => {
     try {
       AuthSchema.parse(formData);
       setErrors({});
+
       return true;
     } catch (error) {
       if (error instanceof z.ZodError) {
         const formattedErrors: Partial<Record<keyof AuthFormData, string>> = {};
+
         error.issues.forEach((err) => {
           const field = err.path[0] as keyof AuthFormData;
+
           formattedErrors[field] = err.message;
         });
         setErrors(formattedErrors);
       }
+
       return false;
     }
   };

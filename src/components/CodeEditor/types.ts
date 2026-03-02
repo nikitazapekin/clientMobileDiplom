@@ -6,7 +6,7 @@ export interface CodeEditorProps {
   language: CodeLanguage;
   readOnly?: boolean;
   height?: number;
- 
+
   onRun?: () => void;
   runLoading?: boolean;
 }

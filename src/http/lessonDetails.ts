@@ -1,8 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { 
-  LessonDetailsResponse, 
-  CreateLessonDetailsRequest, 
-  UpdateLessonDetailsRequest 
+
+import type {
+  CreateLessonDetailsRequest,
+  LessonDetailsResponse,
+  UpdateLessonDetailsRequest
 } from "./types/lessonDetails";
 import $api from "./api";
 
@@ -14,6 +15,7 @@ export class LessonDetailsService {
       return await AsyncStorage.getItem("accessToken");
     } catch (error) {
       console.error("Error getting token:", error);
+
       return null;
     }
   }
@@ -32,6 +34,7 @@ export class LessonDetailsService {
     try {
       const token = await this.getToken();
       const response = await $api.post(this.BASE_URL, data, this.getHeaders(token));
+
       return response.data;
     } catch (error: any) {
       console.error("Create lesson details error:", error.response?.data || error.message);
@@ -43,6 +46,7 @@ export class LessonDetailsService {
     try {
       const token = await this.getToken();
       const response = await $api.get(`${this.BASE_URL}/${id}`, this.getHeaders(token));
+
       return response.data;
     } catch (error: any) {
       console.error("Get lesson details error:", error.response?.data || error.message);
@@ -54,6 +58,7 @@ export class LessonDetailsService {
     try {
       const token = await this.getToken();
       const response = await $api.get(`${this.BASE_URL}/lesson/${lessonId}`, this.getHeaders(token));
+
       return response.data;
     } catch (error: any) {
       console.error("Get lesson details by lesson id error:", error.response?.data || error.message);
@@ -68,6 +73,7 @@ export class LessonDetailsService {
     try {
       const token = await this.getToken();
       const response = await $api.put(`${this.BASE_URL}/${id}`, data, this.getHeaders(token));
+
       return response.data;
     } catch (error: any) {
       console.error("Update lesson details error:", error.response?.data || error.message);
@@ -79,6 +85,7 @@ export class LessonDetailsService {
     try {
       const token = await this.getToken();
       const response = await $api.delete(`${this.BASE_URL}/${id}`, this.getHeaders(token));
+
       return response.data;
     } catch (error: any) {
       console.error("Delete lesson details error:", error.response?.data || error.message);
@@ -95,6 +102,7 @@ export class LessonDetailsService {
     try {
       const token = await this.getToken();
       const response = await $api.delete(`${this.BASE_URL}/lesson/${lessonId}`, this.getHeaders(token));
+
       return response.data;
     } catch (error: any) {
       console.error("Delete lesson details by lesson id error:", error.response?.data || error.message);

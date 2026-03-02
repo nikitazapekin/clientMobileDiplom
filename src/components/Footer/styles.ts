@@ -18,23 +18,23 @@ export const styles = StyleSheet.create({
     backgroundColor: COLORS.GRAY_LIGHT,
     justifyContent: "center",
     alignItems: "center",
-//    marginHorizontal: 4,
+    //    marginHorizontal: 4,
     padding: 8,
   },
   footerButtonActive: {
-borderColor: "#9F0FA7",
-borderWidth: 2,
+    borderColor: "#9F0FA7",
+    borderWidth: 2,
   },
   footerButtonIcon: {
     width: 34,
     height: 34,
     marginBottom: 2,
   },
- 
+
   footerButtonTextActive: {
     //color: COLORS.GRAY_DARK,
-borderColor: "#9F0FA7",
-borderWidth: 2,
+    borderColor: "#9F0FA7",
+    borderWidth: 2,
 
   },
 });

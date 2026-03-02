@@ -1,24 +1,26 @@
 // screens/CoursesList.tsx
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useCallback, useEffect, useRef,useState } from 'react';
 import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
   ActivityIndicator,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   RefreshControl,
+  SafeAreaView,
+  StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
-  Modal,
-  SafeAreaView,
-  KeyboardAvoidingView,
-  Platform,
+  View,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import Course from '../Course';
-import CourseService from '@/http/courses';
-import type { CourseResponse, CourseStatus, CourseListResponse } from '@/http/types/course';
 import { COLORS } from 'appStyles';
+
+import Course from '../Course';
+
+import CourseService from '@/http/courses';
+import type { CourseListResponse,CourseResponse, CourseStatus } from '@/http/types/course';
 
 interface Filters {
   status?: CourseStatus;
@@ -44,13 +46,13 @@ const CoursesList = () => {
         limit: 10,
         ...currentFilters,
       });
-      
+
       if (pageNum === 1) {
         setCourses(response.courses);
       } else {
         setCourses(prev => [...prev, ...response.courses]);
       }
-      
+
       setTotalPages(response.pages);
     } catch (error) {
       console.error('Failed to load courses:', error);
@@ -73,6 +75,7 @@ const CoursesList = () => {
   const loadMore = useCallback(() => {
     if (page < totalPages && !loading) {
       const nextPage = page + 1;
+
       setPage(nextPage);
       loadCourses(nextPage);
     }
@@ -119,13 +122,15 @@ const CoursesList = () => {
             returnKeyType="search"
           />
           {searchText.length > 0 && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.clearButton}
               onPress={() => {
                 setSearchText('');
                 setFilters(prev => {
                   const newFilters = { ...prev };
+
                   delete newFilters.search;
+
                   return newFilters;
                 });
                 setPage(1);
@@ -136,7 +141,7 @@ const CoursesList = () => {
             </TouchableOpacity>
           )}
         </View>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.filterButton, filters.status && styles.filterButtonActive]}
           onPress={() => {
             setTempFilters(filters);
@@ -148,20 +153,22 @@ const CoursesList = () => {
           </Text>
         </TouchableOpacity>
       </View>
-      
+
       {/* Отображение активных фильтров */}
       {filters.status && (
         <View style={styles.activeFilters}>
           <View style={styles.activeFilterTag}>
             <Text style={styles.activeFilterText}>
-              Статус: {filters.status === 'draft' ? 'Черновик' : 
-                       filters.status === 'published' ? 'Опубликовано' : 'В архиве'}
+              Статус: {filters.status === 'draft' ? 'Черновик' :
+                filters.status === 'published' ? 'Опубликовано' : 'В архиве'}
             </Text>
             <TouchableOpacity
               onPress={() => {
                 setFilters(prev => {
                   const newFilters = { ...prev };
+
                   delete newFilters.status;
+
                   return newFilters;
                 });
                 setPage(1);
@@ -186,14 +193,14 @@ const CoursesList = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.flexContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
       >
         {/* Фиксированная панель поиска */}
         {renderFixedHeader()}
-        
+
         {/* Список курсов */}
         <FlatList
           data={courses}
@@ -201,8 +208,8 @@ const CoursesList = () => {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           refreshControl={
-            <RefreshControl 
-              refreshing={refreshing} 
+            <RefreshControl
+              refreshing={refreshing}
               onRefresh={onRefresh}
               tintColor={COLORS.ACCENT}
             />
@@ -219,7 +226,7 @@ const CoursesList = () => {
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>Курсы не найдены</Text>
                 {(filters.status || filters.search) && (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.resetButton}
                     onPress={handleClearFilters}
                   >
@@ -239,19 +246,19 @@ const CoursesList = () => {
         transparent={true}
         onRequestClose={() => setIsFilterModalVisible(false)}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => setIsFilterModalVisible(false)}
         >
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Фильтры</Text>
-            
+
             <Text style={styles.filterLabel}>Статус:</Text>
             <View style={styles.pickerContainer}>
               <Picker
                 selectedValue={tempFilters.status}
-                onValueChange={(value) => 
+                onValueChange={(value) =>
                   setTempFilters(prev => ({ ...prev, status: value }))
                 }
               >
@@ -263,15 +270,15 @@ const CoursesList = () => {
             </View>
 
             <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.clearButton]} 
+              <TouchableOpacity
+                style={[styles.modalButton, styles.clearButton]}
                 onPress={handleClearFilters}
               >
                 <Text style={styles.clearButtonText}>Сбросить все</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.applyButton]} 
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.applyButton]}
                 onPress={handleApplyFilters}
               >
                 <Text style={styles.applyButtonText}>Применить</Text>
@@ -461,7 +468,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
- 
+
   applyButton: {
     backgroundColor: COLORS.ACCENT,
   },

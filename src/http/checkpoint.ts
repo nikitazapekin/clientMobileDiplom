@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { CheckpointResponse, UpdateCheckpointRequest, CreateCheckpointRequest } from "./types/checkpoint";
+
+import type { CheckpointResponse, CreateCheckpointRequest,UpdateCheckpointRequest } from "./types/checkpoint";
 import $api from "./api";
 
 export class CheckpointService {
@@ -8,6 +9,7 @@ export class CheckpointService {
       return await AsyncStorage.getItem("accessToken");
     } catch (error) {
       console.error("Error getting token:", error);
+
       return null;
     }
   }
@@ -24,6 +26,7 @@ export class CheckpointService {
     try {
       const token = await this.getToken();
       const response = await $api.post(`/checkpoints`, data, this.getHeaders(token));
+
       return response.data;
     } catch (error: any) {
       console.error("Create checkpoint error:", error.response?.data || error.message);
@@ -35,6 +38,7 @@ export class CheckpointService {
     try {
       const token = await this.getToken();
       const response = await $api.get(`/checkpoints/${id}`, this.getHeaders(token));
+
       return response.data;
     } catch (error: any) {
       console.error("Get checkpoint error:", error.response?.data || error.message);
@@ -46,6 +50,7 @@ export class CheckpointService {
     try {
       const token = await this.getToken();
       const response = await $api.get(`/checkpoints/map-element/${mapElementId}`, this.getHeaders(token));
+
       return response.data;
     } catch (error: any) {
       console.error("Get checkpoint by map element id error:", error.response?.data || error.message);
@@ -60,6 +65,7 @@ export class CheckpointService {
     try {
       const token = await this.getToken();
       const response = await $api.put(`/checkpoints/${id}`, data, this.getHeaders(token));
+
       return response.data;
     } catch (error: any) {
       console.error("Update checkpoint error:", error.response?.data || error.message);
@@ -70,7 +76,9 @@ export class CheckpointService {
   static async deleteCheckpoint(id: string): Promise<{ success: boolean }> {
     try {
       const token = await this.getToken();
+
       await $api.delete(`/checkpoints/${id}`, this.getHeaders(token));
+
       return { success: true };
     } catch (error: any) {
       console.error("Delete checkpoint error:", error.response?.data || error.message);

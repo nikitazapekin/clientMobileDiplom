@@ -1,13 +1,16 @@
-import { View, Text, TextInput, Alert, ScrollView } from "react-native";
-import { styles } from "./styled";
-import CustomButton from "../Button";
-import { COLORS } from "appStyles";
-import { useNavigation } from "@react-navigation/native";
-import { FormNavigationProp } from "@/navigation/types";
-import { ROUTES } from "@/navigation/routes";
 import { useState } from "react";
+import { Alert, ScrollView,Text, TextInput, View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { COLORS } from "appStyles";
 import { z } from "zod";
+
+import CustomButton from "../Button";
+
+import { styles } from "./styled";
+
 import AuthService from "@/http/auth";
+import { ROUTES } from "@/navigation/routes";
+import type { FormNavigationProp } from "@/navigation/types";
 
 const RegisterSchema = z.object({
   email: z.string().email("Некорректный формат почты"),
@@ -44,6 +47,7 @@ const RegisterForm = () => {
 
   const handleInputChange = (field: keyof RegisterFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
@@ -53,16 +57,20 @@ const RegisterForm = () => {
     try {
       RegisterSchema.parse(formData);
       setErrors({});
+
       return true;
     } catch (error) {
       if (error instanceof z.ZodError) {
         const formattedErrors: Partial<Record<keyof RegisterFormData, string>> = {};
+
         error.issues.forEach((err) => {
           const field = err.path[0] as keyof RegisterFormData;
+
           formattedErrors[field] = err.message;
         });
         setErrors(formattedErrors);
       }
+
       return false;
     }
   };
@@ -109,9 +117,9 @@ const RegisterForm = () => {
         secureTextEntry={secureTextEntry}
         autoCapitalize={field === 'email' ? 'none' : 'words'}
         keyboardType={
-          field === 'phone' ? 'phone-pad' : 
-          field === 'email' ? 'email-address' : 
-          'default'
+          field === 'phone' ? 'phone-pad' :
+            field === 'email' ? 'email-address' :
+              'default'
         }
         editable={!loading}
       />

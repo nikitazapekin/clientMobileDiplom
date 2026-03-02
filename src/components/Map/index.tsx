@@ -1,27 +1,31 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef,useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
   ActivityIndicator,
+  Alert,
   Dimensions,
   Image,
-  StatusBar,
-  ScrollView,
   Modal,
-  Alert,
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+
+import CustomButton from "../Button";
+
 import { styles } from "./styled";
-import { MapService } from "@/http/map";
-import { LessonService } from "@/http/lesson";
+
 import { CheckpointService } from "@/http/checkpoint";
+import { LessonService } from "@/http/lesson";
+import { MapService } from "@/http/map";
 import type {
   MapElementResponse,
 } from "@/http/types/map";
-import CustomButton from "../Button";
-import { useNavigation } from "@react-navigation/native";
 import { ROUTES } from "@/navigation/routes";
-import { MainTabNavigationProp, RootStackParamList, RootStackNavigationProp } from "@/navigation/types";
+import type { RootStackNavigationProp} from "@/navigation/types";
+import { MainTabNavigationProp,RootStackParamList } from "@/navigation/types";
 
 interface Position {
   x: number;
@@ -194,7 +198,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
 
       // Загружаем данные для каждого урока
       const lessonElements = elements.filter((el) => el.type === "lesson");
-      
+
       // Сначала устанавливаем данные из элементов карты как запасной вариант
       lessonElements.forEach((element) => {
         if (element.title) {
@@ -214,6 +218,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
         lessonElements.map(async (element) => {
           try {
             const lessonData = await LessonService.getLessonByMapElementId(element.id);
+
             lessons[element.id] = {
               id: lessonData.id,
               mapElementId: lessonData.mapElementId,
@@ -234,7 +239,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
 
       // Загружаем данные для каждой контрольной точки
       const checkpointElements = elements.filter((el) => el.type === "checkpoint");
-      
+
       // Сначала устанавливаем данные из элементов карты как запасной вариант
       checkpointElements.forEach((element) => {
         if (element.title) {
@@ -254,6 +259,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
         checkpointElements.map(async (element) => {
           try {
             const checkpointData = await CheckpointService.getCheckpointByMapElementId(element.id);
+
             checkpoints[element.id] = {
               id: checkpointData.id,
               mapElementId: checkpointData.mapElementId,
@@ -278,7 +284,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
 
       setLessonsData(lessons);
       setCheckpointsData(checkpoints);
-      
+
       console.log("📚 Итоговые данные уроков:", Object.keys(lessons).length);
       Object.entries(lessons).forEach(([id, data]) => {
         console.log(`   ${id}: "${data.title}"`);
@@ -303,6 +309,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
       '800': '800',
       '900': '900',
     };
+
     return (weight && validWeights[weight]) || 'normal';
   };
 
@@ -343,6 +350,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
   const handleElementClick = (element: MapElement) => {
     if (element.type === "lesson") {
       const lessonData = lessonsData[element.id];
+
       if (lessonData) {
         setModalData({
           type: "lesson",
@@ -355,6 +363,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
       }
     } else if (element.type === "checkpoint") {
       const checkpointData = checkpointsData[element.id];
+
       if (checkpointData) {
         setModalData({
           type: "checkpoint",
@@ -366,24 +375,23 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
         setModalVisible(true);
       }
     }
-     
+
     if (onElementPress) {
       onElementPress(element);
     }
   };
 
-
-  const navigation = useNavigation<RootStackNavigationProp>()
+  const navigation = useNavigation<RootStackNavigationProp>();
 
   const handleNavigate = () => {
     if (!modalData || !modalData.targetId) return;
-    
-navigation.navigate(ROUTES.STACK.LESSON, { id: modalData.targetId });
-//navigation.navigate(ROUTES.STACK.LESSON, { id: modalData.targetId });
+
+    navigation.navigate(ROUTES.STACK.LESSON, { id: modalData.targetId });
+    //navigation.navigate(ROUTES.STACK.LESSON, { id: modalData.targetId });
     setModalVisible(false);
     Alert.alert("Навигация", `Переход к ${modalData.type} с ID: ${modalData.targetId}`);
   };
- 
+
   const renderElement = (element: MapElement) => {
     const position = calculateElementPosition(element);
     const rotation = element.rotation || 0;
@@ -453,6 +461,7 @@ navigation.navigate(ROUTES.STACK.LESSON, { id: modalData.targetId });
         const lessonData = lessonsData[element.id];
         // Используем данные из lessonsData, если они есть
         const displayTitle = lessonData?.title || element.title || "Урок";
+
         return (
           <TouchableOpacity
             key={element.id}
@@ -523,6 +532,7 @@ navigation.navigate(ROUTES.STACK.LESSON, { id: modalData.targetId });
       case "checkpoint":
         const checkpointData = checkpointsData[element.id];
         const checkpointTitle = checkpointData?.title || element.title || "Контрольная точка";
+
         return (
           <TouchableOpacity
             key={element.id}
@@ -606,12 +616,15 @@ navigation.navigate(ROUTES.STACK.LESSON, { id: modalData.targetId });
         case 'cover':
           style.resizeMode = 'cover';
           break;
+
         case 'contain':
           style.resizeMode = 'contain';
           break;
+
         case 'auto':
           style.resizeMode = 'center';
           break;
+
         default:
           style.resizeMode = 'cover';
       }
@@ -643,7 +656,7 @@ navigation.navigate(ROUTES.STACK.LESSON, { id: modalData.targetId });
   return (
     <View style={styles.studentContainer}>
       <StatusBar backgroundColor="#f5f5f5" barStyle="dark-content" />
-      
+
       {/* Вертикальный ScrollView */}
       <ScrollView
         showsVerticalScrollIndicator={true}
@@ -651,10 +664,10 @@ navigation.navigate(ROUTES.STACK.LESSON, { id: modalData.targetId });
         contentContainerStyle={styles.scrollContent}
       >
         {/* Контейнер карты с фиксированной высотой из БД */}
-        <View 
+        <View
           style={[
             styles.mapContainer,
-            { 
+            {
               width: '100%',
               height: mapSize.height,
               backgroundColor: mapBackground.color,
@@ -670,7 +683,7 @@ navigation.navigate(ROUTES.STACK.LESSON, { id: modalData.targetId });
               resizeMethod="resize"
             />
           )}
-          
+
           {/* Элементы карты */}
           {elements.map(renderElement)}
         </View>
@@ -679,8 +692,8 @@ navigation.navigate(ROUTES.STACK.LESSON, { id: modalData.targetId });
       {/* Информационная панель */}
       <View style={styles.infoPanel}>
         <Text style={styles.infoText}>
-          {mapSize.width}×{mapSize.height} | Эл: {elements.length} | 
-          Ур: {Object.keys(lessonsData).length} | 
+          {mapSize.width}×{mapSize.height} | Эл: {elements.length} |
+          Ур: {Object.keys(lessonsData).length} |
           КТ: {Object.keys(checkpointsData).length}
         </Text>
       </View>
@@ -694,34 +707,34 @@ navigation.navigate(ROUTES.STACK.LESSON, { id: modalData.targetId });
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <TouchableOpacity 
-              style={styles.closeButton} 
+            <TouchableOpacity
+              style={styles.closeButton}
               onPress={() => setModalVisible(false)}
             >
               <Text style={styles.closeButtonText}>×</Text>
             </TouchableOpacity>
-            
+
             <Text style={styles.modalTitle}>
               {modalData?.type === "lesson" ? "Урок" : "Контрольная точка"}
             </Text>
-            
+
             <Text style={styles.modalSubtitle}>{modalData?.title}</Text>
-            
+
             <View style={styles.modalDescription}>
               <Text style={styles.modalDescriptionText}>
                 {modalData?.description}
               </Text>
             </View>
-            
+
             <View style={styles.modalActions}>
-             {/*  <TouchableOpacity 
+              {/*  <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={() => setModalVisible(false)}
               >
                 <Text style={styles.cancelButtonText}>Закрыть</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={styles.navigateButton}
                 onPress={handleNavigate}
               >
@@ -730,19 +743,18 @@ navigation.navigate(ROUTES.STACK.LESSON, { id: modalData.targetId });
                 </Text>
               </TouchableOpacity> */}
 
-
-              <CustomButton 
-              handler={() => setModalVisible(false)}
-              text="Закрыть"
-              maxWidth={120}
+              <CustomButton
+                handler={() => setModalVisible(false)}
+                text="Закрыть"
+                maxWidth={120}
               />
-              <CustomButton 
-              handler={handleNavigate}
-              text={modalData?.type === "lesson" ? "Перейти к уроку" : "Перейти к контрольной точке"}
-              backgroundColor="#D8D8D8"
-              maxWidth={120}
+              <CustomButton
+                handler={handleNavigate}
+                text={modalData?.type === "lesson" ? "Перейти к уроку" : "Перейти к контрольной точке"}
+                backgroundColor="#D8D8D8"
+                maxWidth={120}
 
-              color="#000"
+                color="#000"
               />
             </View>
           </View>

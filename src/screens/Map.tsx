@@ -1,9 +1,12 @@
-import { View, Text } from "react-native";
-import { styles } from "./styles";
-import Header from "../components/Header";
-import Footer, { TabName } from "../components/Footer";
-import CourseInfo from "@/components/CourseInfo";
+import {  View } from "react-native";
 import { useRoute } from "@react-navigation/native";
+
+import type { TabName } from "../components/Footer";
+import Footer from "../components/Footer";
+import Header from "../components/Header";
+
+import { styles } from "./styles";
+ 
 import Map from "@/components/Map";
 
 type CourseScreenRouteParams = {
@@ -13,24 +16,22 @@ type CourseScreenRouteParams = {
 
 const MapScreen = () => {
 
-     const route = useRoute();
-        const activeTab: TabName = route.name === "Courses" ? "courses" : "courses";
-        const { id } = route.params as CourseScreenRouteParams;
+  const route = useRoute();
+  const activeTab: TabName = route.name === "Courses" ? "courses" : "courses";
+  const { id } = route.params as CourseScreenRouteParams;
 
-        
-    return (
-      <View style={styles.containerLight}>
-                <Header title="Map" />
+  return (
+    <View style={styles.containerLight}>
+      <Header title="Map" />
 
+      <View style={styles.content}>
 
-                <View style={styles.content}>
+        <Map  courseId={id}/>
+      </View>
 
-                   <Map  courseId={id}/>
-                </View>
-
-                <Footer activeTab={activeTab} />
-            </View>
-    );
+      <Footer activeTab={activeTab} />
+    </View>
+  );
 };
 
 export default MapScreen;

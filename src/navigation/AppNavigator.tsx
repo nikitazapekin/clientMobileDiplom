@@ -1,22 +1,22 @@
 import React from "react";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 
-import type { RootStackParamList, MainTabParamList } from "./types";
+import type { MainTabParamList,RootStackParamList } from "./types";
 
 import { ROUTES } from "@/navigation/routes";
+import AchievementsScreen from "@/screens/Achievements";
 import AuthScreen from "@/screens/AuthScreen";
-import WelcomeScreen from "@/screens/Welcome";
+import ChatsScreen from "@/screens/Chats";
+import CourseScreen from "@/screens/Course";
+import CoursesScreen from "@/screens/Courses";
+import LessonScreen from "@/screens/Lesson";
+import MapScreen from "@/screens/Map";
 import ProfileScreen from "@/screens/Profile";
 import RegisterScreen from "@/screens/Register";
-import CoursesScreen from "@/screens/Courses";
-import AchievementsScreen from "@/screens/Achievements";
-import ChatsScreen from "@/screens/Chats";
 import SandboxScreen from "@/screens/Sandbox";
-import CourseScreen from "@/screens/Course";
-import MapScreen from "@/screens/Map";
-import LessonScreen from "@/screens/Lesson";
+import WelcomeScreen from "@/screens/Welcome";
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -34,9 +34,7 @@ function MainTabs() {
       <Tab.Screen name={ROUTES.SCREENS.CHATS} component={ChatsScreen} />
       <Tab.Screen name={ROUTES.SCREENS.SANDBOX} component={SandboxScreen} />
       {/* <Tab.Screen name={ROUTES.SCREENS.PROFILE} component={ProfileScreen} /> */}
- 
 
-  
     </Tab.Navigator>
   );
 }
@@ -59,7 +57,7 @@ export default function AppNavigator() {
         <Stack.Screen name={ROUTES.STACK.MAP} component={MapScreen} />
         <Stack.Screen name={ROUTES.STACK.LESSON} component={LessonScreen} />
 
-         <Stack.Screen name={ROUTES.STACK.PROFILE} component={ProfileScreen} />
+        <Stack.Screen name={ROUTES.STACK.PROFILE} component={ProfileScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

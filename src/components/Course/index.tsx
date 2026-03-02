@@ -1,14 +1,15 @@
 // components/Course.tsx
 import React from 'react';
 import {
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  StyleSheet,
   Dimensions,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+
 import type { CourseResponse } from '@/http/types/course';
 import { ROUTES } from '@/navigation/routes';
 import type { RootStackNavigationProp } from '@/navigation/types';
@@ -26,10 +27,12 @@ const getValidImageSrc = (logo: string): string | null => {
   const trimmed = logo.trim();
 
   if (trimmed.startsWith('data:')) return trimmed;
+
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
-  
+
   if (trimmed.startsWith('/')) {
-    const baseUrl = 'https://your-api-domain.com'; 
+    const baseUrl = 'https://your-api-domain.com';
+
     return `${baseUrl}${trimmed}`;
   }
 
@@ -40,19 +43,19 @@ const Course: React.FC<CourseProps> = ({ item, onPress }) => {
   const navigation = useNavigation<RootStackNavigationProp>();
   const imageSrc = getValidImageSrc(item.logo);
 
-   const handlePress = () => {
+  const handlePress = () => {
     if (onPress) {
-     
+
       onPress();
     } else {
-      
+
       navigation.navigate(ROUTES.STACK.COURSE, { id: item.id });
     }
   };
 
   return (
     <TouchableOpacity style={styles.course} onPress={handlePress} activeOpacity={0.7}>
-      
+
       <View style={styles.imageContainer}>
         {imageSrc ? (
           <Image
@@ -64,17 +67,16 @@ const Course: React.FC<CourseProps> = ({ item, onPress }) => {
           <View style={[styles.course__image, styles.course__imagePlaceholder]} />
         )}
       </View>
-      
-      
+
       <View style={styles.course__preview}>
         <Text style={styles.course__title} numberOfLines={2}>
           {item.title}
         </Text>
-        
+
         <Text style={styles.course__description} numberOfLines={2}>
           {item.description}
         </Text>
-        
+
         <View style={styles.statsContainer}>
           <View style={styles.course__lesson}>
             <Text style={styles.course__count}>
@@ -107,7 +109,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     marginBottom: 24,
     flexDirection: 'column',
-    alignItems: 'center', 
+    alignItems: 'center',
     padding: 16,
     borderRadius: 8,
     shadowColor: '#000',
@@ -134,25 +136,25 @@ const styles = StyleSheet.create({
   },
   course__preview: {
     width: '100%',
-    alignItems: 'center', 
+    alignItems: 'center',
     paddingHorizontal: 8,
   },
   course__title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 8,
-    textAlign: 'center', 
+    textAlign: 'center',
   },
   course__description: {
     fontSize: 20,
     fontWeight: '400',
     marginBottom: 12,
-    textAlign: 'center', 
+    textAlign: 'center',
     color: '#666',
   },
   statsContainer: {
     flexDirection: 'row',
-    justifyContent: 'center', 
+    justifyContent: 'center',
     gap: 24,
     marginBottom: 12,
     flexWrap: 'wrap',
@@ -170,7 +172,7 @@ const styles = StyleSheet.create({
   },
   course__tags: {
     flexDirection: 'row',
-    justifyContent: 'center', 
+    justifyContent: 'center',
     gap: 8,
     marginTop: 8,
     flexWrap: 'wrap',

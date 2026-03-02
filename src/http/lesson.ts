@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { LessonResponse, UpdateLessonRequest, CreateLessonRequest } from "./types/lesson";
+
+import type { CreateLessonRequest,LessonResponse, UpdateLessonRequest } from "./types/lesson";
 import $api from "./api";
 
 export class LessonService {
@@ -8,6 +9,7 @@ export class LessonService {
       return await AsyncStorage.getItem("accessToken");
     } catch (error) {
       console.error("Error getting token:", error);
+
       return null;
     }
   }
@@ -24,6 +26,7 @@ export class LessonService {
     try {
       const token = await this.getToken();
       const response = await $api.post(`/lessons`, data, this.getHeaders(token));
+
       return response.data;
     } catch (error: any) {
       console.error("Create lesson error:", error.response?.data || error.message);
@@ -35,6 +38,7 @@ export class LessonService {
     try {
       const token = await this.getToken();
       const response = await $api.get(`/lessons/${id}`, this.getHeaders(token));
+
       return response.data;
     } catch (error: any) {
       console.error("Get lesson error:", error.response?.data || error.message);
@@ -46,6 +50,7 @@ export class LessonService {
     try {
       const token = await this.getToken();
       const response = await $api.get(`/lessons/map-element/${mapElementId}`, this.getHeaders(token));
+
       return response.data;
     } catch (error: any) {
       console.error("Get lesson by map element id error:", error.response?.data || error.message);
@@ -57,6 +62,7 @@ export class LessonService {
     try {
       const token = await this.getToken();
       const response = await $api.put(`/lessons/${id}`, data, this.getHeaders(token));
+
       return response.data;
     } catch (error: any) {
       console.error("Update lesson error:", error.response?.data || error.message);
@@ -67,7 +73,9 @@ export class LessonService {
   static async deleteLesson(id: string): Promise<{ success: boolean }> {
     try {
       const token = await this.getToken();
+
       await $api.delete(`/lessons/${id}`, this.getHeaders(token));
+
       return { success: true };
     } catch (error: any) {
       console.error("Delete lesson error:", error.response?.data || error.message);

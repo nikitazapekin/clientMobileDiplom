@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Image, ScrollView, ActivityIndicator, TouchableOpacity, Modal, StyleSheet } from "react-native";
+import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet,Text, TouchableOpacity, View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+
+import Button from "../Button";
+
+import Certificate from "@/assets/utils/Certificate.jpg";
 import CourseService from "@/http/courses";
 import type { CourseResponse } from "@/http/types/course";
-import Button from "../Button";
-import Certificate from "@/assets/utils/Certificate.jpg";
 import { ROUTES } from "@/navigation/routes";
-import { useNavigation } from "@react-navigation/native";
 import type { RootStackNavigationProp } from "@/navigation/types";
 
 interface CourseInfoProps {
@@ -28,6 +30,7 @@ const CourseInfo = ({ id,  }: CourseInfoProps) => {
     try {
       setLoading(true);
       const response = await CourseService.getCourseById(id);
+
       setCourse(response);
       setError(null);
     } catch (err: any) {
@@ -44,12 +47,12 @@ const CourseInfo = ({ id,  }: CourseInfoProps) => {
 
   const handleGoToProfile = () => {
     setShowSuccessModal(false);
-  
+
   };
 
   const handleGoToMap = () => {
     setShowSuccessModal(false);
-navigation.navigate(ROUTES.STACK.MAP, { id });
+    navigation.navigate(ROUTES.STACK.MAP, { id });
   };
 
   if (loading) {
@@ -75,18 +78,18 @@ navigation.navigate(ROUTES.STACK.MAP, { id });
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
-         
+
         <View style={styles.previewContainer}>
-          <Image 
+          <Image
             source={{ uri: course.logo  }}
             style={styles.courseImage}
             resizeMode="cover"
           />
-          
+
           <View style={styles.infoContainer}>
             <View style={styles.titleRow}>
               <Text style={styles.courseTitle}>{course.title}</Text>
-             
+
             </View>
 
             <Text style={styles.courseDescription}>{course.description}</Text>
@@ -103,7 +106,7 @@ navigation.navigate(ROUTES.STACK.MAP, { id });
             </View>
           </View>
         </View>
- 
+
         <View style={styles.aboutSection}>
           <Text style={styles.sectionTitle}>О курсе</Text>
           <Text style={styles.aboutText}>
@@ -115,18 +118,17 @@ navigation.navigate(ROUTES.STACK.MAP, { id });
           </Text>
         </View>
 
-        
         <View style={styles.certificateSection}>
           <Text style={styles.certificateTitle}>
             Сертификат о успешном прохождении курса
           </Text>
-          <Image 
+          <Image
             source={ Certificate}
             style={styles.certificateImage}
             resizeMode="contain"
           />
         </View>
- 
+
         <View style={styles.actionsContainer}>
           <Button
             text="Добавить в мои курсы"
@@ -170,13 +172,13 @@ navigation.navigate(ROUTES.STACK.MAP, { id });
             </View>
           </View>
         </Modal>
- 
+
         <View style={styles.metaInfo}>
           <Text style={styles.metaText}>Тип: {course.type}</Text>
           <Text style={styles.metaText}>Язык: {course.language}</Text>
           <Text style={styles.metaText}>
-            Статус: {course.status === 'published' ? 'Опубликован' : 
-                    course.status === 'draft' ? 'Черновик' : 'В архиве'}
+            Статус: {course.status === 'published' ? 'Опубликован' :
+              course.status === 'draft' ? 'Черновик' : 'В архиве'}
           </Text>
           <Text style={styles.metaText}>
             Создан: {new Date(course.createdAt).toLocaleDateString('ru-RU')}

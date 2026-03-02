@@ -7,7 +7,7 @@ export const styles = StyleSheet.create({
     backgroundColor: COLORS.GRAY_DARK,
   },
 
-   containerLight: {
+  containerLight: {
     flex: 1,
     backgroundColor: COLORS.WHITE,
   },
@@ -20,9 +20,9 @@ export const styles = StyleSheet.create({
     flex: 1,
     marginTop: 0,
     marginBottom: 0,
- 
+
   },
- 
+
   contentContainer: {
     paddingLeft: 16,
     paddingRight: 16,

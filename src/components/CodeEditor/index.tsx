@@ -1,17 +1,16 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect,useRef, useState } from 'react';
 import {
-  View,
-  TextInput,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Text,
-  Platform,
-  Keyboard,
   findNodeHandle,
+  Keyboard,
   NativeModules,
-  UIManager
-} from 'react-native';
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  UIManager,
+  View} from 'react-native';
 
 type CodeLanguage = 'javascript' | 'python' | 'java' | 'csharp' | 'golang' | 'cpp';
 
@@ -27,37 +26,37 @@ interface CodeEditorProps {
 
 const KEYWORDS: Record<CodeLanguage, string[]> = {
   javascript: [
-    'function', 'const', 'let', 'var', 'if', 'else', 'for', 'while', 
-    'return', 'class', 'this', 'new', 'try', 'catch', 'finally', 
+    'function', 'const', 'let', 'var', 'if', 'else', 'for', 'while',
+    'return', 'class', 'this', 'new', 'try', 'catch', 'finally',
     'switch', 'case', 'break', 'continue', 'typeof', 'instanceof',
     'console.log', 'Array', 'Object', 'String', 'Number', 'Boolean',
   ],
   python: [
-    'def', 'if', 'elif', 'else', 'for', 'while', 'return', 'import', 
-    'from', 'as', 'class', 'try', 'except', 'finally', 'with', 
+    'def', 'if', 'elif', 'else', 'for', 'while', 'return', 'import',
+    'from', 'as', 'class', 'try', 'except', 'finally', 'with',
     'print', 'len', 'range', 'enumerate', 'zip', 'open', 'None',
     'True', 'False', 'and', 'or', 'not', 'in', 'is', 'lambda',
   ],
   java: [
-    'public', 'private', 'protected', 'class', 'void', 'static', 
-    'final', 'if', 'else', 'for', 'while', 'return', 'new', 'try', 
+    'public', 'private', 'protected', 'class', 'void', 'static',
+    'final', 'if', 'else', 'for', 'while', 'return', 'new', 'try',
     'catch', 'System.out.println', 'String', 'int', 'double', 'boolean',
     'this', 'super', 'extends', 'implements', 'interface', 'enum',
   ],
   csharp: [
-    'public', 'private', 'protected', 'class', 'void', 'static', 
-    'readonly', 'if', 'else', 'for', 'foreach', 'while', 'return', 
+    'public', 'private', 'protected', 'class', 'void', 'static',
+    'readonly', 'if', 'else', 'for', 'foreach', 'while', 'return',
     'using', 'namespace', 'Console.WriteLine', 'string', 'int', 'bool',
     'var', 'get', 'set', 'value', 'this', 'base', 'virtual', 'override',
   ],
   golang: [
-    'func', 'var', 'const', 'if', 'else', 'for', 'range', 'return', 
+    'func', 'var', 'const', 'if', 'else', 'for', 'range', 'return',
     'package', 'import', 'type', 'struct', 'interface', 'go', 'defer',
     'chan', 'map', 'make', 'new', 'fmt.Println', 'len', 'cap', 'append',
   ],
   cpp: [
-    'int', 'char', 'float', 'double', 'void', 'class', 'public', 
-    'private', 'protected', 'if', 'else', 'for', 'while', 'return', 
+    'int', 'char', 'float', 'double', 'void', 'class', 'public',
+    'private', 'protected', 'if', 'else', 'for', 'while', 'return',
     'new', 'delete', 'cout', 'cin', 'endl', 'std', 'using', 'namespace',
     'virtual', 'override', 'const', 'static', 'template', 'typename',
   ]
@@ -107,6 +106,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     const interval = setInterval(() => {
       setCursorVisible(prev => !prev);
     }, 500);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -114,10 +114,10 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   const getCurrentWord = useCallback((text: string, pos: number) => {
     const beforeCursor = text.slice(0, pos);
     const afterCursor = text.slice(pos);
-    
+
     const beforeMatch = beforeCursor.match(/[a-zA-Z0-9_.]*$/);
     const afterMatch = afterCursor.match(/^[a-zA-Z0-9_]*/);
-    
+
     return (beforeMatch ? beforeMatch[0] : '') + (afterMatch ? afterMatch[0] : '');
   }, []);
 
@@ -127,12 +127,12 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 
     if (word.length >= 2 && !readOnly) {
       const suggestions = KEYWORDS[language]
-        .filter(keyword => 
+        .filter(keyword =>
           keyword.toLowerCase().startsWith(word.toLowerCase()) &&
           keyword !== word
         )
         .slice(0, 6);
-      
+
       setAutocompleteSuggestions(suggestions);
       setShowAutocomplete(suggestions.length > 0);
       setSelectedSuggestion(0);
@@ -146,11 +146,13 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     const beforeCursor = value.slice(0, selection.start);
     const afterCursor = value.slice(selection.end);
     const word = getCurrentWord(value, selection.start);
-    
+
     const newText = beforeCursor.slice(0, -word.length) + snippet + afterCursor;
+
     onChange(newText);
-    
+
     const newPosition = beforeCursor.length - word.length + snippet.length;
+
     setSelection({ start: newPosition, end: newPosition });
     setShowAutocomplete(false);
   }, [value, selection, onChange]);
@@ -162,54 +164,62 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     if (showAutocomplete) {
       if (key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedSuggestion(prev => 
+        setSelectedSuggestion(prev =>
           prev < autocompleteSuggestions.length - 1 ? prev + 1 : prev
         );
+
         return;
       } else if (key === 'ArrowUp') {
         e.preventDefault();
         setSelectedSuggestion(prev => prev > 0 ? prev - 1 : 0);
+
         return;
       } else if (key === 'Enter' || key === 'Tab') {
         e.preventDefault();
+
         if (autocompleteSuggestions[selectedSuggestion]) {
           insertSnippet(autocompleteSuggestions[selectedSuggestion]);
         }
+
         return;
       } else if (key === 'Escape') {
         setShowAutocomplete(false);
+
         return;
       }
     }
 
     if (key === 'Enter') {
       e.preventDefault();
-      
+
       const lines = value.split('\n');
       const textBeforeCursor = value.slice(0, selection.start);
       const currentLineIndex = textBeforeCursor.split('\n').length - 1;
       const currentLine = lines[currentLineIndex] || '';
-      
+
       const indentMatch = currentLine.match(/^\s*/);
       const currentIndent = indentMatch ? indentMatch[0] : '';
-      
-      const shouldIncreaseIndent = /[{([][^}\])]*$/.test(currentLine.trim()) || 
+
+      const shouldIncreaseIndent = /[{([][^}\])]*$/.test(currentLine.trim()) ||
                                    currentLine.trim().endsWith(':');
-      
+
       const newIndent = shouldIncreaseIndent ? currentIndent + '  ' : currentIndent;
-      
+
       const newText = value.slice(0, selection.start) + '\n' + newIndent + value.slice(selection.end);
+
       onChange(newText);
-      
+
       setTimeout(() => {
         const newPosition = selection.start + 1 + newIndent.length;
+
         setSelection({ start: newPosition, end: newPosition });
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 0);
-    } 
+    }
     else if (key === 'Tab') {
       e.preventDefault();
       const newText = value.slice(0, selection.start) + '  ' + value.slice(selection.end);
+
       onChange(newText);
       setTimeout(() => {
         setSelection({ start: selection.start + 2, end: selection.start + 2 });
@@ -220,6 +230,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   // Обновление позиции курсора
   const handleSelectionChange = useCallback((event: any) => {
     const { selection } = event.nativeEvent;
+
     setSelection(selection);
 
     // Вычисляем позицию курсора (строка и колонка)
@@ -227,6 +238,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     const lines = textBeforeCursor.split('\n');
     const line = lines.length - 1;
     const column = lines[lines.length - 1].length;
+
     setCursorPosition({ line, column });
   }, [value]);
 
@@ -247,7 +259,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     }
 
     const lines = value.split('\n');
-    
+
     return lines.map((line, lineIndex) => {
       const tokens: React.ReactNode[] = [];
       let i = 0;
@@ -269,11 +281,14 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         if (char === '"' || char === "'" || char === '`') {
           const quote = char;
           let j = i + 1;
+
           while (j < length && line[j] !== quote) {
             if (line[j] === '\\') j += 2;
             else j++;
           }
+
           const str = line.slice(i, j + 1);
+
           tokens.push(
             <Text key={`string-${i}`} style={{ color: COLORS.string }}>
               {str}
@@ -285,8 +300,11 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 
         if (/[0-9]/.test(char) && (i === 0 || !/[a-zA-Z_]/.test(line[i-1]))) {
           let j = i;
+
           while (j < length && /[0-9.]/.test(line[j])) j++;
+
           const num = line.slice(i, j);
+
           tokens.push(
             <Text key={`number-${i}`} style={{ color: COLORS.number }}>
               {num}
@@ -298,12 +316,14 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 
         if (/[a-zA-Z_]/.test(char)) {
           let j = i;
+
           while (j < length && /[a-zA-Z0-9_]/.test(line[j])) j++;
+
           const word = line.slice(i, j);
-          
+
           const keywords = KEYWORDS[language] || [];
           let color = COLORS.text;
-          
+
           if (keywords.includes(word)) {
             color = COLORS.keyword;
           } else if (['function', 'def', 'func'].includes(word)) {
@@ -311,7 +331,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
           } else if (['class', 'interface', 'struct', 'enum'].includes(word)) {
             color = COLORS.type;
           }
-          
+
           tokens.push(
             <Text key={`word-${i}`} style={{ color }}>
               {word}
@@ -375,7 +395,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
           <Text style={styles.statsText}>
             {value.split('\n').length} строк
           </Text>
-          
+
           {onRun && (
             <TouchableOpacity
               style={[styles.runButton, runLoading && styles.runButtonDisabled]}
@@ -390,8 +410,8 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         </View>
       </View>
 
-      <TouchableOpacity 
-        activeOpacity={1} 
+      <TouchableOpacity
+        activeOpacity={1}
         style={styles.editorTouchable}
         onPress={() => inputRef.current?.focus()}
       >
@@ -436,7 +456,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 
       {showAutocomplete && (
         <View style={styles.autocompleteContainer}>
-          <ScrollView 
+          <ScrollView
             keyboardShouldPersistTaps="handled"
             nestedScrollEnabled={true}
           >

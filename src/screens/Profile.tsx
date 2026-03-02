@@ -1,13 +1,14 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { Text,View } from "react-native";
 import { useRoute } from "@react-navigation/native";
 
-import { styles } from "./styles";
+import type { TabName } from "../components/Footer";
+import Footer from "../components/Footer";
 import Header from "../components/Header";
-import Footer, { TabName } from "../components/Footer";
+import UserProfile from "../components/UserProfile";
 
+import { styles } from "./styles";
 
-import UserProfile from "../components/UserProfile"
 export default function ProfileScreen() {
   const route = useRoute();
   const activeTab: TabName = route.name === "Profile" ? "profile" : "profile";
@@ -17,10 +18,9 @@ export default function ProfileScreen() {
       <View style={styles.containerLight}>
         <Header title="Profile" />
 
-      
         <View style={styles.content}>
-      <UserProfile /> 
- 
+          <UserProfile />
+
         </View>
 
         <Footer activeTab={activeTab} />

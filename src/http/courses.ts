@@ -1,11 +1,12 @@
 // services/course.service.ts
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { 
-  CourseListResponse, 
-  CourseResponse, 
-  CourseStatus, 
-  CreateCourseRequest, 
-  UpdateCourseRequest 
+
+import type {
+  CourseListResponse,
+  CourseResponse,
+  CourseStatus,
+  CreateCourseRequest,
+  UpdateCourseRequest
 } from "./types/course";
 import $api from "./api";
 
@@ -22,6 +23,7 @@ export default class CourseService {
           Authorization: `Bearer ${token}`,
         },
       });
+
       return response.data;
     } catch (error: any) {
       console.error("Create course error:", error.response?.data || error.message);
@@ -37,16 +39,20 @@ export default class CourseService {
   }): Promise<CourseListResponse> {
     try {
       const params = new URLSearchParams();
-      
+
       if (options?.page) params.append("page", options.page.toString());
+
       if (options?.limit) params.append("limit", options.limit.toString());
+
       if (options?.status) params.append("status", options.status);
+
       if (options?.search) params.append("search", options.search);
 
       const queryString = params.toString();
       const url = queryString ? `/courses?${queryString}` : "/courses";
 
       const response = await $api.get<CourseListResponse>(url);
+
       return response.data;
     } catch (error: any) {
       console.error("Get courses error:", error.response?.data || error.message);
@@ -57,6 +63,7 @@ export default class CourseService {
   static async getCourseById(id: string): Promise<CourseResponse> {
     try {
       const response = await $api.get<CourseResponse>(`/courses/${id}`);
+
       return response.data;
     } catch (error: any) {
       console.error("Get course error:", error.response?.data || error.message);
@@ -72,6 +79,7 @@ export default class CourseService {
           Authorization: `Bearer ${token}`,
         },
       });
+
       return response.data;
     } catch (error: any) {
       console.error("Update course error:", error.response?.data || error.message);
@@ -82,11 +90,13 @@ export default class CourseService {
   static async deleteCourse(id: string): Promise<{ success: boolean }> {
     try {
       const token = await this.getToken();
+
       await $api.delete(`/courses/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+
       return { success: true };
     } catch (error: any) {
       console.error("Delete course error:", error.response?.data || error.message);
@@ -106,6 +116,7 @@ export default class CourseService {
           },
         }
       );
+
       return response.data;
     } catch (error: any) {
       console.error("Publish course error:", error.response?.data || error.message);
@@ -116,6 +127,7 @@ export default class CourseService {
   static async getPublishedCourses(): Promise<CourseResponse[]> {
     try {
       const response = await $api.get<CourseResponse[]>("/courses/published");
+
       return response.data;
     } catch (error: any) {
       console.error("Get published courses error:", error.response?.data || error.message);
@@ -126,6 +138,7 @@ export default class CourseService {
   static async getCoursesByTag(tag: string): Promise<CourseResponse[]> {
     try {
       const response = await $api.get<CourseResponse[]>(`/courses/tag/${tag}`);
+
       return response.data;
     } catch (error: any) {
       console.error("Get courses by tag error:", error.response?.data || error.message);
@@ -141,6 +154,7 @@ export default class CourseService {
           Authorization: `Bearer ${token}`,
         },
       });
+
       return response.data;
     } catch (error: any) {
       console.error("Get my courses error:", error.response?.data || error.message);

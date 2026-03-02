@@ -2,9 +2,11 @@ import React from "react";
 import { View } from "react-native";
 import { useRoute } from "@react-navigation/native";
 
-import { styles } from "./styles";
+import type { TabName } from "../components/Footer";
+import Footer from "../components/Footer";
 import Header from "../components/Header";
-import Footer, { TabName } from "../components/Footer";
+
+import { styles } from "./styles";
 
 export default function AchievementsScreen() {
   const route = useRoute();

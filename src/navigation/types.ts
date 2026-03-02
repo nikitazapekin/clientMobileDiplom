@@ -1,6 +1,6 @@
+import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { RouteProp } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
-import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 
 import type { ROUTES } from "./routes";
 
@@ -17,7 +17,6 @@ export type RootStackParamList = {
   [ROUTES.SCREENS.PROFILE]: undefined;
 
   [ROUTES.STACK.COURSE]: { id: string };
-
 
   [ROUTES.STACK.MAP]: { id: string };
 
@@ -36,4 +35,3 @@ export type MainTabParamList = {
 export type RootStackNavigationProp = StackNavigationProp<RootStackParamList>;
 export type MainTabNavigationProp = BottomTabNavigationProp<MainTabParamList>;
 export type FormNavigationProp = StackNavigationProp<RootStackParamList>;
-

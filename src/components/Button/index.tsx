@@ -11,7 +11,7 @@ const CustomButton: React.FC<CustomButtonProps> = ({
   disabled = false,
   color = "#fff",
   fullWidth = false,
-  maxWidth,  
+  maxWidth,
 }) => {
   return (
     <TouchableOpacity

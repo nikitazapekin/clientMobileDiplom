@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import type { AuthResponse, LoginRequest, RegisterRequest } from "./types/auth";
 import $api from "./api";
 
@@ -68,6 +69,7 @@ export default class AuthService {
 
       if (response.data.accessToken) {
         await AsyncStorage.setItem("accessToken", response.data.accessToken);
+
         return response.data.accessToken;
       }
 
@@ -92,6 +94,7 @@ export default class AuthService {
   static async validateToken(): Promise<AuthResponse> {
     try {
       const response = await $api.get<AuthResponse>("/auth/validate");
+
       return response.data;
     } catch (error) {
       console.error("Token validation failed:", error);
@@ -128,12 +131,14 @@ export default class AuthService {
   static async isAuthenticated(): Promise<boolean> {
     try {
       const token = await AsyncStorage.getItem("accessToken");
+
       if (!token) {
         return false;
       }
 
       // Проверяем валидность токена на сервере
       await this.validateToken();
+
       return true;
     } catch {
       return false;
@@ -142,9 +147,9 @@ export default class AuthService {
 
   private static async clearStorage(): Promise<void> {
     await AsyncStorage.multiRemove([
-      "accessToken", 
-      "userRole", 
-      "userEmail", 
+      "accessToken",
+      "userRole",
+      "userEmail",
       "userId",
       "userFullName"
     ]);

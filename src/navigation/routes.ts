@@ -9,7 +9,7 @@ export const ROUTES = {
     ACHIEVEMENTS: "Achievements",
     CHATS: "Chats",
     SANDBOX: "Sandbox",
-    COURSE: "Course", 
+    COURSE: "Course",
     MAP: "Map",
 
     LESSON: "Lesson",

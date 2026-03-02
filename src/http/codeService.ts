@@ -1,6 +1,7 @@
 // http/codeService.ts
-import $api from "./api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import $api from "./api";
 
 export type CodeLanguage = "javascript" | "python" | "csharp" | "golang" | "java";
 
@@ -21,6 +22,7 @@ export class CodeService {
       return await AsyncStorage.getItem("accessToken");
     } catch (error) {
       console.error("Error getting token:", error);
+
       return null;
     }
   }
@@ -37,10 +39,10 @@ export class CodeService {
         },
         token
           ? {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
           : undefined
       );
 
