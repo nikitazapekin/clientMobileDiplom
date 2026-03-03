@@ -15,6 +15,9 @@ import type {
   UpdateAvatarRequest,
   UpdateStudentResultRequest} from "./types/profile";
 import $api from "./api";
+import axios from "axios";
+
+const BASE_URL = 'http://192.168.1.6:3002';
 
 export class ProfileService {
   private static async getToken(): Promise<string | null> {
@@ -35,11 +38,144 @@ export class ProfileService {
     };
   }
 
-  // ============= PROFILE INFO METHODS =============
 
-  /**
-   * Получение полной информации о клиенте по auditoryId
-   */
+  /*
+static async getStudentCourseProgress(auditoryId: string, courseId: string) {
+  console.log("REQ", auditoryId, courseId);
+ try {
+    const token = await this.getToken();
+    
+    // Жестко закодированные значения
+    const auditoryId = "auth_1772579154161_94azxbrq4";
+    const courseId = "course_1772578782645_8n2oizmrc";
+    const url = "http://localhost:3002/profile/student-results/client/auth_1772579154161_94azxbrq4/course-progress";
+    
+    console.log("🚀 Отправка запроса:", {
+      url,
+      method: 'POST',
+      body: { courseId }
+    });
+
+    const response = await axios.post(
+      url,
+      { courseId }, // тело запроса
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log("✅ Успешный ответ:", response.data);
+    return response.data;
+    
+  } catch (error: any) {
+    console.error("❌ Ошибка:", {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        data: error.config?.data
+      }
+    });
+    throw error;
+  }
+}
+ */
+
+
+
+// Временно уберем все сложности
+static async getStudentCourseProgress(auditoryId: string, courseId: string) {
+  try {
+    const response = await fetch(
+      `http://localhost:3002/profile/student-results/client/${auditoryId}/course-progress`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ courseId })
+      }
+    );
+    
+    const data = await response.json();
+    console.log("Fetch response:", data);
+    return data;
+  } catch (error) {
+    console.error("Fetch error:", error);
+    throw error;
+  }
+}
+
+
+/*
+static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
+  try {
+    const token = await this.getToken();
+    
+    // ЖЕСТКО ЗАКОДИРОВАННЫЕ ЗНАЧЕНИЯ - игнорируем параметры
+    const hardcodedAuditoryId = "auth_1772579154161_94azxbrq4";
+    const hardcodedCourseId = "course_1772578782645_8n2oizmrc";
+    const url = "http://192.168.1.6:3002/profile/student-results/client/auth_1772579154161_94azxbrq4/course-progress";
+    
+    console.log("🔴 ИСПОЛЬЗУЮТСЯ ХАРДКОД ЗНАЧЕНИЯ:", {
+      auditoryId: hardcodedAuditoryId,
+      courseId: hardcodedCourseId,
+      url: url
+    });
+
+    console.log("📤 Отправка POST запроса:", {
+      url: url,
+      body: { courseId: hardcodedCourseId }
+    });
+
+    const response = await axios.post(
+      url,
+      { courseId: hardcodedCourseId }, // ВАЖНО: используем hardcodedCourseId
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000 // 10 секунд таймаут
+      }
+    );
+
+    console.log("✅ Успешный ответ:", response.data);
+    return response.data;
+    
+  } catch (error: any) {
+    console.error("❌ ДЕТАЛЬНАЯ ОШИБКА:", {
+      message: error.message,
+      code: error.code,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      headers: error.response?.headers,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        data: error.config?.data,
+        headers: error.config?.headers
+      }
+    });
+    
+    if (error.code === 'ECONNREFUSED') {
+      console.error("🚫 Сервер недоступен по адресу localhost:3002");
+    } else if (error.code === 'ETIMEDOUT') {
+      console.error("⏰ Таймаут соединения");
+    }
+    
+    throw new Error(`Failed to fetch: ${error.message}`);
+  }
+}
+*/
+
   static async getFullProfileByAuditoryId(auditoryId: string): Promise<FullClientInfo> {
     try {
       const token = await this.getToken();
@@ -175,11 +311,7 @@ export class ProfileService {
     }
   }
 
-  // http/profile/ProfileService.ts
-
-  /**
- * Универсальный метод загрузки аватара (определяет создание или обновление)
- */
+  
   static async uploadAvatarBase64(auditoryId: string, base64Image: string, mimeType: string): Promise<AvatarResponse> {
     try {
     // Проверяем, существует ли уже аватар
@@ -419,9 +551,7 @@ export class ProfileService {
     }
   }
 
-  /**
-   * Получение всех результатов студента
-   */
+   
   static async getStudentResultsByClientId(clientId: string): Promise<StudentResultResponse[]> {
     try {
       const token = await this.getToken();
@@ -436,10 +566,7 @@ export class ProfileService {
       throw new Error(error.response?.data?.message || "Failed to fetch student results");
     }
   }
-
-  /**
-   * Получение всех результатов по уроку
-   */
+ 
   static async getStudentResultsByLessonId(lessonId: string): Promise<StudentResultResponse[]> {
     try {
       const token = await this.getToken();
@@ -455,9 +582,7 @@ export class ProfileService {
     }
   }
 
-  /**
-   * Получение прогресса студента
-   */
+  
   static async getStudentProgress(clientId: string): Promise<StudentProgress> {
     try {
       const token = await this.getToken();
@@ -472,10 +597,7 @@ export class ProfileService {
       throw new Error(error.response?.data?.message || "Failed to fetch student progress");
     }
   }
-
-  /**
-   * Обновление результата по ID
-   */
+ 
   static async updateStudentResult(id: string, data: UpdateStudentResultRequest): Promise<StudentResultResponse> {
     try {
       const token = await this.getToken();
@@ -492,9 +614,7 @@ export class ProfileService {
     }
   }
 
-  /**
-   * Удаление результата по ID
-   */
+ 
   static async deleteStudentResult(id: string): Promise<{ success: boolean }> {
     try {
       const token = await this.getToken();
@@ -513,9 +633,7 @@ export class ProfileService {
     }
   }
 
-  /**
-   * Удаление всех результатов студента
-   */
+ 
   static async deleteAllStudentResults(clientId: string): Promise<{ success: boolean }> {
     try {
       const token = await this.getToken();
@@ -534,11 +652,7 @@ export class ProfileService {
     }
   }
 
-  // ============= IMAGE PICKER METHODS =============
-
-  /**
-   * Выбрать изображение из галереи с base64
-   */
+ 
   static async pickImageFromGalleryWithBase64(): Promise<{ base64: string; mimeType: string } | null> {
     return new Promise((resolve, reject) => {
       launchImageLibrary(

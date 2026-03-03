@@ -1,4 +1,4 @@
-import React, { useEffect, useRef,useState } from "react";
+import React, { useCallback, useEffect, useRef,useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -26,6 +26,8 @@ import type {
 import { ROUTES } from "@/navigation/routes";
 import type { RootStackNavigationProp} from "@/navigation/types";
 import { MainTabNavigationProp,RootStackParamList } from "@/navigation/types";
+import { ProfileService } from "@/http/profile";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface Position {
   x: number;
@@ -134,6 +136,89 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
       loadCourseMap();
     }
   }, [courseId]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  /*
+   
+  const loadProfile = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const auditoryId = await AsyncStorage.getItem('userId');
+
+      if (!auditoryId) {
+        setError('User not authenticated');
+
+        return;
+      }
+
+      const profileData = await ProfileService.getFullProfileByAuditoryId(auditoryId);
+
+      // Проверяем и обрабатываем аватар
+      if (profileData.avatar) {
+        console.log('Avatar data:', profileData.avatar);
+
+     
+        if (profileData.avatar.imageUrl && !profileData.avatar.imageUrl.startsWith('data:')) {
+          profileData.avatar.imageUrl = `data:${profileData.avatar.mimeType};base64,${profileData.avatar.imageUrl}`;
+        }
+      }
+
+      setProfile(profileData);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load profile');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+  */
+
+  const loadCourseProgress = useCallback(async (clientId: string) => {
+    try {
+      console.log("Загрузка прогресса курса:", { clientId, courseId });
+      const response = await ProfileService.getStudentCourseProgress(clientId, courseId);
+      console.log("Прогресс курса загружен:", response);
+    } catch (error) {
+      console.error("Ошибка при загрузке прогресса:", error);
+    }
+  }, [courseId]);
+
+  useEffect(() => {
+    const fetchProfileAndProgress = async () => {
+      try {
+        const id = await AsyncStorage.getItem('userId');
+        console.log("userId из AsyncStorage:", id);
+
+        if (id) {
+          await loadCourseProgress(id);
+        } else {
+          console.warn("userId не найден в AsyncStorage");
+        }
+      } catch (error) {
+        console.error("Ошибка при загрузке профиля:", error);
+      }
+    };
+
+    if (courseId) {
+      fetchProfileAndProgress();
+    }
+  }, [courseId, loadCourseProgress]);
+
+
 
   const loadCourseMap = async () => {
     try {
