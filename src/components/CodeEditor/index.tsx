@@ -1,16 +1,16 @@
-import React, { useCallback, useEffect,useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  findNodeHandle,
-  Keyboard,
-  NativeModules,
+  NativeSyntheticEvent,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  TextInputScrollEventData,
   TouchableOpacity,
-  UIManager,
-  View} from 'react-native';
+  View,
+  TextInputProps,
+} from 'react-native';
 
 type CodeLanguage = 'javascript' | 'python' | 'java' | 'csharp' | 'golang' | 'cpp';
 
@@ -22,6 +22,7 @@ interface CodeEditorProps {
   height?: number;
   onRun?: () => void;
   runLoading?: boolean;
+  style?: any;
 }
 
 const KEYWORDS: Record<CodeLanguage, string[]> = {
@@ -82,6 +83,32 @@ const COLORS = {
   autocompleteSelected: '#2D3748',
 };
 
+// Более моноширинный шрифт
+const FONT_FAMILY = Platform.select({
+  ios: 'Courier', // Самый моноширинный шрифт на iOS
+  android: 'monospace',
+  default: 'monospace',
+});
+
+const FONT_SIZE = 14;
+const LINE_HEIGHT = 20;
+const PADDING_VERTICAL = 8;
+const PADDING_HORIZONTAL = 8;
+const LINE_NUMBER_WIDTH = 40;
+
+// Общий letter-spacing для обоих слоев
+const LETTER_SPACING = Platform.select({
+  ios: -0.3,
+  android: -0.2,
+  default: -0.2,
+});
+
+// Расширяем типы для TextInput чтобы включить Android-специфичные пропсы
+type ExtendedTextInputProps = Omit<TextInputProps, 'ref'> & {
+  includeFontPadding?: boolean;
+  importantForAutofill?: 'auto' | 'no' | 'noExcludeDescendants' | 'yes' | 'yesExcludeDescendants';
+};
+
 const CodeEditor: React.FC<CodeEditorProps> = ({
   value,
   onChange,
@@ -90,16 +117,18 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   height = 400,
   onRun,
   runLoading = false,
+  style,
 }) => {
   const inputRef = useRef<TextInput>(null);
-  const scrollViewRef = useRef<ScrollView>(null);
-  const contentRef = useRef<View>(null);
+  const highlightScrollRef = useRef<ScrollView>(null);
   const [selection, setSelection] = useState({ start: 0, end: 0 });
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<string[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState(0);
   const [cursorPosition, setCursorPosition] = useState({ line: 0, column: 0 });
   const [cursorVisible, setCursorVisible] = useState(true);
+  const [isFocused, setIsFocused] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
 
   // Мигание курсора
   useEffect(() => {
@@ -125,7 +154,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   useEffect(() => {
     const word = getCurrentWord(value, selection.start);
 
-    if (word.length >= 2 && !readOnly) {
+    if (word.length >= 2 && !readOnly && isFocused) {
       const suggestions = KEYWORDS[language]
         .filter(keyword =>
           keyword.toLowerCase().startsWith(word.toLowerCase()) &&
@@ -139,7 +168,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     } else {
       setShowAutocomplete(false);
     }
-  }, [value, selection.start, language, readOnly]);
+  }, [value, selection.start, language, readOnly, isFocused, getCurrentWord]);
 
   // Вставка сниппета
   const insertSnippet = useCallback((snippet: string) => {
@@ -211,9 +240,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 
       setTimeout(() => {
         const newPosition = selection.start + 1 + newIndent.length;
-
         setSelection({ start: newPosition, end: newPosition });
-        scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 0);
     }
     else if (key === 'Tab') {
@@ -230,10 +257,8 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   // Обновление позиции курсора
   const handleSelectionChange = useCallback((event: any) => {
     const { selection } = event.nativeEvent;
-
     setSelection(selection);
 
-    // Вычисляем позицию курсора (строка и колонка)
     const textBeforeCursor = value.slice(0, selection.start);
     const lines = textBeforeCursor.split('\n');
     const line = lines.length - 1;
@@ -242,6 +267,16 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     setCursorPosition({ line, column });
   }, [value]);
 
+  // Синхронизация скролла
+  const handleScroll = useCallback((event: NativeSyntheticEvent<TextInputScrollEventData>) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    setScrollY(offsetY);
+    highlightScrollRef.current?.scrollTo({
+      y: offsetY,
+      animated: false,
+    });
+  }, []);
+
   // Функция для раскрашивания кода
   const renderHighlightedCode = useCallback(() => {
     if (!value) {
@@ -249,8 +284,10 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         <View style={styles.lineContainer}>
           <Text style={styles.lineNumber}>1</Text>
           <View style={styles.lineContent}>
-            <Text style={{ color: COLORS.comment }}>Введите код...</Text>
-            {inputRef.current?.isFocused() && cursorVisible && cursorPosition.line === 0 && cursorPosition.column === 0 && (
+            <Text style={[styles.codeText, { color: COLORS.comment }]}>
+              Введите код...
+            </Text>
+            {isFocused && cursorVisible && cursorPosition.line === 0 && cursorPosition.column === 0 && (
               <View style={[styles.cursor, { marginLeft: 0 }]} />
             )}
           </View>
@@ -271,7 +308,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 
         if (char === '/' && nextChar === '/') {
           tokens.push(
-            <Text key={`comment-${i}`} style={{ color: COLORS.comment }}>
+            <Text key={`comment-${i}`} style={[styles.codeText, { color: COLORS.comment }]}>
               {line.slice(i)}
             </Text>
           );
@@ -290,7 +327,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
           const str = line.slice(i, j + 1);
 
           tokens.push(
-            <Text key={`string-${i}`} style={{ color: COLORS.string }}>
+            <Text key={`string-${i}`} style={[styles.codeText, { color: COLORS.string }]}>
               {str}
             </Text>
           );
@@ -306,7 +343,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
           const num = line.slice(i, j);
 
           tokens.push(
-            <Text key={`number-${i}`} style={{ color: COLORS.number }}>
+            <Text key={`number-${i}`} style={[styles.codeText, { color: COLORS.number }]}>
               {num}
             </Text>
           );
@@ -333,7 +370,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
           }
 
           tokens.push(
-            <Text key={`word-${i}`} style={{ color }}>
+            <Text key={`word-${i}`} style={[styles.codeText, { color }]}>
               {word}
             </Text>
           );
@@ -343,7 +380,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 
         if (/[+\-*/%=<>!&|^~?:]/.test(char)) {
           tokens.push(
-            <Text key={`op-${i}`} style={{ color: COLORS.operator }}>
+            <Text key={`op-${i}`} style={[styles.codeText, { color: COLORS.operator }]}>
               {char}
             </Text>
           );
@@ -353,7 +390,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 
         if (/[{}()[\];,.]/.test(char)) {
           tokens.push(
-            <Text key={`punc-${i}`} style={{ color: COLORS.punctuation }}>
+            <Text key={`punc-${i}`} style={[styles.codeText, { color: COLORS.punctuation }]}>
               {char}
             </Text>
           );
@@ -362,16 +399,15 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         }
 
         tokens.push(
-          <Text key={`text-${i}`} style={{ color: COLORS.text }}>
+          <Text key={`text-${i}`} style={[styles.codeText, { color: COLORS.text }]}>
             {char}
           </Text>
         );
         i++;
       }
 
-      // Если текущая строка - это строка с курсором, добавляем мигающий курсор
       const isCursorLine = lineIndex === cursorPosition.line;
-      const showCursor = isCursorLine && inputRef.current?.isFocused() && cursorVisible;
+      const showCursor = isCursorLine && isFocused && cursorVisible;
 
       return (
         <View key={`line-${lineIndex}`} style={styles.lineContainer}>
@@ -385,10 +421,42 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         </View>
       );
     });
-  }, [value, language, cursorPosition, cursorVisible]);
+  }, [value, language, cursorPosition, cursorVisible, isFocused]);
+
+  // Базовые пропсы для TextInput (без ref)
+  const textInputProps: ExtendedTextInputProps = {
+    style: styles.hiddenInput,
+    value,
+    onChangeText: onChange,
+    onSelectionChange: handleSelectionChange,
+    onKeyPress: handleKeyPress,
+    onFocus: () => setIsFocused(true),
+    onBlur: () => setIsFocused(false),
+    onScroll: handleScroll,
+    multiline: true,
+    editable: !readOnly,
+    autoCapitalize: "none",
+    autoCorrect: false,
+    spellCheck: false,
+    keyboardType: "default",
+    keyboardAppearance: "dark",
+    blurOnSubmit: false,
+    textAlignVertical: "top",
+    selectionColor: COLORS.selection,
+    contextMenuHidden: true,
+    allowFontScaling: false,
+    maxFontSizeMultiplier: 1,
+    textContentType: "none",
+    importantForAutofill: "no",
+  };
+
+  // Добавляем Android-специфичный пропс только для Android
+  if (Platform.OS === 'android') {
+    textInputProps.includeFontPadding = false;
+  }
 
   return (
-    <View style={[styles.container, { height }]}>
+    <View style={[styles.container, style, { height }]}>
       <View style={styles.toolbar}>
         <Text style={styles.languageText}>{language.toUpperCase()}</Text>
         <View style={styles.toolbarButtons}>
@@ -416,40 +484,25 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         onPress={() => inputRef.current?.focus()}
       >
         <View style={styles.editorContainer}>
+          {/* Слой с подсветкой */}
           <ScrollView
-            ref={scrollViewRef}
-            style={styles.editorScroll}
-            contentContainerStyle={styles.editorContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={true}
-            showsHorizontalScrollIndicator={true}
+            ref={highlightScrollRef}
+            style={styles.highlightScroll}
+            contentContainerStyle={styles.highlightContent}
+            showsVerticalScrollIndicator={false}
+            showsHorizontalScrollIndicator={false}
+            scrollEnabled={false}
+            pointerEvents="none"
           >
-            <View ref={contentRef} style={styles.editor}>
+            <View style={styles.editor}>
               {renderHighlightedCode()}
             </View>
           </ScrollView>
 
-          {/* Полностью невидимый TextInput */}
+          {/* Реальный TextInput для ввода */}
           <TextInput
             ref={inputRef}
-            style={styles.hiddenInput}
-            value={value}
-            onChangeText={onChange}
-            onSelectionChange={handleSelectionChange}
-            multiline
-            editable={!readOnly}
-            autoCapitalize="none"
-            autoCorrect={false}
-            spellCheck={false}
-            keyboardType="default"
-            keyboardAppearance="dark"
-            blurOnSubmit={false}
-            onKeyPress={handleKeyPress}
-            textAlignVertical="top"
-            showSoftInputOnFocus={true}
-            selectionColor={COLORS.selection}
-            // Делаем текст абсолютно невидимым
-            contextMenuHidden={true}
+            {...textInputProps}
           />
         </View>
       </TouchableOpacity>
@@ -506,7 +559,7 @@ const styles = StyleSheet.create({
     color: COLORS.accent,
     fontSize: 13,
     fontWeight: '600',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontFamily: FONT_FAMILY,
   },
   toolbarButtons: {
     flexDirection: 'row',
@@ -516,7 +569,7 @@ const styles = StyleSheet.create({
   statsText: {
     color: COLORS.comment,
     fontSize: 12,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontFamily: FONT_FAMILY,
   },
   runButton: {
     backgroundColor: COLORS.string,
@@ -539,26 +592,31 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
   },
-  editorScroll: {
-    flex: 1,
+  highlightScroll: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: COLORS.background,
+    zIndex: 1,
   },
-  editorContent: {
+  highlightContent: {
     flexGrow: 1,
   },
   editor: {
-    paddingVertical: 8,
+    paddingVertical: PADDING_VERTICAL,
   },
   lineContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 8,
-    minHeight: 20,
+    paddingHorizontal: PADDING_HORIZONTAL,
+    minHeight: LINE_HEIGHT,
   },
   lineNumber: {
-    width: 40,
+    width: LINE_NUMBER_WIDTH,
     color: COLORS.lineNumber,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    fontSize: 14,
+    fontFamily: FONT_FAMILY,
+    fontSize: FONT_SIZE,
     textAlign: 'right',
     paddingRight: 8,
   },
@@ -567,6 +625,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
+  },
+  // Общий стиль для всего кода (и подсветки и ввода)
+  codeText: {
+    fontFamily: FONT_FAMILY,
+    fontSize: FONT_SIZE,
+    lineHeight: LINE_HEIGHT,
+    letterSpacing: LETTER_SPACING,
+    fontWeight: '400',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   cursor: {
     width: 2,
@@ -580,25 +648,63 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    // Делаем полностью прозрачным
-    opacity: 0,
-    // Оставляем только необходимые стили для позиционирования
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    fontSize: 14,
-    lineHeight: 20,
-    textAlignVertical: 'top',
-    paddingLeft: 48,
-    paddingTop: 8,
-    paddingBottom: 8,
-    paddingRight: 8,
-    // Убираем возможные артефакты
-    color: 'transparent',
+    
+    // Полное обнуление всех стилей
+    padding: 0,
+    margin: 0,
+    borderWidth: 0,
+    
+    // Используем тот же стиль что и для подсветки
+    ...Platform.select({
+      ios: {
+        fontFamily: FONT_FAMILY,
+        fontSize: FONT_SIZE,
+        lineHeight: LINE_HEIGHT,
+        letterSpacing: LETTER_SPACING,
+        fontWeight: '400',
+        includeFontPadding: false,
+        textAlignVertical: 'center',
+      },
+      android: {
+        fontFamily: FONT_FAMILY,
+        fontSize: FONT_SIZE,
+        lineHeight: LINE_HEIGHT,
+        letterSpacing: LETTER_SPACING,
+        fontWeight: '400',
+        includeFontPadding: false,
+        textAlignVertical: 'center',
+      },
+    }),
+    
+    // Точное позиционирование для выравнивания с номерами строк
+    paddingLeft: LINE_NUMBER_WIDTH + PADDING_HORIZONTAL,
+    paddingTop: PADDING_VERTICAL,
+    paddingBottom: PADDING_VERTICAL,
+    paddingRight: PADDING_HORIZONTAL,
+    
+    // Красный текст для проверки (после проверки можно заменить на transparent)
+    color: '#FF0000',
+    
+    // Прозрачный фон
     backgroundColor: 'transparent',
+    
+    // Поверх подсветки
+    zIndex: 2,
+    
+    // Убираем все эффекты
+    textShadowColor: 'transparent',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 0,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+    shadowColor: 'transparent',
+    elevation: 0,
   },
   autocompleteContainer: {
     position: 'absolute',
     bottom: 8,
-    left: 48,
+    left: LINE_NUMBER_WIDTH + PADDING_HORIZONTAL,
     right: 8,
     maxHeight: 200,
     backgroundColor: COLORS.autocompleteBg,
@@ -623,7 +729,7 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     color: COLORS.text,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontFamily: FONT_FAMILY,
     fontSize: 14,
   },
   suggestionTextSelected: {

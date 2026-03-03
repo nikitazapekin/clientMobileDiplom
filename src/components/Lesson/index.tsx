@@ -720,7 +720,7 @@ const CodeExampleBlockView = ({ block }: { block: CodeExampleBlock }) => {
         height={200}
       />
       {block.runnable && (
-        <Text  >* Этот код можно запустить</Text>
+        <Text> * Этот код можно запустить</Text>
       )}
     </View>
   );
@@ -910,80 +910,6 @@ const CodeTaskBlockView = ({
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{testError}</Text>
         </View>
-      )}
-    </View>
-  );
-};
-
-// Компонент для теоретического вопроса
-const TheoryQuestionBlockView = ({ block }: { block: TheoryQuestionBlock }) => {
-  const [selected, setSelected] = useState<number | undefined>(undefined);
-  const [showResult, setShowResult] = useState(false);
-
-  const handleSubmit = () => {
-    setShowResult(true);
-  };
-
-  return (
-    <View style={styles.theoryQuestionBlock}>
-      {block.text && <Text style={styles.questionText}>{block.text}</Text>}
-
-      {block.code && (
-        <CodeEditor
-          value={block.code}
-          onChange={() => {}}
-          language="javascript"
-          readOnly
-          height={100}
-        />
-      )}
-
-      {block.imageUrl && (
-        <Image
-          source={{ uri: block.imageUrl }}
-          style={styles.theoryImage}
-          resizeMode="contain"
-        />
-      )}
-
-      <View style={styles.optionsList}>
-        {block.options.map((option, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[
-              styles.optionItem,
-              selected === index && styles.selectedOption,
-              showResult && index === block.correctIndex && styles.correctOption,
-              showResult && selected === index && selected !== block.correctIndex && styles.wrongOption
-            ]}
-            onPress={() => !showResult && setSelected(index)}
-            disabled={showResult}
-          >
-            <View style={styles.optionRadio}>
-              {selected === index && <View style={styles.optionRadioSelected} />}
-            </View>
-            <Text style={styles.optionText}>{option}</Text>
-            {showResult && index === block.correctIndex && (
-              <Text style={styles.correctMark}>✓</Text>
-            )}
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {!showResult && (
-        <CustomButton
-          text="Ответить"
-          handler={handleSubmit}
-          disabled={selected === undefined}
-          backgroundColor={COLORS.BLACK}
-          maxWidth={120}
-        />
-      )}
-
-      {showResult && (
-        <Text style={selected === block.correctIndex ? styles.correctText : styles.incorrectText}>
-          {selected === block.correctIndex ? "✅ Правильно!" : "❌ Неправильно"}
-        </Text>
       )}
     </View>
   );
@@ -1207,12 +1133,12 @@ const ResultsModal = ({
           </View>
 
           {saveError && onRetrySave && (
-            <View  >
-              <Text  >
-                  Не удалось сохранить результат
+            <View>
+              <Text>
+                Не удалось сохранить результат
               </Text>
-              <TouchableOpacity onPress={onRetrySave}  >
-                <Text  >Повторить</Text>
+              <TouchableOpacity onPress={onRetrySave}>
+                <Text>Повторить</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -1303,6 +1229,16 @@ const Lesson = ({ id }: { id: string }) => {
   }>({});
   const [codeRunOutput, setCodeRunOutput] = useState<{ [blockId: string]: string }>({});
   const [codeRunLoading, setCodeRunLoading] = useState<{ [blockId: string]: boolean }>({});
+  
+  // Состояние для отслеживания ответов на теоретические вопросы
+  const [theoryAnswers, setTheoryAnswers] = useState<{
+    [slideId: string]: {
+      [blockId: string]: {
+        selectedIndex: number;
+        isCorrect: boolean;
+      }
+    }
+  }>({});
 
   useEffect(() => {
     loadLessonDetails();
@@ -1367,27 +1303,12 @@ const Lesson = ({ id }: { id: string }) => {
     }
   };
 
-  /*
-    const loadProfile = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const auditoryId = await AsyncStorage.getItem('userId');
-
-      if (!auditoryId) {
-        setError('User not authenticated');
-
-        return;
-      }
-        */
-
   const saveLessonResult = useCallback(async (stars: number) => {
     const auditoryId = await AsyncStorage.getItem('userId');
-    console.log("CLIENTTTT", auditoryId,   "lesson",  id)
+    console.log("Saving result:", { auditoryId, lessonId: id, stars });
 
     if (!auditoryId || !id) {
-      console.log("Cannot save result: missing clientId or lessonId");
+      console.log("Cannot save result: missing userId or lessonId");
       return false;
     }
     try {
@@ -1403,92 +1324,147 @@ const Lesson = ({ id }: { id: string }) => {
       console.error("Failed to save lesson result:", error);
       return false;
     }
-  }, [clientId, id]);
+  }, [id]);
 
+  // Функция для обновления ответа на теоретический вопрос
+  const handleTheoryAnswer = useCallback((slideId: string, blockId: string, selectedIndex: number, isCorrect: boolean) => {
+    setTheoryAnswers(prev => ({
+      ...prev,
+      [slideId]: {
+        ...prev[slideId],
+        [blockId]: {
+          selectedIndex,
+          isCorrect
+        }
+      }
+    }));
+  }, []);
+
+  // ИСПРАВЛЕННАЯ функция calculateResults с новой логикой звезд
   const calculateResults = useCallback(async () => {
     const testSlides = slides.filter((s) => s.type === "test");
     const results: any[] = [];
-    let totalCompleted = 0;
-    let totalTestCasesCount = 0;
-    let passedTestCasesCount = 0;
+    
+    // Счетчики для разных типов заданий
+    let totalCodeTasks = 0;
+    let passedCodeTasks = 0;
+    let totalTheoryQuestions = 0;
+    let correctTheoryAnswers = 0;
     let allConstraintsPassed = true;
 
     testSlides.forEach((slide) => {
       const slideTestResult = testResults[slide.id];
       const slideConstraintResult = constraintResults[slide.id];
 
-      let slidePassed = false;
-      let slideTestCasesPassed = 0;
-      let slideTestCasesTotal = 0;
-      let slideConstraintsPassed = true;
-
       const codeTasks = slide.blocks.filter((b) => b.type === "codeTask") as CodeTaskBlock[];
       const theoryQuestions = slide.blocks.filter(
         (b) => b.type === "theoryQuestion"
       ) as TheoryQuestionBlock[];
 
+      // Проверяем код-задачи
+      let slideCodePassed = true;
+      let slideTestCasesPassed = 0;
+      let slideTestCasesTotal = 0;
+
       if (codeTasks.length > 0) {
+        totalCodeTasks += codeTasks.length;
+        
         if (slideTestResult) {
           slideTestCasesPassed = slideTestResult.filter(r => r.passed).length || 0;
           slideTestCasesTotal = slideTestResult.length || 0;
-          slidePassed = slideTestCasesPassed === slideTestCasesTotal && slideTestCasesTotal > 0;
+          
+          // Код-задача считается пройденной, если все тест-кейсы пройдены
+          slideCodePassed = slideTestCasesPassed === slideTestCasesTotal && slideTestCasesTotal > 0;
+          
+          if (slideCodePassed) {
+            passedCodeTasks++;
+          }
         }
-      } else if (theoryQuestions.length > 0) {
-        // Для теоретических вопросов нужно добавить логику
-        slidePassed = true; // Заглушка
-        slideTestCasesTotal = theoryQuestions.length;
-        slideTestCasesPassed = theoryQuestions.length;
+      }
+      
+      // Проверяем теоретические вопросы
+      if (theoryQuestions.length > 0) {
+        totalTheoryQuestions += theoryQuestions.length;
+        
+        const slideTheoryAnswers = theoryAnswers[slide.id] || {};
+        
+        theoryQuestions.forEach((question) => {
+          const answer = slideTheoryAnswers[question.id];
+          if (answer?.isCorrect) {
+            correctTheoryAnswers++;
+          }
+        });
       }
 
-      if (slidePassed) totalCompleted++;
+      // Проверяем ограничения
+      if (slideConstraintResult) {
+        const slideConstraintsPassed = slideConstraintResult.every(c => c.passed);
+        allConstraintsPassed = allConstraintsPassed && slideConstraintsPassed;
+      }
 
       results.push({
         slideId: slide.id,
         title: slide.title,
-        passed: slidePassed,
+        passed: (codeTasks.length === 0 || slideCodePassed) && 
+                (theoryQuestions.length === 0 || (theoryQuestions.length > 0 && 
+                 theoryQuestions.every(q => theoryAnswers[slide.id]?.[q.id]?.isCorrect))),
         testCasesPassed: slideTestCasesPassed,
         testCasesTotal: slideTestCasesTotal,
-        constraintsPassed: slideConstraintsPassed,
+        constraintsPassed: slideConstraintResult ? slideConstraintResult.every(c => c.passed) : true,
       });
-
-      totalTestCasesCount += slideTestCasesTotal;
-      passedTestCasesCount += slideTestCasesPassed;
-      allConstraintsPassed = allConstraintsPassed && slideConstraintsPassed;
     });
 
-    // Определяем количество звезд
-    const theoryTasks = results.filter((r) => {
-      const slide = slides.find((s) => s.id === r.slideId);
-      return slide?.blocks.some((b) => b.type === "theoryQuestion");
-    });
+    // Расчет процента выполнения
+    const totalTasks = totalCodeTasks + totalTheoryQuestions;
+    const completedTasks = passedCodeTasks + correctTheoryAnswers;
+    const completionPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
-    const theoryPassed = theoryTasks.every((t) => t.passed);
-    const allTestsPassed = passedTestCasesCount === totalTestCasesCount && totalTestCasesCount > 0;
-    const allTasksCompleted = totalCompleted === testSlides.length;
+    // Проверяем, все ли кодовые задачи решены правильно (все тест-кейсы пройдены)
+    const allCodeTasksPassed = totalCodeTasks === 0 || passedCodeTasks === totalCodeTasks;
 
     let stars = 0;
 
-    // 1 звезда: все тесты пройдены
-    if (allTestsPassed) {
+    // НОВАЯ ЛОГИКА РАСЧЕТА ЗВЕЗД:
+    // 0 звезд - все неправильно ИЛИ кодовые задачи решены не полностью (не все тест-кейсы пройдены)
+    if (!allCodeTasksPassed) {
+      stars = 0;
+    }
+    // 1 звезда - теоретических вопросов и задач решено меньше 50% (при условии, что все кодовые задачи решены правильно)
+    else if (completionPercentage < 50) {
       stars = 1;
     }
-
-    // 2 звезды: все тесты пройдены, теория верна
-    if (allTestsPassed && theoryPassed) {
+    // 2 звезды - решено больше 50% (и все тест-кейсы в кодовых задачах решены верно)
+    else if (completionPercentage >= 50 && completionPercentage < 100) {
+      stars = 2;
+    }
+    // 3 звезды - все верно и в кодовых задачах все ограничения учтены
+    else if (completionPercentage === 100 && allConstraintsPassed) {
+      stars = 3;
+    }
+    // 2 звезды - все верно, но ограничения не соблюдены
+    else if (completionPercentage === 100 && !allConstraintsPassed) {
       stars = 2;
     }
 
-    // 3 звезды: все тесты пройдены, теория верна, ограничения соблюдены и все задания выполнены
-    if (allTestsPassed && theoryPassed && allConstraintsPassed && allTasksCompleted) {
-      stars = 3;
-    }
+    console.log("📊 Results calculation:", {
+      totalCodeTasks,
+      passedCodeTasks,
+      totalTheoryQuestions,
+      correctTheoryAnswers,
+      totalTasks,
+      completedTasks,
+      completionPercentage,
+      allCodeTasksPassed,
+      allConstraintsPassed,
+      stars
+    });
 
     setLessonResults({
       results,
-      totalTasks: testSlides.length,
-      completedTasks: totalCompleted,
-      totalTestCases: totalTestCasesCount,
-      passedTestCases: passedTestCasesCount,
+      totalTasks,
+      completedTasks,
+      totalTestCases: Object.values(testResults).reduce((acc, curr) => acc + curr.length, 0),
+      passedTestCases: Object.values(testResults).reduce((acc, curr) => acc + curr.filter(r => r.passed).length, 0),
       constraintsPassed: allConstraintsPassed,
       stars,
     });
@@ -1497,18 +1473,24 @@ const Lesson = ({ id }: { id: string }) => {
     await saveLessonResult(stars);
 
     setResultsModalVisible(true);
-  }, [slides, testResults, constraintResults, saveLessonResult]);
+  }, [slides, testResults, constraintResults, theoryAnswers, saveLessonResult]);
 
   const retrySaveResult = useCallback(async () => {
-    if (!clientId || !id || lessonResults.stars === undefined) return;
+    const auditoryId = await AsyncStorage.getItem('userId');
+    if (!auditoryId || !id || lessonResults.stars === undefined) return;
     
-    const success = await saveLessonResult(lessonResults.stars);
-    if (success) {
+    try {
+      await LessonResultService.createLessonResult({
+        clientId: auditoryId,
+        lessonId: id,
+        countOfStars: lessonResults.stars,
+        completedAt: new Date().toISOString(),
+      });
       Alert.alert("Успех", "Результат сохранен");
-    } else {
+    } catch (error) {
       Alert.alert("Ошибка", "Не удалось сохранить результат");
     }
-  }, [clientId, id, lessonResults.stars, saveLessonResult]);
+  }, [id, lessonResults.stars]);
 
   const goToNext = useCallback(() => {
     if (currentIndex < slides.length - 1) {
@@ -1955,6 +1937,88 @@ const Lesson = ({ id }: { id: string }) => {
     }
   }, [testAnswers]);
 
+  // Компонент для теоретического вопроса с передачей ответа наверх
+  const TheoryQuestionBlockViewWithHandler = ({ block, slideId }: { block: TheoryQuestionBlock; slideId: string }) => {
+    const [selected, setSelected] = useState<number | undefined>(
+      theoryAnswers[slideId]?.[block.id]?.selectedIndex
+    );
+    const [showResult, setShowResult] = useState(false);
+
+    const handleSubmit = () => {
+      if (selected === undefined) return;
+      
+      const isCorrect = selected === block.correctIndex;
+      setShowResult(true);
+      
+      // Передаем ответ в родительский компонент
+      handleTheoryAnswer(slideId, block.id, selected, isCorrect);
+    };
+
+    return (
+      <View style={styles.theoryQuestionBlock}>
+        {block.text && <Text style={styles.questionText}>{block.text}</Text>}
+
+        {block.code && (
+          <CodeEditor
+            value={block.code}
+            onChange={() => {}}
+            language="javascript"
+            readOnly
+            height={100}
+          />
+        )}
+
+        {block.imageUrl && (
+          <Image
+            source={{ uri: block.imageUrl }}
+            style={styles.theoryImage}
+            resizeMode="contain"
+          />
+        )}
+
+        <View style={styles.optionsList}>
+          {block.options.map((option, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.optionItem,
+                selected === index && styles.selectedOption,
+                showResult && index === block.correctIndex && styles.correctOption,
+                showResult && selected === index && selected !== block.correctIndex && styles.wrongOption
+              ]}
+              onPress={() => !showResult && setSelected(index)}
+              disabled={showResult}
+            >
+              <View style={styles.optionRadio}>
+                {selected === index && <View style={styles.optionRadioSelected} />}
+              </View>
+              <Text style={styles.optionText}>{option}</Text>
+              {showResult && index === block.correctIndex && (
+                <Text style={styles.correctMark}>✓</Text>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {!showResult && (
+          <CustomButton
+            text="Ответить"
+            handler={handleSubmit}
+            disabled={selected === undefined}
+            backgroundColor={COLORS.BLACK}
+            maxWidth={120}
+          />
+        )}
+
+        {showResult && (
+          <Text style={selected === block.correctIndex ? styles.correctText : styles.incorrectText}>
+            {selected === block.correctIndex ? "✅ Правильно!" : "❌ Неправильно"}
+          </Text>
+        )}
+      </View>
+    );
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -2053,7 +2117,13 @@ const Lesson = ({ id }: { id: string }) => {
               );
 
             case "theoryQuestion":
-              return <TheoryQuestionBlockView key={block.id} block={block} />;
+              return (
+                <TheoryQuestionBlockViewWithHandler
+                  key={block.id}
+                  block={block}
+                  slideId={currentSlide.id}
+                />
+              );
 
             case "source":
               return null;
