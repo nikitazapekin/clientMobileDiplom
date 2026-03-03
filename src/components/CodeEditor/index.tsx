@@ -484,7 +484,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         onPress={() => inputRef.current?.focus()}
       >
         <View style={styles.editorContainer}>
-          {/* Слой с подсветкой */}
+        
           <ScrollView
             ref={highlightScrollRef}
             style={styles.highlightScroll}
@@ -499,7 +499,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
             </View>
           </ScrollView>
 
-          {/* Реальный TextInput для ввода */}
+        
           <TextInput
             ref={inputRef}
             {...textInputProps}
@@ -626,7 +626,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     alignItems: 'center',
   },
-  // Общий стиль для всего кода (и подсветки и ввода)
+  
   codeText: {
     fontFamily: FONT_FAMILY,
     fontSize: FONT_SIZE,
@@ -649,12 +649,10 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     
-    // Полное обнуление всех стилей
     padding: 0,
     margin: 0,
     borderWidth: 0,
-    
-    // Используем тот же стиль что и для подсветки
+   
     ...Platform.select({
       ios: {
         fontFamily: FONT_FAMILY,
@@ -675,18 +673,17 @@ const styles = StyleSheet.create({
         textAlignVertical: 'center',
       },
     }),
-    
-    // Точное позиционирование для выравнивания с номерами строк
+     
     paddingLeft: LINE_NUMBER_WIDTH + PADDING_HORIZONTAL,
     paddingTop: PADDING_VERTICAL,
     paddingBottom: PADDING_VERTICAL,
     paddingRight: PADDING_HORIZONTAL,
     
-    // Красный текст для проверки (после проверки можно заменить на transparent)
-    color: '#FF0000',
-    
+ 
+    color: 'transparent',
     // Прозрачный фон
     backgroundColor: 'transparent',
+    opacity: 0,
     
     // Поверх подсветки
     zIndex: 2,
