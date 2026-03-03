@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet,Text, TouchableOpacity, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
@@ -9,7 +9,8 @@ import CourseService from "@/http/courses";
 import type { CourseResponse } from "@/http/types/course";
 import { ROUTES } from "@/navigation/routes";
 import type { RootStackNavigationProp } from "@/navigation/types";
-
+import SubscriptionService from "@/http/subscribtion"
+import AsyncStorage from "@react-native-async-storage/async-storage";
 interface CourseInfoProps {
   id: string;
 
@@ -21,6 +22,42 @@ const CourseInfo = ({ id,  }: CourseInfoProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+const userId = useRef<string>("")
+
+
+
+
+
+
+    const loadProfile = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const auditoryId = await AsyncStorage.getItem('userId'); 
+      if(typeof auditoryId == "string") {
+
+        userId.current = auditoryId
+      }
+      if (!auditoryId) {
+        setError('User not authenticated');
+
+        return;
+      }
+  
+ 
+    } catch (err: any) {
+      setError(err.message || 'Failed to load profile');
+    }  
+  }, []);
+  
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+
 
   useEffect(() => {
     fetchCourseDetails();
@@ -41,8 +78,11 @@ const CourseInfo = ({ id,  }: CourseInfoProps) => {
     }
   };
 
-  const handleSubscribe = () => {
+  const handleSubscribe = async ( ) => {
     setShowSuccessModal(true);
+    SubscriptionService.subscribeToCourse(userId.current , id)
+
+
   };
 
   const handleGoToProfile = () => {

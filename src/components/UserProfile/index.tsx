@@ -291,7 +291,7 @@ const UserProfile = () => {
           </View>
         </View>
 
-        {/* Recent Results */}
+       
         {profile.studentResults.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
