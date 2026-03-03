@@ -9,10 +9,12 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
-  View} from "react-native";
+  View
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { COLORS } from "appStyles";
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { styles } from "./styled";
 import type { CodeLanguage } from "./types";
@@ -33,6 +35,7 @@ import CustomButton from "@/components/Button";
 import CodeEditor from "@/components/CodeEditor";
 import { CodeService } from "@/http/codeService";
 import { LessonDetailsService } from "@/http/lessonDetails";
+import LessonResultService from "@/http/lessonResult";
 
 // Функция для сортировки блоков
 const sortBlocks = (blocks: any[]) => {
@@ -1030,7 +1033,9 @@ const ResultsModal = ({
   totalTestCases,
   passedTestCases,
   constraintsPassed,
-  slides
+  slides,
+  earnedStars,
+  onRetrySave
 }: {
   visible: boolean;
   onClose: () => void;
@@ -1048,9 +1053,12 @@ const ResultsModal = ({
   passedTestCases: number;
   constraintsPassed: boolean;
   slides: Slide[];
+  earnedStars: number;
+  onRetrySave?: () => void;
 }) => {
   const [stars, setStars] = useState(0);
   const [showStars, setShowStars] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   // Анимации для звезд
   const starAnimations = [
@@ -1079,42 +1087,14 @@ const ResultsModal = ({
       starOpacities.forEach(anim => anim.setValue(0));
 
       setShowStars(false);
-
-      // Определяем количество звезд
-      const theoryTasks = results.filter((r: { slideId: string }) => {
-        const slide = slides.find((s: Slide) => s.id === r.slideId);
-
-        return slide?.blocks.some((b: SlideBlock) => b.type === "theoryQuestion");
-      });
-
-      const theoryPassed = theoryTasks.every((t: { passed: boolean }) => t.passed);
-      const allTestsPassed = passedTestCases === totalTestCases && totalTestCases > 0;
-      const allTasksCompleted = completedTasks === totalTasks;
-
-      let starCount = 0;
-
-      // 1 звезда: все тесты пройдены
-      if (allTestsPassed) {
-        starCount = 1;
-      }
-
-      // 2 звезды: все тесты пройдены, теория верна
-      if (allTestsPassed && theoryPassed) {
-        starCount = 2;
-      }
-
-      // 3 звезды: все тесты пройдены, теория верна, ограничения соблюдены
-      if (allTestsPassed && theoryPassed && constraintsPassed && allTasksCompleted) {
-        starCount = 3;
-      }
-
-      setStars(starCount);
+      setSaveError(false);
+      setStars(earnedStars);
 
       // Запускаем анимацию звезд
       const animateStars = async () => {
         setShowStars(true);
 
-        for (let i = 0; i < starCount; i++) {
+        for (let i = 0; i < earnedStars; i++) {
           // Анимация падения
           Animated.parallel([
             Animated.timing(starAnimations[i], {
@@ -1157,7 +1137,7 @@ const ResultsModal = ({
 
       setTimeout(animateStars, 300);
     }
-  }, [visible]);
+  }, [visible, earnedStars]);
 
   if (!visible) return null;
 
@@ -1226,6 +1206,17 @@ const ResultsModal = ({
             </View>
           </View>
 
+          {saveError && onRetrySave && (
+            <View  >
+              <Text  >
+                  Не удалось сохранить результат
+              </Text>
+              <TouchableOpacity onPress={onRetrySave}  >
+                <Text  >Повторить</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           <ScrollView style={styles.resultsList}>
             <Text style={styles.resultsListTitle}>Детали по заданиям:</Text>
             {results.map((result) => (
@@ -1275,6 +1266,8 @@ const Lesson = ({ id }: { id: string }) => {
   const [sourcesModalVisible, setSourcesModalVisible] = useState(false);
   const [currentSources, setCurrentSources] = useState<{ url: string; note?: string }[]>([]);
   const [resultsModalVisible, setResultsModalVisible] = useState(false);
+  const [clientId, setClientId] = useState<string | null>(null);
+
   const [lessonResults, setLessonResults] = useState<{
     results: any[];
     totalTasks: number;
@@ -1282,6 +1275,7 @@ const Lesson = ({ id }: { id: string }) => {
     totalTestCases: number;
     passedTestCases: number;
     constraintsPassed: boolean;
+    stars: number;
   }>({
     results: [],
     totalTasks: 0,
@@ -1289,6 +1283,7 @@ const Lesson = ({ id }: { id: string }) => {
     totalTestCases: 0,
     passedTestCases: 0,
     constraintsPassed: true,
+    stars: 0,
   });
 
   // Состояния для тестов и ответов
@@ -1311,7 +1306,17 @@ const Lesson = ({ id }: { id: string }) => {
 
   useEffect(() => {
     loadLessonDetails();
+    getClientId();
   }, [id]);
+
+  const getClientId = async () => {
+    try {
+      const id = await AsyncStorage.getItem("clientId");
+      setClientId(id);
+    } catch (error) {
+      console.error("Failed to get clientId:", error);
+    }
+  };
 
   const loadLessonDetails = async () => {
     setLoading(true);
@@ -1362,7 +1367,45 @@ const Lesson = ({ id }: { id: string }) => {
     }
   };
 
-  const calculateResults = useCallback(() => {
+  /*
+    const loadProfile = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const auditoryId = await AsyncStorage.getItem('userId');
+
+      if (!auditoryId) {
+        setError('User not authenticated');
+
+        return;
+      }
+        */
+
+  const saveLessonResult = useCallback(async (stars: number) => {
+    const auditoryId = await AsyncStorage.getItem('userId');
+    console.log("CLIENTTTT", auditoryId,   "lesson",  id)
+
+    if (!auditoryId || !id) {
+      console.log("Cannot save result: missing clientId or lessonId");
+      return false;
+    }
+    try {
+      await LessonResultService.createLessonResult({
+        clientId: auditoryId,
+        lessonId: id,
+        countOfStars: stars,
+        completedAt: new Date().toISOString(),
+      });
+      console.log(`✅ Lesson result saved with ${stars} stars`);
+      return true;
+    } catch (error) {
+      console.error("Failed to save lesson result:", error);
+      return false;
+    }
+  }, [clientId, id]);
+
+  const calculateResults = useCallback(async () => {
     const testSlides = slides.filter((s) => s.type === "test");
     const results: any[] = [];
     let totalCompleted = 0;
@@ -1413,6 +1456,33 @@ const Lesson = ({ id }: { id: string }) => {
       allConstraintsPassed = allConstraintsPassed && slideConstraintsPassed;
     });
 
+    // Определяем количество звезд
+    const theoryTasks = results.filter((r) => {
+      const slide = slides.find((s) => s.id === r.slideId);
+      return slide?.blocks.some((b) => b.type === "theoryQuestion");
+    });
+
+    const theoryPassed = theoryTasks.every((t) => t.passed);
+    const allTestsPassed = passedTestCasesCount === totalTestCasesCount && totalTestCasesCount > 0;
+    const allTasksCompleted = totalCompleted === testSlides.length;
+
+    let stars = 0;
+
+    // 1 звезда: все тесты пройдены
+    if (allTestsPassed) {
+      stars = 1;
+    }
+
+    // 2 звезды: все тесты пройдены, теория верна
+    if (allTestsPassed && theoryPassed) {
+      stars = 2;
+    }
+
+    // 3 звезды: все тесты пройдены, теория верна, ограничения соблюдены и все задания выполнены
+    if (allTestsPassed && theoryPassed && allConstraintsPassed && allTasksCompleted) {
+      stars = 3;
+    }
+
     setLessonResults({
       results,
       totalTasks: testSlides.length,
@@ -1420,10 +1490,25 @@ const Lesson = ({ id }: { id: string }) => {
       totalTestCases: totalTestCasesCount,
       passedTestCases: passedTestCasesCount,
       constraintsPassed: allConstraintsPassed,
+      stars,
     });
 
+    // Сохраняем результат
+    await saveLessonResult(stars);
+
     setResultsModalVisible(true);
-  }, [slides, testResults, constraintResults]);
+  }, [slides, testResults, constraintResults, saveLessonResult]);
+
+  const retrySaveResult = useCallback(async () => {
+    if (!clientId || !id || lessonResults.stars === undefined) return;
+    
+    const success = await saveLessonResult(lessonResults.stars);
+    if (success) {
+      Alert.alert("Успех", "Результат сохранен");
+    } else {
+      Alert.alert("Ошибка", "Не удалось сохранить результат");
+    }
+  }, [clientId, id, lessonResults.stars, saveLessonResult]);
 
   const goToNext = useCallback(() => {
     if (currentIndex < slides.length - 1) {
@@ -1956,7 +2041,6 @@ const Lesson = ({ id }: { id: string }) => {
                   onCodeChange={(code) => setTestAnswers(prev => ({ ...prev, [currentSlide.id]: code }))}
                   onRun={() => {
                     const code = testAnswers[currentSlide.id] || block.startCode || "";
-
                     runCode(block.id, block.language || "javascript", code);
                   }}
                   onCheck={() => checkCodeTask(block, currentSlide.id)}
@@ -2016,6 +2100,8 @@ const Lesson = ({ id }: { id: string }) => {
         passedTestCases={lessonResults.passedTestCases}
         constraintsPassed={lessonResults.constraintsPassed}
         slides={slides}
+        earnedStars={lessonResults.stars}
+        onRetrySave={retrySaveResult}
       />
     </SafeAreaView>
   );
