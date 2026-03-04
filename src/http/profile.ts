@@ -88,9 +88,11 @@ static async getStudentCourseProgress(auditoryId: string, courseId: string) {
  */
 
 
-
+/*
 // Временно уберем все сложности
 static async getStudentCourseProgress(auditoryId: string, courseId: string) {
+
+  console.log("REQ" , auditoryId, courseId)
   try {
     const response = await fetch(
       `http://localhost:3002/profile/student-results/client/${auditoryId}/course-progress`,
@@ -111,23 +113,36 @@ static async getStudentCourseProgress(auditoryId: string, courseId: string) {
     throw error;
   }
 }
-
-
-/*
+*/
+ 
 static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
+
+  console.log("test" , auditoryId , courseId)
   try {
     const token = await this.getToken();
     
     // ЖЕСТКО ЗАКОДИРОВАННЫЕ ЗНАЧЕНИЯ - игнорируем параметры
     const hardcodedAuditoryId = "auth_1772579154161_94azxbrq4";
     const hardcodedCourseId = "course_1772578782645_8n2oizmrc";
-    const url = "http://192.168.1.6:3002/profile/student-results/client/auth_1772579154161_94azxbrq4/course-progress";
+  //  const url = `http://192.168.1.6:3002/profile/student-results/client/auth_1772579154161_94azxbrq4/course-progress`;
+    
+   /* console.log("🔴 ИСПОЛЬЗУЮТСЯ ХАРДКОД ЗНАЧЕНИЯ:", {
+      auditoryId: hardcodedAuditoryId,
+      courseId: hardcodedCourseId,
+      url: url
+    });
+*/
+
+
+const url = `http://192.168.1.6:3002/profile/student-results/client/${auditoryId}/course-progress`;
     
     console.log("🔴 ИСПОЛЬЗУЮТСЯ ХАРДКОД ЗНАЧЕНИЯ:", {
       auditoryId: hardcodedAuditoryId,
       courseId: hardcodedCourseId,
       url: url
     });
+
+
 
     console.log("📤 Отправка POST запроса:", {
       url: url,
@@ -136,7 +151,10 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
 
     const response = await axios.post(
       url,
-      { courseId: hardcodedCourseId }, // ВАЖНО: используем hardcodedCourseId
+
+
+        { courseId: courseId },
+    //  { courseId: hardcodedCourseId }, // ВАЖНО: используем hardcodedCourseId
       {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -174,7 +192,7 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
     throw new Error(`Failed to fetch: ${error.message}`);
   }
 }
-*/
+ 
 
   static async getFullProfileByAuditoryId(auditoryId: string): Promise<FullClientInfo> {
     try {
