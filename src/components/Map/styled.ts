@@ -224,4 +224,31 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+
+
+  lessonDisabled: {
+  opacity: 0.5,
+  backgroundColor: '#cccccc',
+}, 
+
+
+starsContainer: {
+  flexDirection: 'row',
+  marginTop: 4,
+  justifyContent: 'center',
+},
+
+
+ 
+starText: {
+  fontSize: 16,
+  marginHorizontal: 2,
+},
+starFilledText: {
+  color: '#FFD700', // золотой
+},
+starEmptyText: {
+  color: '#D3D3D3', // серый
+},
+ 
 });

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef,useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -20,12 +20,9 @@ import { styles } from "./styled";
 import { CheckpointService } from "@/http/checkpoint";
 import { LessonService } from "@/http/lesson";
 import { MapService } from "@/http/map";
-import type {
-  MapElementResponse,
-} from "@/http/types/map";
+import type { MapElementResponse } from "@/http/types/map";
 import { ROUTES } from "@/navigation/routes";
-import type { RootStackNavigationProp} from "@/navigation/types";
-import { MainTabNavigationProp,RootStackParamList } from "@/navigation/types";
+import type { RootStackNavigationProp } from "@/navigation/types";
 import { ProfileService } from "@/http/profile";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -107,6 +104,15 @@ interface ModalData {
   targetId: string;
 }
 
+interface LessonProgress {
+  lessonId: string;
+  bestResult: {
+    countOfStars: number | null;
+    completedAt: string;
+    id: string;
+  } | null;
+}
+
 interface MapProps {
   courseId: string;
   onElementPress?: (element: MapElement) => void;
@@ -129,6 +135,8 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
   const [containerWidth, setContainerWidth] = useState(SCREEN_WIDTH);
   const [modalData, setModalData] = useState<ModalData | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [lessonProgress, setLessonProgress] = useState<Record<string, LessonProgress>>({});
+  const [sortedLessons, setSortedLessons] = useState<LessonData[]>([]);
 
   // Загрузка карты
   useEffect(() => {
@@ -137,61 +145,21 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
     }
   }, [courseId]);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-  /*
-   
-  const loadProfile = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const auditoryId = await AsyncStorage.getItem('userId');
-
-      if (!auditoryId) {
-        setError('User not authenticated');
-
-        return;
-      }
-
-      const profileData = await ProfileService.getFullProfileByAuditoryId(auditoryId);
-
-      // Проверяем и обрабатываем аватар
-      if (profileData.avatar) {
-        console.log('Avatar data:', profileData.avatar);
-
-     
-        if (profileData.avatar.imageUrl && !profileData.avatar.imageUrl.startsWith('data:')) {
-          profileData.avatar.imageUrl = `data:${profileData.avatar.mimeType};base64,${profileData.avatar.imageUrl}`;
-        }
-      }
-
-      setProfile(profileData);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load profile');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-  */
-
   const loadCourseProgress = useCallback(async (clientId: string) => {
     try {
       console.log("Загрузка прогресса курса:", { clientId, courseId });
       const response = await ProfileService.getStudentCourseProgress(clientId, courseId);
       console.log("Прогресс курса загружен:", response);
+      
+      // Сохраняем прогресс в объект для быстрого доступа
+      const progressMap: Record<string, LessonProgress> = {};
+      response.forEach((item: LessonProgress) => {
+        progressMap[item.lessonId] = item;
+      });
+      setLessonProgress(progressMap);
+      
+      console.log("Прогресс сохранен:", progressMap);
+      
     } catch (error) {
       console.error("Ошибка при загрузке прогресса:", error);
     }
@@ -217,8 +185,6 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
       fetchProfileAndProgress();
     }
   }, [courseId, loadCourseProgress]);
-
-
 
   const loadCourseMap = async () => {
     try {
@@ -284,21 +250,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
       // Загружаем данные для каждого урока
       const lessonElements = elements.filter((el) => el.type === "lesson");
 
-      // Сначала устанавливаем данные из элементов карты как запасной вариант
-      lessonElements.forEach((element) => {
-        if (element.title) {
-          lessons[element.id] = {
-            id: `temp_${element.id}`,
-            mapElementId: element.id,
-            title: element.title,
-            description: element.text || "",
-            orderIndex: 0,
-            isPublished: true,
-          };
-        }
-      });
-
-      // Затем пытаемся загрузить реальные данные с сервера
+      // Загружаем реальные данные с сервера
       await Promise.all(
         lessonElements.map(async (element) => {
           try {
@@ -314,10 +266,21 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
               orderIndex: lessonData.orderIndex,
               isPublished: lessonData.isPublished,
             };
-            console.log(`✅ Загружены данные урока для элемента: ${element.id}, название: "${lessonData.title}"`);
+            
+            console.log(`✅ Загружены данные урока для элемента: ${element.id}, название: "${lessonData.title}", order: ${lessonData.orderIndex}, lessonId: ${lessonData.id}`);
           } catch (error) {
-            console.warn(`⚠️ Не удалось загрузить данные урока для элемента: ${element.id}, использую данные из элемента карты`);
-            // Оставляем данные из элемента карты
+            console.warn(`⚠️ Не удалось загрузить данные урока для элемента: ${element.id}`);
+            // Если не удалось загрузить, используем данные из элемента карты
+            if (element.title) {
+              lessons[element.id] = {
+                id: `temp_${element.id}`,
+                mapElementId: element.id,
+                title: element.title,
+                description: element.text || "",
+                orderIndex: 999,
+                isPublished: true,
+              };
+            }
           }
         })
       );
@@ -325,21 +288,6 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
       // Загружаем данные для каждой контрольной точки
       const checkpointElements = elements.filter((el) => el.type === "checkpoint");
 
-      // Сначала устанавливаем данные из элементов карты как запасной вариант
-      checkpointElements.forEach((element) => {
-        if (element.title) {
-          checkpoints[element.id] = {
-            id: `temp_${element.id}`,
-            mapElementId: element.id,
-            title: element.title,
-            description: element.text || "",
-            type: "quiz",
-            isPublished: true,
-          };
-        }
-      });
-
-      // Затем пытаемся загрузить реальные данные с сервера
       await Promise.all(
         checkpointElements.map(async (element) => {
           try {
@@ -360,9 +308,18 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
             console.log(`✅ Загружены данные контрольной точки для элемента: ${element.id}, название: "${checkpointData.title}"`);
           } catch (error) {
             console.warn(
-              `⚠️ Не удалось загрузить данные контрольной точки для элемента: ${element.id}, использую данные из элемента карты`
+              `⚠️ Не удалось загрузить данные контрольной точки для элемента: ${element.id}`
             );
-            // Оставляем данные из элемента карты
+            if (element.title) {
+              checkpoints[element.id] = {
+                id: `temp_${element.id}`,
+                mapElementId: element.id,
+                title: element.title,
+                description: element.text || "",
+                type: "quiz",
+                isPublished: true,
+              };
+            }
           }
         })
       );
@@ -370,13 +327,65 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
       setLessonsData(lessons);
       setCheckpointsData(checkpoints);
 
-      console.log("📚 Итоговые данные уроков:", Object.keys(lessons).length);
-      Object.entries(lessons).forEach(([id, data]) => {
-        console.log(`   ${id}: "${data.title}"`);
+      // Сортируем уроки по orderIndex
+      const lessonsArray = Object.values(lessons);
+      const sorted = lessonsArray.sort((a, b) => a.orderIndex - b.orderIndex);
+      setSortedLessons(sorted);
+
+      console.log("📚 Отсортированные уроки:");
+      sorted.forEach((lesson, index) => {
+        console.log(`   ${index + 1}. ${lesson.title} (order: ${lesson.orderIndex}, mapElementId: ${lesson.mapElementId})`);
       });
     } catch (error) {
       console.error("❌ Ошибка загрузки дополнительных данных:", error);
     }
+  };
+
+  // Функция для получения количества звезд по mapElementId
+  const getStarsByMapElementId = (mapElementId: string): number => {
+    const lessonData = lessonsData[mapElementId];
+    if (!lessonData) return 0;
+    
+    const progress = lessonProgress[lessonData.id];
+    const stars = progress?.bestResult?.countOfStars;
+    
+    console.log(`getStarsByMapElementId: ${mapElementId}, lessonId: ${lessonData.id}, stars: ${stars}`);
+    
+    if (stars === null || stars === undefined) {
+      return 0;
+    }
+    
+    return stars;
+  };
+
+  // Функция для проверки доступности урока по mapElementId
+  const isLessonAvailableByMapElementId = (mapElementId: string): boolean => {
+    if (sortedLessons.length === 0) return true;
+    
+    const currentLessonIndex = sortedLessons.findIndex(l => l.mapElementId === mapElementId);
+    
+    if (currentLessonIndex === -1) return true;
+    
+    // Первый урок всегда доступен
+    if (currentLessonIndex === 0) return true;
+    
+    // Проверяем ВСЕ предыдущие уроки, а не только непосредственно предыдущий
+    for (let i = 0; i < currentLessonIndex; i++) {
+      const previousLesson = sortedLessons[i];
+      const previousProgress = lessonProgress[previousLesson.id];
+      const previousStars = previousProgress?.bestResult?.countOfStars;
+      
+      console.log(`Проверка предыдущего урока ${i + 1}: ${previousLesson.mapElementId}, звезды: ${previousStars}`);
+      
+      // Если хоть один предыдущий урок не имеет звезд, текущий недоступен
+      if (previousStars === null || previousStars === undefined || previousStars === 0) {
+        console.log(`❌ Урок ${mapElementId} недоступен: предыдущий урок ${previousLesson.mapElementId} имеет ${previousStars} звезд`);
+        return false;
+      }
+    }
+    
+    console.log(`✅ Урок ${mapElementId} доступен: все предыдущие уроки пройдены`);
+    return true;
   };
 
   // Функция для преобразования строки fontWeight
@@ -398,7 +407,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
     return (weight && validWeights[weight]) || 'normal';
   };
 
-  // Вычисление позиции элемента - ТОЧНО КАК В КОНСТРУКТОРЕ
+  // Вычисление позиции элемента
   const calculateElementPosition = (element: MapElement): Position => {
     const currentPositioning = element.positioning;
     const currentOffset = element.offset;
@@ -433,8 +442,18 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
 
   // Обработчик клика на элемент
   const handleElementClick = (element: MapElement) => {
+    console.log("Клик по элементу:", element.type, element.id);
+    
     if (element.type === "lesson") {
       const lessonData = lessonsData[element.id];
+      
+      if (!isLessonAvailableByMapElementId(element.id)) {
+        Alert.alert(
+          "Урок недоступен",
+          "Пожалуйста, завершите все предыдущие уроки, чтобы получить доступ к этому уроку."
+        );
+        return;
+      }
 
       if (lessonData) {
         setModalData({
@@ -472,9 +491,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
     if (!modalData || !modalData.targetId) return;
 
     navigation.navigate(ROUTES.STACK.LESSON, { id: modalData.targetId });
-    //navigation.navigate(ROUTES.STACK.LESSON, { id: modalData.targetId });
     setModalVisible(false);
-    Alert.alert("Навигация", `Переход к ${modalData.type} с ID: ${modalData.targetId}`);
   };
 
   const renderElement = (element: MapElement) => {
@@ -544,8 +561,11 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
 
       case "lesson":
         const lessonData = lessonsData[element.id];
-        // Используем данные из lessonsData, если они есть
         const displayTitle = lessonData?.title || element.title || "Урок";
+        const starsCount = getStarsByMapElementId(element.id);
+        const available = isLessonAvailableByMapElementId(element.id);
+
+        console.log(`Рендер урока ${element.id}: звезды=${starsCount}, доступен=${available}, lessonId=${lessonData?.id}`);
 
         return (
           <TouchableOpacity
@@ -557,8 +577,8 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
               {
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: element.width || 60,
-                height: element.height || 60,
+                width: element.width || 70,
+                height: element.height || 90,
               },
             ]}
           >
@@ -566,23 +586,33 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
               style={[
                 styles.lessonCircle,
                 element.isActive && styles.lessonActive,
+                !available && styles.lessonDisabled,
               ]}
             >
               <Text style={styles.lessonCircleText}>
                 {displayTitle.charAt(0).toUpperCase()}
               </Text>
             </View>
-            <View style={styles.starsArc}>
-              {[1, 2, 3].map((star) => (
-                <View
-                  key={star}
-                  style={[
-                    styles.star,
-                    star <= (element.stars || 0) && styles.starFilled,
-                  ]}
-                />
-              ))}
+            
+            {/* Звезды под уроком - ТЕПЕРЬ ЭТО НАСТОЯЩИЕ ЗВЕЗДЫ */}
+            <View style={styles.starsContainer}>
+              {[1, 2, 3].map((star) => {
+                const isFilled = star <= starsCount;
+                
+                return (
+                  <Text
+                    key={star}
+                    style={[
+                      styles.starText,
+                      isFilled ? styles.starFilledText : styles.starEmptyText
+                    ]}
+                  >
+                    ★
+                  </Text>
+                );
+              })}
             </View>
+            
             <Text style={styles.lessonTitle} numberOfLines={2}>
               {displayTitle}
             </Text>
@@ -686,7 +716,6 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
       height: mapSize.height,
     };
 
-    // Устанавливаем режим повторения
     if (mapBackground.repeat === 'repeat') {
       style.resizeMode = 'repeat';
     } else if (mapBackground.repeat === 'repeat-x') {
@@ -696,20 +725,16 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
       style.resizeMode = 'repeat';
       style.transform = [{ scaleY: 1 }];
     } else {
-      // Устанавливаем resizeMode в зависимости от backgroundSize
       switch (mapBackground.size) {
         case 'cover':
           style.resizeMode = 'cover';
           break;
-
         case 'contain':
           style.resizeMode = 'contain';
           break;
-
         case 'auto':
           style.resizeMode = 'center';
           break;
-
         default:
           style.resizeMode = 'cover';
       }
@@ -742,13 +767,11 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
     <View style={styles.studentContainer}>
       <StatusBar backgroundColor="#f5f5f5" barStyle="dark-content" />
 
-      {/* Вертикальный ScrollView */}
       <ScrollView
         showsVerticalScrollIndicator={true}
         bounces={true}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Контейнер карты с фиксированной высотой из БД */}
         <View
           style={[
             styles.mapContainer,
@@ -760,7 +783,6 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
           ]}
           onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
         >
-          {/* Фоновое изображение с учетом повторения и размера */}
           {mapBackground.image && (
             <Image
               source={{ uri: mapBackground.image }}
@@ -769,12 +791,10 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
             />
           )}
 
-          {/* Элементы карты */}
           {elements.map(renderElement)}
         </View>
       </ScrollView>
 
-      {/* Информационная панель */}
       <View style={styles.infoPanel}>
         <Text style={styles.infoText}>
           {mapSize.width}×{mapSize.height} | Эл: {elements.length} |
@@ -783,7 +803,6 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
         </Text>
       </View>
 
-      {/* Модальное окно для уроков и контрольных точек */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -812,22 +831,6 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
             </View>
 
             <View style={styles.modalActions}>
-              {/*  <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.cancelButtonText}>Закрыть</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.navigateButton}
-                onPress={handleNavigate}
-              >
-                <Text style={styles.navigateButtonText}>
-                  {modalData?.type === "lesson" ? "Перейти к уроку" : "Перейти к контрольной точке"}
-                </Text>
-              </TouchableOpacity> */}
-
               <CustomButton
                 handler={() => setModalVisible(false)}
                 text="Закрыть"
@@ -838,7 +841,6 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
                 text={modalData?.type === "lesson" ? "Перейти к уроку" : "Перейти к контрольной точке"}
                 backgroundColor="#D8D8D8"
                 maxWidth={120}
-
                 color="#000"
               />
             </View>
