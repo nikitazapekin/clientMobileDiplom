@@ -369,23 +369,32 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
     // Первый урок всегда доступен
     if (currentLessonIndex === 0) return true;
     
-    // Проверяем ВСЕ предыдущие уроки, а не только непосредственно предыдущий
-    for (let i = 0; i < currentLessonIndex; i++) {
-      const previousLesson = sortedLessons[i];
-      const previousProgress = lessonProgress[previousLesson.id];
-      const previousStars = previousProgress?.bestResult?.countOfStars;
-      
-      console.log(`Проверка предыдущего урока ${i + 1}: ${previousLesson.mapElementId}, звезды: ${previousStars}`);
-      
-      // Если хоть один предыдущий урок не имеет звезд, текущий недоступен
-      if (previousStars === null || previousStars === undefined || previousStars === 0) {
-        console.log(`❌ Урок ${mapElementId} недоступен: предыдущий урок ${previousLesson.mapElementId} имеет ${previousStars} звезд`);
-        return false;
-      }
+    // Получаем данные предыдущего урока (непосредственно перед текущим)
+    const previousLesson = sortedLessons[currentLessonIndex - 1];
+    const previousProgress = lessonProgress[previousLesson.id];
+    const previousStars = previousProgress?.bestResult?.countOfStars;
+    
+    console.log(`Проверка предыдущего урока ${currentLessonIndex}: ${previousLesson.mapElementId}, звезды: ${previousStars}`);
+    
+    // Проверяем, решен ли предыдущий урок (есть ли у него звезды > 0)
+    // Если предыдущий урок решен на 0 звезд или не решен вовсе, текущий недоступен
+    if (previousStars === null || previousStars === undefined || previousStars === 0) {
+      console.log(`❌ Урок ${mapElementId} недоступен: предыдущий урок ${previousLesson.mapElementId} имеет ${previousStars} звезд`);
+      return false;
     }
     
-    console.log(`✅ Урок ${mapElementId} доступен: все предыдущие уроки пройдены`);
+    console.log(`✅ Урок ${mapElementId} доступен: предыдущий урок пройден с ${previousStars} звездами`);
     return true;
+  };
+
+  // Функция для проверки, является ли урок первым (минимальный orderIndex)
+  const isFirstLesson = (mapElementId: string): boolean => {
+    if (sortedLessons.length === 0) return false;
+    
+    const currentLessonIndex = sortedLessons.findIndex(l => l.mapElementId === mapElementId);
+    
+    // Урок с минимальным orderIndex (первый в отсортированном массиве)
+    return currentLessonIndex === 0;
   };
 
   // Функция для преобразования строки fontWeight
@@ -450,7 +459,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
       if (!isLessonAvailableByMapElementId(element.id)) {
         Alert.alert(
           "Урок недоступен",
-          "Пожалуйста, завершите все предыдущие уроки, чтобы получить доступ к этому уроку."
+          "Пожалуйста, завершите предыдущий урок, чтобы получить доступ к этому уроку."
         );
         return;
       }
@@ -564,8 +573,9 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
         const displayTitle = lessonData?.title || element.title || "Урок";
         const starsCount = getStarsByMapElementId(element.id);
         const available = isLessonAvailableByMapElementId(element.id);
+        const isFirst = isFirstLesson(element.id);
 
-        console.log(`Рендер урока ${element.id}: звезды=${starsCount}, доступен=${available}, lessonId=${lessonData?.id}`);
+        console.log(`Рендер урока ${element.id}: звезды=${starsCount}, доступен=${available}, первый=${isFirst}, lessonId=${lessonData?.id}`);
 
         return (
           <TouchableOpacity
@@ -594,7 +604,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
               </Text>
             </View>
             
-            {/* Звезды под уроком - ТЕПЕРЬ ЭТО НАСТОЯЩИЕ ЗВЕЗДЫ */}
+            {/* Звезды под уроком */}
             <View style={styles.starsContainer}>
               {[1, 2, 3].map((star) => {
                 const isFilled = star <= starsCount;
