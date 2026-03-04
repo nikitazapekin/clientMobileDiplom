@@ -24,7 +24,9 @@ import type { MapElementResponse } from "@/http/types/map";
 import { ROUTES } from "@/navigation/routes";
 import type { RootStackNavigationProp } from "@/navigation/types";
 import { ProfileService } from "@/http/profile";
+import { CertificateService } from "@/http/certificate";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import ConfettiCannon from 'react-native-confetti-cannon';
 
 interface Position {
   x: number;
@@ -115,12 +117,13 @@ interface LessonProgress {
 
 interface MapProps {
   courseId: string;
+  courseName?: string;
   onElementPress?: (element: MapElement) => void;
 }
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
+const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementPress }) => {
   const [mapSize, setMapSize] = useState<MapSize>({ width: 800, height: 600 });
   const [mapBackground, setMapBackground] = useState<MapBackground>({
     color: "#ffffff",
@@ -137,6 +140,13 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [lessonProgress, setLessonProgress] = useState<Record<string, LessonProgress>>({});
   const [sortedLessons, setSortedLessons] = useState<LessonData[]>([]);
+  
+  // Состояния для сертификата
+  const [certificateModalVisible, setCertificateModalVisible] = useState(false);
+  const [certificateData, setCertificateData] = useState<any>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [certificateChecked, setCertificateChecked] = useState(false);
+  const confettiRef = useRef<any>(null);
 
   // Загрузка карты
   useEffect(() => {
@@ -185,6 +195,125 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
       fetchProfileAndProgress();
     }
   }, [courseId, loadCourseProgress]);
+
+  // Проверка на получение сертификата
+  useEffect(() => {
+    const checkCertificateEligibility = async () => {
+      // Проверяем только если загружены уроки и прогресс, и еще не проверяли
+      if (sortedLessons.length === 0 || Object.keys(lessonProgress).length === 0 || certificateChecked) {
+        return;
+      }
+
+      try {
+        console.log("🔍 Проверка возможности получения сертификата...");
+        
+        // Получаем userId
+        const userId = await AsyncStorage.getItem('userId');
+        if (!userId) {
+          console.log("❌ userId не найден");
+          return;
+        }
+
+        // Проверяем, все ли уроки пройдены
+        const allLessonsCompleted = sortedLessons.every(lesson => {
+          const progress = lessonProgress[lesson.id];
+          const completed = progress?.bestResult?.countOfStars !== null && 
+                           progress?.bestResult?.countOfStars !== undefined;
+          
+          console.log(`Урок ${lesson.title}: ${completed ? '✅' : '❌'}`);
+          return completed;
+        });
+
+        if (!allLessonsCompleted) {
+          console.log("❌ Не все уроки пройдены");
+          setCertificateChecked(true);
+          return;
+        }
+
+        // Подсчитываем суммарное количество звезд
+        let totalStars = 0;
+        sortedLessons.forEach(lesson => {
+          const progress = lessonProgress[lesson.id];
+          const stars = progress?.bestResult?.countOfStars || 0;
+          totalStars += stars;
+        });
+
+        const maxStars = sortedLessons.length * 3; // максимум 3 звезды за урок
+        const starsPercentage = (totalStars / maxStars) * 100;
+        
+        console.log(`⭐ Суммарно звезд: ${totalStars}/${maxStars} (${starsPercentage.toFixed(1)}%)`);
+
+        // Проверяем условие для сертификата: все уроки пройдены И суммарно 90% звезд
+        if (allLessonsCompleted && starsPercentage >= 90) {
+          console.log("🎉 Условия для сертификата выполнены! Проверяем, создан ли уже...");
+          
+          // Проверяем, есть ли уже сертификат
+          const existingCertificates = await CertificateService.getCertificatesByAuditoryId(userId);
+          
+          // Проверяем, есть ли сертификат для этого курса
+          const hasCertificateForCourse = existingCertificates.some(
+            cert => cert.digital?.includes(courseId) // или другая логика привязки к курсу
+          );
+
+          if (!hasCertificateForCourse) {
+            console.log("📝 Создаем новый сертификат...");
+            
+         const profile = await ProfileService.getFullProfileByAuditoryId(userId);
+let studentName = "Студент";
+
+// Составляем полное имя из firstName, lastName и middleName
+if (profile.firstName || profile.lastName) {
+  const nameParts = [];
+  if (profile.lastName) nameParts.push(profile.lastName);
+  if (profile.firstName) nameParts.push(profile.firstName);
+  if (profile.middleName) nameParts.push(profile.middleName);
+  studentName = nameParts.join(' ');
+} else {
+  // Если нет имени, используем email
+  studentName = profile.email || studentName;
+}
+
+console.log("Имя студента:", studentName);
+
+
+            // Создаем сертификат
+            const certificate = await CertificateService.createStudentCertificate(
+              userId,
+              studentName,
+              courseName
+            );
+
+            console.log("✅ Сертификат создан:", certificate);
+            
+            // Загружаем изображение сертификата
+            const imageUrl = await CertificateService.getCertificateImageUrl(certificate.id);
+            
+            setCertificateData({
+              ...certificate,
+              imageUrl
+            });
+            
+            // Показываем конфетти и модальное окно
+            setShowConfetti(true);
+            setCertificateModalVisible(true);
+          } else {
+            console.log("ℹ️ Сертификат для этого курса уже существует");
+          }
+        } else {
+          console.log("❌ Условия не выполнены:", {
+            allLessonsCompleted,
+            starsPercentage: starsPercentage.toFixed(1)
+          });
+        }
+      } catch (error) {
+        console.error("Ошибка при проверке сертификата:", error);
+      } finally {
+        setCertificateChecked(true);
+      }
+    };
+
+    checkCertificateEligibility();
+  }, [sortedLessons, lessonProgress, courseId, courseName]);
 
   const loadCourseMap = async () => {
     try {
@@ -503,6 +632,35 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
     setModalVisible(false);
   };
 
+  const handleCertificateShare = async () => {
+    if (!certificateData) return;
+    
+    try {
+      await CertificateService.shareCertificate(
+        certificateData.id,
+        `Certificate of Completion - ${courseName}`
+      );
+    } catch (error) {
+      Alert.alert("Ошибка", "Не удалось поделиться сертификатом");
+    }
+  };
+
+  const handleCertificateDownload = async () => {
+    if (!certificateData) return;
+    
+     
+  };
+
+  const handleCertificateOpen = async () => {
+    if (!certificateData) return;
+    
+    try {
+      await CertificateService.openDigitalVersion(certificateData.id);
+    } catch (error) {
+      Alert.alert("Ошибка", "Не удалось открыть сертификат");
+    }
+  };
+
   const renderElement = (element: MapElement) => {
     const position = calculateElementPosition(element);
     const rotation = element.rotation || 0;
@@ -777,6 +935,18 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
     <View style={styles.studentContainer}>
       <StatusBar backgroundColor="#f5f5f5" barStyle="dark-content" />
 
+      {showConfetti && (
+        <ConfettiCannon
+          ref={confettiRef}
+          count={200}
+          origin={{ x: SCREEN_WIDTH / 2, y: -20 }}
+          autoStart={true}
+          fadeOut={true}
+          fallSpeed={3000}
+          colors={['#FFD700', '#FFA500', '#FF69B4', '#00CED1', '#9F0FA7']}
+        />
+      )}
+
       <ScrollView
         showsVerticalScrollIndicator={true}
         bounces={true}
@@ -813,6 +983,7 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
         </Text>
       </View>
 
+      {/* Модальное окно урока/контрольной точки */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -854,6 +1025,69 @@ const Map: React.FC<MapProps> = ({ courseId, onElementPress }) => {
                 color="#000"
               />
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Модальное окно сертификата */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={certificateModalVisible}
+        onRequestClose={() => setCertificateModalVisible(false)}
+      >
+        <View style={styles.certificateModalOverlay}>
+          <View style={styles.certificateModalContent}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setCertificateModalVisible(false)}
+            >
+              <Text style={styles.closeButtonText}>×</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.certificateTitle}>🎉 Поздравляем! 🎉</Text>
+            
+            <Text style={styles.certificateSubtitle}>
+              Вы успешно завершили курс!
+            </Text>
+
+            {certificateData?.imageUrl && (
+              <Image
+                source={{ uri: certificateData.imageUrl }}
+                style={styles.certificateImage}
+                resizeMode="contain"
+              />
+            )}
+
+            <View style={styles.certificateActions}>
+              <TouchableOpacity
+                style={[styles.certificateButton, styles.shareButton]}
+                onPress={handleCertificateShare}
+              >
+                <Text style={styles.certificateButtonText}>Поделиться</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.certificateButton, styles.downloadButton]}
+                onPress={handleCertificateDownload}
+              >
+                <Text style={styles.certificateButtonText}>Сохранить</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.certificateButton, styles.openButton]}
+                onPress={handleCertificateOpen}
+              >
+                <Text style={styles.certificateButtonText}>Открыть</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.certificateCloseButton}
+              onPress={() => setCertificateModalVisible(false)}
+            >
+              <Text style={styles.certificateCloseButtonText}>Закрыть</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>

@@ -1,4 +1,4 @@
-// http/profile/ProfileService.ts
+ 
 
 import { Platform } from "react-native";
 import type { ImagePickerResponse } from "react-native-image-picker";
@@ -38,82 +38,6 @@ export class ProfileService {
     };
   }
 
-
-  /*
-static async getStudentCourseProgress(auditoryId: string, courseId: string) {
-  console.log("REQ", auditoryId, courseId);
- try {
-    const token = await this.getToken();
-    
-    // Жестко закодированные значения
-    const auditoryId = "auth_1772579154161_94azxbrq4";
-    const courseId = "course_1772578782645_8n2oizmrc";
-    const url = "http://localhost:3002/profile/student-results/client/auth_1772579154161_94azxbrq4/course-progress";
-    
-    console.log("🚀 Отправка запроса:", {
-      url,
-      method: 'POST',
-      body: { courseId }
-    });
-
-    const response = await axios.post(
-      url,
-      { courseId }, // тело запроса
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    console.log("✅ Успешный ответ:", response.data);
-    return response.data;
-    
-  } catch (error: any) {
-    console.error("❌ Ошибка:", {
-      message: error.message,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      config: {
-        url: error.config?.url,
-        method: error.config?.method,
-        data: error.config?.data
-      }
-    });
-    throw error;
-  }
-}
- */
-
-
-/*
-// Временно уберем все сложности
-static async getStudentCourseProgress(auditoryId: string, courseId: string) {
-
-  console.log("REQ" , auditoryId, courseId)
-  try {
-    const response = await fetch(
-      `http://localhost:3002/profile/student-results/client/${auditoryId}/course-progress`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ courseId })
-      }
-    );
-    
-    const data = await response.json();
-    console.log("Fetch response:", data);
-    return data;
-  } catch (error) {
-    console.error("Fetch error:", error);
-    throw error;
-  }
-}
-*/
  
 static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
 

@@ -251,4 +251,104 @@ starEmptyText: {
   color: '#D3D3D3', // серый
 },
  
+
+// Добавьте в конец файла со стилями
+
+certificateModalOverlay: {
+  flex: 1,
+  backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+
+certificateModalContent: {
+  width: '90%',
+  maxWidth: 400,
+  backgroundColor: '#fff',
+  borderRadius: 20,
+  padding: 24,
+  alignItems: 'center',
+  shadowColor: '#000',
+  shadowOffset: {
+    width: 0,
+    height: 4,
+  },
+  shadowOpacity: 0.3,
+  shadowRadius: 6,
+  elevation: 8,
+},
+
+certificateTitle: {
+  fontSize: 28,
+  fontWeight: 'bold',
+  color: '#9F0FA7',
+  textAlign: 'center',
+  marginBottom: 8,
+},
+
+certificateSubtitle: {
+  fontSize: 18,
+  color: '#333',
+  textAlign: 'center',
+  marginBottom: 20,
+},
+
+certificateImage: {
+  width: '100%',
+  height: 200,
+  marginBottom: 20,
+  borderRadius: 12,
+  borderWidth: 2,
+  borderColor: '#9F0FA7',
+},
+
+certificateActions: {
+  flexDirection: 'row',
+  justifyContent: 'space-around',
+  width: '100%',
+  marginBottom: 16,
+  gap: 8,
+},
+
+certificateButton: {
+  flex: 1,
+  paddingVertical: 10,
+  paddingHorizontal: 8,
+  borderRadius: 8,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+
+shareButton: {
+  backgroundColor: '#4CAF50',
+},
+
+downloadButton: {
+  backgroundColor: '#2196F3',
+},
+
+openButton: {
+  backgroundColor: '#FF9800',
+},
+
+certificateButtonText: {
+  color: '#fff',
+  fontSize: 12,
+  fontWeight: '600',
+},
+
+certificateCloseButton: {
+  paddingVertical: 12,
+  paddingHorizontal: 24,
+  backgroundColor: '#f0f0f0',
+  borderRadius: 8,
+  width: '100%',
+  alignItems: 'center',
+},
+
+certificateCloseButtonText: {
+  color: '#666',
+  fontSize: 16,
+  fontWeight: '600',
+}
 });
