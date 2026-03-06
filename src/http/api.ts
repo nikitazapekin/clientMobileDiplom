@@ -2,10 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import axios from 'axios';
 
-// Используйте ваш IP адрес
-//const BASE_URL = 'http://192.168.1.6:3002';  192.168.1.6
-const BASE_URL = 'http://192.168.1.6:3002';
-
+// Cloudflare Tunnel к бэкенду (localhost:3002)
+export const BASE_URL = 'https://mailing-giants-moments-fraction.trycloudflare.com';
 const $api = axios.create({
   baseURL: BASE_URL,
   withCredentials: true, // Важно для отправки cookies

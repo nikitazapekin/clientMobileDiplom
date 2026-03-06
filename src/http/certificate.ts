@@ -1,9 +1,6 @@
 import { Platform, Linking, Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import $api from "./api";
- 
- 
-const BASE_URL = 'http://192.168.1.6:3002';
+import $api, { BASE_URL } from "./api";
 
 // Типы для сертификатов
 export interface CertificateResponse {
@@ -12,6 +9,7 @@ export interface CertificateResponse {
   date: string;
   url: string;
   digital: string;
+  isViewed: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -72,6 +70,24 @@ export class CertificateService {
     } catch (error: any) {
       console.error("❌ Create certificate error:", error.response?.data || error.message);
       throw new Error(error.response?.data?.message || "Failed to create certificate");
+    }
+  }
+
+  /**
+   * Отметить сертификат как просмотренный
+   */
+  static async setIsViewed(id: string): Promise<CertificateResponse> {
+    try {
+      const token = await this.getToken();
+      const response = await $api.put(
+        `/certificates/setIsViewed`,
+        { id },
+        this.getHeaders(token)
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error("❌ setIsViewed error:", error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || "Failed to set isViewed");
     }
   }
 

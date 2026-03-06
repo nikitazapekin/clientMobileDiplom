@@ -249,13 +249,28 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
           
           // Проверяем, есть ли уже сертификат
           const existingCertificates = await CertificateService.getCertificatesByAuditoryId(userId);
-          
-          // Проверяем, есть ли сертификат для этого курса
-          const hasCertificateForCourse = existingCertificates.some(
-            cert => cert.digital?.includes(courseId) // или другая логика привязки к курсу
-          );
 
-          if (!hasCertificateForCourse) {
+          if (existingCertificates.length > 0) {
+            const existingCert = existingCertificates[0];
+
+            if (existingCert.isViewed) {
+              console.log("ℹ️ Сертификат уже просмотрен, модальное окно не показываем");
+              setCertificateChecked(true);
+              return;
+            }
+
+            console.log("ℹ️ Сертификат существует, но не просмотрен — показываем модальное окно");
+            setCertificateData({
+              ...existingCert,
+              imageUrl: existingCert.url
+            });
+            setShowConfetti(true);
+            setCertificateModalVisible(true);
+            setCertificateChecked(true);
+            return;
+          }
+
+          if (existingCertificates.length === 0) {
             console.log("📝 Создаем новый сертификат...");
             
          const profile = await ProfileService.getFullProfileByAuditoryId(userId);
@@ -285,19 +300,14 @@ console.log("Имя студента:", studentName);
 
             console.log("✅ Сертификат создан:", certificate);
             
-            // Загружаем изображение сертификата
-            const imageUrl = await CertificateService.getCertificateImageUrl(certificate.id);
-            
             setCertificateData({
               ...certificate,
-              imageUrl
+              imageUrl: certificate.url
             });
             
             // Показываем конфетти и модальное окно
             setShowConfetti(true);
             setCertificateModalVisible(true);
-          } else {
-            console.log("ℹ️ Сертификат для этого курса уже существует");
           }
         } else {
           console.log("❌ Условия не выполнены:", {
@@ -1034,13 +1044,33 @@ console.log("Имя студента:", studentName);
         animationType="slide"
         transparent={true}
         visible={certificateModalVisible}
-        onRequestClose={() => setCertificateModalVisible(false)}
+        onRequestClose={async () => {
+          if (certificateData?.id) {
+            try {
+              await CertificateService.setIsViewed(certificateData.id);
+            } catch (e) {
+              console.error("Ошибка при setIsViewed:", e);
+            }
+          }
+          setCertificateModalVisible(false);
+          setShowConfetti(false);
+        }}
       >
         <View style={styles.certificateModalOverlay}>
           <View style={styles.certificateModalContent}>
             <TouchableOpacity
               style={styles.closeButton}
-              onPress={() => setCertificateModalVisible(false)}
+              onPress={async () => {
+                if (certificateData?.id) {
+                  try {
+                    await CertificateService.setIsViewed(certificateData.id);
+                  } catch (e) {
+                    console.error("Ошибка при setIsViewed:", e);
+                  }
+                }
+                setCertificateModalVisible(false);
+                setShowConfetti(false);
+              }}
             >
               <Text style={styles.closeButtonText}>×</Text>
             </TouchableOpacity>
@@ -1059,32 +1089,21 @@ console.log("Имя студента:", studentName);
               />
             )}
 
-            <View style={styles.certificateActions}>
-              <TouchableOpacity
-                style={[styles.certificateButton, styles.shareButton]}
-                onPress={handleCertificateShare}
-              >
-                <Text style={styles.certificateButtonText}>Поделиться</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.certificateButton, styles.downloadButton]}
-                onPress={handleCertificateDownload}
-              >
-                <Text style={styles.certificateButtonText}>Сохранить</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.certificateButton, styles.openButton]}
-                onPress={handleCertificateOpen}
-              >
-                <Text style={styles.certificateButtonText}>Открыть</Text>
-              </TouchableOpacity>
-            </View>
+           
 
             <TouchableOpacity
               style={styles.certificateCloseButton}
-              onPress={() => setCertificateModalVisible(false)}
+              onPress={async () => {
+                if (certificateData?.id) {
+                  try {
+                    await CertificateService.setIsViewed(certificateData.id);
+                  } catch (e) {
+                    console.error("Ошибка при setIsViewed:", e);
+                  }
+                }
+                setCertificateModalVisible(false);
+                setShowConfetti(false);
+              }}
             >
               <Text style={styles.certificateCloseButtonText}>Закрыть</Text>
             </TouchableOpacity>

@@ -15,9 +15,6 @@ import type {
   UpdateAvatarRequest,
   UpdateStudentResultRequest} from "./types/profile";
 import $api from "./api";
-import axios from "axios";
-
-const BASE_URL = 'http://192.168.1.6:3002';
 
 export class ProfileService {
   private static async getToken(): Promise<string | null> {
@@ -40,80 +37,23 @@ export class ProfileService {
 
  
 static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
-
-  console.log("test" , auditoryId , courseId)
   try {
     const token = await this.getToken();
-    
-    // ЖЕСТКО ЗАКОДИРОВАННЫЕ ЗНАЧЕНИЯ - игнорируем параметры
-    const hardcodedAuditoryId = "auth_1772579154161_94azxbrq4";
-    const hardcodedCourseId = "course_1772578782645_8n2oizmrc";
-  //  const url = `http://192.168.1.6:3002/profile/student-results/client/auth_1772579154161_94azxbrq4/course-progress`;
-    
-   /* console.log("🔴 ИСПОЛЬЗУЮТСЯ ХАРДКОД ЗНАЧЕНИЯ:", {
-      auditoryId: hardcodedAuditoryId,
-      courseId: hardcodedCourseId,
-      url: url
-    });
-*/
 
-
-const url = `http://192.168.1.6:3002/profile/student-results/client/${auditoryId}/course-progress`;
-    
-    console.log("🔴 ИСПОЛЬЗУЮТСЯ ХАРДКОД ЗНАЧЕНИЯ:", {
-      auditoryId: hardcodedAuditoryId,
-      courseId: hardcodedCourseId,
-      url: url
-    });
-
-
-
-    console.log("📤 Отправка POST запроса:", {
-      url: url,
-      body: { courseId: hardcodedCourseId }
-    });
-
-    const response = await axios.post(
-      url,
-
-
-        { courseId: courseId },
-    //  { courseId: hardcodedCourseId }, // ВАЖНО: используем hardcodedCourseId
+    const response = await $api.post(
+      `/profile/student-results/client/${auditoryId}/course-progress`,
+      { courseId },
       {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
         },
-        timeout: 10000 // 10 секунд таймаут
       }
     );
 
-    console.log("✅ Успешный ответ:", response.data);
     return response.data;
-    
   } catch (error: any) {
-    console.error("❌ ДЕТАЛЬНАЯ ОШИБКА:", {
-      message: error.message,
-      code: error.code,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      headers: error.response?.headers,
-      config: {
-        url: error.config?.url,
-        method: error.config?.method,
-        data: error.config?.data,
-        headers: error.config?.headers
-      }
-    });
-    
-    if (error.code === 'ECONNREFUSED') {
-      console.error("🚫 Сервер недоступен по адресу localhost:3002");
-    } else if (error.code === 'ETIMEDOUT') {
-      console.error("⏰ Таймаут соединения");
-    }
-    
-    throw new Error(`Failed to fetch: ${error.message}`);
+    console.error("Get course progress error:", error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || "Failed to fetch course progress");
   }
 }
  
