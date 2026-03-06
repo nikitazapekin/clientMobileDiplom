@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { COLORS } from "appStyles";
 import { useRouter } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { styles } from "./styled";
@@ -1184,6 +1185,7 @@ const ResultsModal = ({
 const Lesson = ({ id }: { id: string }) => {
   console.log("🎯 Lesson mounted with ID:", id);
   const router = useRouter();
+  const navigation = useNavigation();
 
   const [loading, setLoading] = useState(true);
   const [slides, setSlides] = useState<Slide[]>([]);
@@ -2162,7 +2164,10 @@ const Lesson = ({ id }: { id: string }) => {
 
       <ResultsModal
         visible={resultsModalVisible}
-        onClose={() => setResultsModalVisible(false)}
+        onClose={() => {
+          setResultsModalVisible(false);
+          navigation.goBack();
+        }}
         results={lessonResults.results}
         totalTasks={lessonResults.totalTasks}
         completedTasks={lessonResults.completedTasks}

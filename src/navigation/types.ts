@@ -18,7 +18,7 @@ export type RootStackParamList = {
 
   [ROUTES.STACK.COURSE]: { id: string };
 
-  [ROUTES.STACK.MAP]: { id: string };
+  [ROUTES.STACK.MAP]: { id: string; courseName?: string };
 
   [ROUTES.STACK.LESSON]: { id: string };
 };

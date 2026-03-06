@@ -4,6 +4,7 @@ import React, { useCallback,useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   FlatList,
   Image,
   RefreshControl,
@@ -16,9 +17,15 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ProfileService } from '../../http/profile';
+import { CertificateService } from '../../http/certificate';
+import type { CertificateResponse } from '../../http/certificate';
 import type { FullClientInfo, StudentResultResponse } from '../../http/types/profile';
 import AvatarPicker from '../AvatarPicker';
 import { COLORS } from 'appStyles';
+
+const SECTION_HORIZONTAL_MARGIN = 20;
+const SECTION_PADDING = 20;
+const certSlideWidth = Dimensions.get('window').width - (SECTION_HORIZONTAL_MARGIN + SECTION_PADDING) * 2;
 
 const UserProfile = () => {
   const [profile, setProfile] = useState<FullClientInfo | null>(null);
@@ -27,6 +34,9 @@ const UserProfile = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [avatarPickerVisible, setAvatarPickerVisible] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [certificates, setCertificates] = useState<CertificateResponse[]>([]);
+  const [certificatesLoading, setCertificatesLoading] = useState(false);
+  const [activeCertIndex, setActiveCertIndex] = useState(0);
  
   const loadProfile = useCallback(async () => {
     try {
@@ -54,6 +64,17 @@ const UserProfile = () => {
       }
 
       setProfile(profileData);
+
+      // Загружаем сертификаты
+      setCertificatesLoading(true);
+      try {
+        const certs = await CertificateService.getCertificatesByAuditoryId(auditoryId);
+        setCertificates(certs);
+      } catch (certErr) {
+        console.error('Failed to load certificates:', certErr);
+      } finally {
+        setCertificatesLoading(false);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load profile');
     } finally {
@@ -291,7 +312,64 @@ const UserProfile = () => {
           </View>
         </View>
 
-       
+        {/* Сертификаты */}
+        {certificatesLoading ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Сертификаты</Text>
+            <ActivityIndicator size="small" color={COLORS.ACCENT} style={{ marginTop: 12 }} />
+          </View>
+        ) : certificates.length > 0 ? (
+          <View style={styles.certSection}>
+            <Text style={styles.sectionTitle}>Сертификаты</Text>
+            <View style={styles.certSliderContainer}>
+              <FlatList
+                data={certificates}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item) => item.id}
+                snapToInterval={certSlideWidth}
+                decelerationRate="fast"
+                onMomentumScrollEnd={(e) => {
+                  const index = Math.round(
+                    e.nativeEvent.contentOffset.x / certSlideWidth
+                  );
+                  setActiveCertIndex(index);
+                }}
+                renderItem={({ item }) => (
+                  <View style={{ width: certSlideWidth, alignItems: 'center' }}>
+                    <Image
+                      source={{ uri: item.url }}
+                      style={styles.certImage}
+                      resizeMode="contain"
+                    />
+                    <Text style={styles.certDate}>
+                      {new Date(item.date).toLocaleDateString('ru-RU', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })}
+                    </Text>
+                  </View>
+                )}
+              />
+            </View>
+            {certificates.length > 1 && (
+              <View style={styles.certDots}>
+                {certificates.map((_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.certDot,
+                      i === activeCertIndex && styles.certDotActive,
+                    ]}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
+        ) : null}
+
         {profile.studentResults.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -693,6 +771,51 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#f56565',
     fontWeight: '600',
+  },
+  certSection: {
+    backgroundColor: '#fff',
+    marginHorizontal: SECTION_HORIZONTAL_MARGIN,
+    marginTop: 20,
+    padding: SECTION_PADDING,
+    borderRadius: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  certSliderContainer: {
+    marginTop: 12,
+    marginHorizontal: -SECTION_PADDING,
+    overflow: 'hidden',
+    paddingHorizontal: SECTION_PADDING,
+  },
+  certImage: {
+    width: certSlideWidth,
+    height: certSlideWidth * 0.66,
+    borderRadius: 12,
+    backgroundColor: '#f0f0f0',
+  },
+  certDate: {
+    marginTop: 8,
+    fontSize: 13,
+    color: '#666',
+  },
+  certDots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  certDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ddd',
+    marginHorizontal: 4,
+  },
+  certDotActive: {
+    backgroundColor: COLORS.ACCENT,
+    width: 20,
   },
 });
 

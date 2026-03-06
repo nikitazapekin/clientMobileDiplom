@@ -92,7 +92,7 @@ const userId = useRef<string>("")
 
   const handleGoToMap = () => {
     setShowSuccessModal(false);
-    navigation.navigate(ROUTES.STACK.MAP, { id });
+    navigation.navigate(ROUTES.STACK.MAP, { id, courseName: course?.title });
   };
 
   if (loading) {

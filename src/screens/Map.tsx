@@ -11,14 +11,14 @@ import Map from "@/components/Map";
 
 type CourseScreenRouteParams = {
     id: string;
-
+    courseName?: string;
 };
 
 const MapScreen = () => {
 
   const route = useRoute();
   const activeTab: TabName = route.name === "Courses" ? "courses" : "courses";
-  const { id } = route.params as CourseScreenRouteParams;
+  const { id, courseName } = route.params as CourseScreenRouteParams;
 
   return (
     <View style={styles.containerLight}>
@@ -26,7 +26,7 @@ const MapScreen = () => {
 
       <View style={styles.content}>
 
-        <Map  courseId={id}/>
+        <Map courseId={id} courseName={courseName} />
       </View>
 
       <Footer activeTab={activeTab} />

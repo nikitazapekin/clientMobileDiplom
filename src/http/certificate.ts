@@ -6,6 +6,7 @@ import $api, { BASE_URL } from "./api";
 export interface CertificateResponse {
   id: string;
   clientId: string;
+  courseId: string;
   date: string;
   url: string;
   digital: string;
@@ -16,6 +17,7 @@ export interface CertificateResponse {
 
 export interface CreateCertificateRequest {
   auditoryId: string;
+  courseId: string;
   date: string;
   courseName: string;
   studentName: string;
@@ -144,10 +146,12 @@ export class CertificateService {
   static async createStudentCertificate(
     auditoryId: string,
     studentName: string,
-    courseName: string
+    courseName: string,
+    courseId: string
   ): Promise<CertificateResponse> {
     const data: CreateCertificateRequest = {
       auditoryId,
+      courseId,
       studentName,
       courseName,
       date: new Date().toISOString().split('T')[0],

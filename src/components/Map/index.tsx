@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
 import CustomButton from "../Button";
 
@@ -145,8 +145,8 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
   const [certificateModalVisible, setCertificateModalVisible] = useState(false);
   const [certificateData, setCertificateData] = useState<any>(null);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [certificateChecked, setCertificateChecked] = useState(false);
   const confettiRef = useRef<any>(null);
+  const isCheckingCertificateRef = useRef(false);
 
   // Загрузка карты
   useEffect(() => {
@@ -155,175 +155,124 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
     }
   }, [courseId]);
 
-  const loadCourseProgress = useCallback(async (clientId: string) => {
-    try {
-      console.log("Загрузка прогресса курса:", { clientId, courseId });
-      const response = await ProfileService.getStudentCourseProgress(clientId, courseId);
-      console.log("Прогресс курса загружен:", response);
-      
-      // Сохраняем прогресс в объект для быстрого доступа
-      const progressMap: Record<string, LessonProgress> = {};
-      response.forEach((item: LessonProgress) => {
-        progressMap[item.lessonId] = item;
-      });
-      setLessonProgress(progressMap);
-      
-      console.log("Прогресс сохранен:", progressMap);
-      
-    } catch (error) {
-      console.error("Ошибка при загрузке прогресса:", error);
-    }
-  }, [courseId]);
+  // Загрузка прогресса и проверка сертификата при фокусе экрана
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
 
-  useEffect(() => {
-    const fetchProfileAndProgress = async () => {
-      try {
-        const id = await AsyncStorage.getItem('userId');
-        console.log("userId из AsyncStorage:", id);
-
-        if (id) {
-          await loadCourseProgress(id);
-        } else {
-          console.warn("userId не найден в AsyncStorage");
-        }
-      } catch (error) {
-        console.error("Ошибка при загрузке профиля:", error);
-      }
-    };
-
-    if (courseId) {
-      fetchProfileAndProgress();
-    }
-  }, [courseId, loadCourseProgress]);
-
-  // Проверка на получение сертификата
-  useEffect(() => {
-    const checkCertificateEligibility = async () => {
-      // Проверяем только если загружены уроки и прогресс, и еще не проверяли
-      if (sortedLessons.length === 0 || Object.keys(lessonProgress).length === 0 || certificateChecked) {
-        return;
-      }
-
-      try {
-        console.log("🔍 Проверка возможности получения сертификата...");
-        
-        // Получаем userId
+      const loadAndCheck = async () => {
         const userId = await AsyncStorage.getItem('userId');
-        if (!userId) {
-          console.log("❌ userId не найден");
-          return;
-        }
+        if (!userId || !courseId) return;
 
-        // Проверяем, все ли уроки пройдены
-        const allLessonsCompleted = sortedLessons.every(lesson => {
-          const progress = lessonProgress[lesson.id];
-          const completed = progress?.bestResult?.countOfStars !== null && 
-                           progress?.bestResult?.countOfStars !== undefined;
-          
-          console.log(`Урок ${lesson.title}: ${completed ? '✅' : '❌'}`);
-          return completed;
-        });
+        try {
+          console.log("📊 Загрузка прогресса...");
+          const response = await ProfileService.getStudentCourseProgress(userId, courseId);
+          const progressMap: Record<string, LessonProgress> = {};
+          response.forEach((item: LessonProgress) => {
+            progressMap[item.lessonId] = item;
+          });
 
-        if (!allLessonsCompleted) {
-          console.log("❌ Не все уроки пройдены");
-          setCertificateChecked(true);
-          return;
-        }
+          if (cancelled) return;
+          setLessonProgress(progressMap);
 
-        // Подсчитываем суммарное количество звезд
-        let totalStars = 0;
-        sortedLessons.forEach(lesson => {
-          const progress = lessonProgress[lesson.id];
-          const stars = progress?.bestResult?.countOfStars || 0;
-          totalStars += stars;
-        });
-
-        const maxStars = sortedLessons.length * 3; // максимум 3 звезды за урок
-        const starsPercentage = (totalStars / maxStars) * 100;
-        
-        console.log(`⭐ Суммарно звезд: ${totalStars}/${maxStars} (${starsPercentage.toFixed(1)}%)`);
-
-        // Проверяем условие для сертификата: все уроки пройдены И суммарно 90% звезд
-        if (allLessonsCompleted && starsPercentage >= 90) {
-          console.log("🎉 Условия для сертификата выполнены! Проверяем, создан ли уже...");
-          
-          // Проверяем, есть ли уже сертификат
-          const existingCertificates = await CertificateService.getCertificatesByAuditoryId(userId);
-
-          if (existingCertificates.length > 0) {
-            const existingCert = existingCertificates[0];
-
-            if (existingCert.isViewed) {
-              console.log("ℹ️ Сертификат уже просмотрен, модальное окно не показываем");
-              setCertificateChecked(true);
-              return;
-            }
-
-            console.log("ℹ️ Сертификат существует, но не просмотрен — показываем модальное окно");
-            setCertificateData({
-              ...existingCert,
-              imageUrl: existingCert.url
-            });
-            setShowConfetti(true);
-            setCertificateModalVisible(true);
-            setCertificateChecked(true);
+          if (sortedLessons.length === 0) {
+            console.log("⏳ Уроки ещё не загружены, пропускаем проверку сертификата");
             return;
           }
 
-          if (existingCertificates.length === 0) {
-            console.log("📝 Создаем новый сертификат...");
-            
-         const profile = await ProfileService.getFullProfileByAuditoryId(userId);
-let studentName = "Студент";
+          const allCompleted = sortedLessons.every(lesson => {
+            const p = progressMap[lesson.id];
+            const done = p?.bestResult?.countOfStars !== null && p?.bestResult?.countOfStars !== undefined;
+            console.log(`Урок "${lesson.title}" (${lesson.id}): ${done ? '✅' : '❌'}, звёзды: ${p?.bestResult?.countOfStars ?? 'нет'}`);
+            return done;
+          });
 
-// Составляем полное имя из firstName, lastName и middleName
-if (profile.firstName || profile.lastName) {
-  const nameParts = [];
-  if (profile.lastName) nameParts.push(profile.lastName);
-  if (profile.firstName) nameParts.push(profile.firstName);
-  if (profile.middleName) nameParts.push(profile.middleName);
-  studentName = nameParts.join(' ');
-} else {
-  // Если нет имени, используем email
-  studentName = profile.email || studentName;
-}
+          if (!allCompleted) {
+            console.log("❌ Не все уроки пройдены");
+            return;
+          }
 
-console.log("Имя студента:", studentName);
+          let totalStars = 0;
+          sortedLessons.forEach(lesson => {
+            totalStars += progressMap[lesson.id]?.bestResult?.countOfStars || 0;
+          });
+          const maxStars = sortedLessons.length * 3;
+          const pct = (totalStars / maxStars) * 100;
+          console.log(`⭐ Звёзд: ${totalStars}/${maxStars} (${pct.toFixed(1)}%)`);
 
+          if (pct < 90) {
+            console.log("❌ Менее 90% звёзд");
+            return;
+          }
 
-            // Создаем сертификат
-            const certificate = await CertificateService.createStudentCertificate(
-              userId,
-              studentName,
-              courseName
-            );
+          if (cancelled || isCheckingCertificateRef.current) {
+            console.log("⏳ Проверка сертификата уже выполняется или эффект отменён");
+            return;
+          }
+          isCheckingCertificateRef.current = true;
 
-            console.log("✅ Сертификат создан:", certificate);
-            
-            setCertificateData({
-              ...certificate,
-              imageUrl: certificate.url
-            });
-            
-            // Показываем конфетти и модальное окно
+          try {
+            console.log("🎉 Условия выполнены! Проверяем сертификаты на сервере...");
+
+            const allCerts = await CertificateService.getCertificatesByAuditoryId(userId);
+            const existing = allCerts.filter(c => c.courseId === courseId);
+            console.log(`📜 Сертификатов для курса ${courseId}: ${existing.length}`);
+
+            if (cancelled) return;
+
+            if (existing.length > 0) {
+              const latest = existing[0];
+              if (latest.isViewed) {
+                console.log("ℹ️ Сертификат для этого курса уже просмотрен");
+                return;
+              }
+              console.log("ℹ️ Есть непросмотренный сертификат, показываем");
+              setCertificateData({ ...latest, imageUrl: latest.url });
+              setShowConfetti(true);
+              setCertificateModalVisible(true);
+              return;
+            }
+
+            console.log("📝 Создаём сертификат...");
+            const profile = await ProfileService.getFullProfileByAuditoryId(userId);
+
+            if (cancelled) return;
+
+            let studentName = "Студент";
+            if (profile.firstName || profile.lastName) {
+              const parts = [];
+              if (profile.lastName) parts.push(profile.lastName);
+              if (profile.firstName) parts.push(profile.firstName);
+              if (profile.middleName) parts.push(profile.middleName);
+              studentName = parts.join(' ');
+            } else {
+              studentName = profile.email || studentName;
+            }
+
+            const cert = await CertificateService.createStudentCertificate(userId, studentName, courseName, courseId);
+            console.log("✅ Сертификат создан:", cert.id);
+
+            if (cancelled) return;
+
+            setCertificateData({ ...cert, imageUrl: cert.url });
             setShowConfetti(true);
             setCertificateModalVisible(true);
+          } finally {
+            isCheckingCertificateRef.current = false;
           }
-        } else {
-          console.log("❌ Условия не выполнены:", {
-            allLessonsCompleted,
-            starsPercentage: starsPercentage.toFixed(1)
-          });
+        } catch (error) {
+          console.error("Ошибка при проверке сертификата:", error);
+          isCheckingCertificateRef.current = false;
         }
-      } catch (error) {
-        console.error("Ошибка при проверке сертификата:", error);
-      } finally {
-        setCertificateChecked(true);
-      }
-    };
+      };
 
-    checkCertificateEligibility();
-  }, [sortedLessons, lessonProgress, courseId, courseName]);
+      loadAndCheck();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [courseId, sortedLessons, courseName])
+  );
 
   const loadCourseMap = async () => {
     try {
@@ -640,6 +589,18 @@ console.log("Имя студента:", studentName);
 
     navigation.navigate(ROUTES.STACK.LESSON, { id: modalData.targetId });
     setModalVisible(false);
+  };
+
+  const handleCloseCertificateModal = async () => {
+    if (certificateData?.id) {
+      try {
+        await CertificateService.setIsViewed(certificateData.id);
+      } catch (e) {
+        console.error("Ошибка при setIsViewed:", e);
+      }
+    }
+    setCertificateModalVisible(false);
+    setShowConfetti(false);
   };
 
   const handleCertificateShare = async () => {
@@ -1044,33 +1005,13 @@ console.log("Имя студента:", studentName);
         animationType="slide"
         transparent={true}
         visible={certificateModalVisible}
-        onRequestClose={async () => {
-          if (certificateData?.id) {
-            try {
-              await CertificateService.setIsViewed(certificateData.id);
-            } catch (e) {
-              console.error("Ошибка при setIsViewed:", e);
-            }
-          }
-          setCertificateModalVisible(false);
-          setShowConfetti(false);
-        }}
+        onRequestClose={handleCloseCertificateModal}
       >
         <View style={styles.certificateModalOverlay}>
           <View style={styles.certificateModalContent}>
             <TouchableOpacity
               style={styles.closeButton}
-              onPress={async () => {
-                if (certificateData?.id) {
-                  try {
-                    await CertificateService.setIsViewed(certificateData.id);
-                  } catch (e) {
-                    console.error("Ошибка при setIsViewed:", e);
-                  }
-                }
-                setCertificateModalVisible(false);
-                setShowConfetti(false);
-              }}
+              onPress={handleCloseCertificateModal}
             >
               <Text style={styles.closeButtonText}>×</Text>
             </TouchableOpacity>
@@ -1089,21 +1030,9 @@ console.log("Имя студента:", studentName);
               />
             )}
 
-           
-
             <TouchableOpacity
               style={styles.certificateCloseButton}
-              onPress={async () => {
-                if (certificateData?.id) {
-                  try {
-                    await CertificateService.setIsViewed(certificateData.id);
-                  } catch (e) {
-                    console.error("Ошибка при setIsViewed:", e);
-                  }
-                }
-                setCertificateModalVisible(false);
-                setShowConfetti(false);
-              }}
+              onPress={handleCloseCertificateModal}
             >
               <Text style={styles.certificateCloseButtonText}>Закрыть</Text>
             </TouchableOpacity>
