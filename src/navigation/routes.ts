@@ -13,6 +13,8 @@ export const ROUTES = {
     MAP: "Map",
 
     LESSON: "Lesson",
+    CODING_TASKS: "CodingTasks",
+    CODING_SOLVE: "CodingTaskSolve",
   },
   TABS: {
     HOME: "HomeTab",

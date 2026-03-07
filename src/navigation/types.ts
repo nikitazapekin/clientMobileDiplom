@@ -21,6 +21,8 @@ export type RootStackParamList = {
   [ROUTES.STACK.MAP]: { id: string; courseName?: string };
 
   [ROUTES.STACK.LESSON]: { id: string };
+  [ROUTES.STACK.CODING_TASKS]: undefined;
+  [ROUTES.STACK.CODING_SOLVE]: { id: string };
 };
 
 export type MainTabParamList = {

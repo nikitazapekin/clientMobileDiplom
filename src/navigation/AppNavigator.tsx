@@ -17,6 +17,8 @@ import ProfileScreen from "@/screens/Profile";
 import RegisterScreen from "@/screens/Register";
 import SandboxScreen from "@/screens/Sandbox";
 import WelcomeScreen from "@/screens/Welcome";
+import CodingTasksScreen from "@/screens/CodingTasks";
+import CodingTaskSolveScreen from "@/screens/CodingTaskSolve";
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -32,7 +34,7 @@ function MainTabs() {
       <Tab.Screen name={ROUTES.SCREENS.COURSES} component={CoursesScreen} />
       <Tab.Screen name={ROUTES.SCREENS.ACHIEVEMENTS} component={AchievementsScreen} />
       <Tab.Screen name={ROUTES.SCREENS.CHATS} component={ChatsScreen} />
-      <Tab.Screen name={ROUTES.SCREENS.SANDBOX} component={SandboxScreen} />
+     {/*} <Tab.Screen name={ROUTES.SCREENS.SANDBOX} component={SandboxScreen} /> */}
       {/* <Tab.Screen name={ROUTES.SCREENS.PROFILE} component={ProfileScreen} /> */}
 
     </Tab.Navigator>
@@ -56,8 +58,13 @@ export default function AppNavigator() {
         <Stack.Screen name={ROUTES.STACK.COURSE} component={CourseScreen} />
         <Stack.Screen name={ROUTES.STACK.MAP} component={MapScreen} />
         <Stack.Screen name={ROUTES.STACK.LESSON} component={LessonScreen} />
+     
+        <Stack.Screen name={ROUTES.STACK.CODING_SOLVE} component={CodingTaskSolveScreen} />
 
         <Stack.Screen name={ROUTES.STACK.PROFILE} component={ProfileScreen} />
+
+
+        <Stack.Screen name={ROUTES.STACK.SANDBOX} component={CodingTasksScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
