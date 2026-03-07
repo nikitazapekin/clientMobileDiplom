@@ -13,17 +13,22 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Modal,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Circle, Text as SvgText } from 'react-native-svg';
+import { useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
 
 import { ProfileService } from '../../http/profile';
 import { CertificateService } from '../../http/certificate';
 import type { CertificateResponse } from '../../http/certificate';
 import type { FullClientInfo, StudentResultResponse } from '../../http/types/profile';
-import { CodingTasksService, type StudentLevel } from '../../http/codingTasksService';
+import { CodingTasksService, type CodeTask, type StudentLevel } from '../../http/codingTasksService';
 import AvatarPicker from '../AvatarPicker';
-import { COLORS } from 'appStyles';
+import { COLORS, SIZES } from 'appStyles';
+import { ROUTES } from '@/navigation/routes';
+import type { RootStackParamList } from '@/navigation/types';
 
 const SECTION_HORIZONTAL_MARGIN = 20;
 const SECTION_PADDING = 20;
@@ -34,6 +39,13 @@ const { width } = Dimensions.get("window");
 const CIRCLE_SIZE = width * 0.28;
 const CIRCLE_RADIUS = CIRCLE_SIZE / 2 - 10;
 const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * CIRCLE_RADIUS;
+
+// Цвета для сложности задач
+const DIFFICULTIES: Record<string, { label: string; color: string }> = {
+  easy: { label: "Легкий", color: "#4caf50" },
+  medium: { label: "Средний", color: "#ff9800" },
+  hard: { label: "Сложный", color: "#f44336" },
+};
 
 // Компонент круглого прогресс-бара
 const CircularProgress = ({ 
@@ -116,66 +128,182 @@ const CircularProgress = ({
   );
 };
 
-// Компонент баннера решенных задач
-const SolvedTasksBanner = ({ 
-  solvedCount, 
-  totalTasks,
-  recentTasks 
+// Компонент карточки решенной задачи (в том же стиле, что и в списке задач)
+const SolvedTaskCard = ({ 
+  task, 
+  solvedAt,
+  onPress 
 }: { 
-  solvedCount: number; 
-  totalTasks: number;
-  recentTasks: Array<{ title: string; solvedAt: string }>;
+  task: CodeTask; 
+  solvedAt: string;
+  onPress: () => void;
 }) => {
-  const completionPercentage = totalTasks > 0 ? (solvedCount / totalTasks) * 100 : 0;
+  const diffInfo = DIFFICULTIES[task.difficulty] || DIFFICULTIES.easy;
   
   // Форматирование даты
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return "Сегодня";
+    if (diffDays === 1) return "Вчера";
+    if (diffDays < 7) return `${diffDays} дня назад`;
     return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
   };
 
   return (
-    <View style={styles.solvedBanner}>
-      <View style={styles.solvedHeader}>
-        <View style={styles.solvedTitleContainer}>
-          <Text style={styles.solvedTitle}>Решено задач</Text>
-          <View style={styles.solvedBadge}>
-            <Text style={styles.solvedBadgeText}>{solvedCount}</Text>
-          </View>
-        </View>
-        
-        <View style={styles.completionBar}>
-          <View 
-            style={[
-              styles.completionFill, 
-              { width: `${completionPercentage}%` }
-            ]} 
-          />
-        </View>
-        
-        <Text style={styles.completionText}>
-          {Math.round(completionPercentage)}% от всех доступных задач
+    <TouchableOpacity
+      style={[styles.taskCard, styles.taskCardSolved]}
+      onPress={onPress}
+    >
+      <View style={styles.taskHeader}>
+        <Text style={styles.taskTitle} numberOfLines={1}>
+          ✅ {task.title}
         </Text>
-      </View>
-      
-      {recentTasks.length > 0 && (
-        <View style={styles.recentTasks}>
-          <Text style={styles.recentTitle}>Недавно решенные:</Text>
-          {recentTasks.slice(0, 3).map((task, index) => (
-            <View key={index} style={styles.recentTaskItem}>
-              <Text style={styles.recentTaskName} numberOfLines={1}>
-                {task.title}
-              </Text>
-              <Text style={styles.recentTaskDate}>{formatDate(task.solvedAt)}</Text>
-            </View>
-          ))}
+        <View style={[styles.badge, { backgroundColor: diffInfo.color }]}>
+          <Text style={styles.badgeText}>{diffInfo.label}</Text>
         </View>
-      )}
+      </View>
+      <Text style={styles.taskDesc} numberOfLines={2}>
+        {task.description}
+      </Text>
+      <View style={styles.taskFooter}>
+        <Text style={styles.taskMeta}>
+          {(task.languages || []).join(", ")} | {task.testCases?.length ?? 0} тестов
+        </Text>
+        <View style={styles.solvedDateBadge}>
+          <Text style={styles.solvedDateText}>{formatDate(solvedAt)}</Text>
+        </View>
+      </View>
+      <View style={styles.taskFooter}>
+        <Text style={styles.authorText}>Автор: {task.authorName}</Text>
+        <View style={styles.xpBadge}>
+          <Text style={styles.xpBadgeText}>+{task.experienceReward} XP</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+// Компонент для отображения превью решенных задач (последние 4)
+const SolvedTasksPreview = ({ 
+  solvedTasks, 
+  allTasks,
+  onViewAll,
+  onTaskPress 
+}: { 
+  solvedTasks: Array<{ codeTaskId: string; solvedAt: string }>;
+  allTasks: CodeTask[];
+  onViewAll: () => void;
+  onTaskPress: (taskId: string) => void;
+}) => {
+  // Получаем последние 4 решенные задачи
+  const recentSolved = [...solvedTasks]
+    .sort((a, b) => new Date(b.solvedAt).getTime() - new Date(a.solvedAt).getTime())
+    .slice(0, 4);
+
+  if (recentSolved.length === 0) {
+    return null;
+  }
+
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Решенные задачи</Text>
+        <TouchableOpacity onPress={onViewAll}>
+          <Text style={styles.viewAllLink}>Просмотреть все</Text>
+        </TouchableOpacity>
+      </View>
+
+      {recentSolved.map((solved) => {
+        const task = allTasks.find(t => t.id === solved.codeTaskId);
+        if (!task) return null;
+
+        return (
+          <SolvedTaskCard
+            key={solved.codeTaskId}
+            task={task}
+            solvedAt={solved.solvedAt}
+            onPress={() => onTaskPress(task.id)}
+          />
+        );
+      })}
     </View>
   );
 };
 
+// Компонент модального окна со всеми решенными задачами
+const AllSolvedTasksModal = ({ 
+  visible, 
+  onClose, 
+  solvedTasks, 
+  allTasks,
+  onTaskPress 
+}: { 
+  visible: boolean; 
+  onClose: () => void; 
+  solvedTasks: Array<{ codeTaskId: string; solvedAt: string }>;
+  allTasks: CodeTask[];
+  onTaskPress: (taskId: string) => void;
+}) => {
+  // Сортируем задачи по дате решения (сначала новые)
+  const sortedTasks = [...solvedTasks].sort(
+    (a, b) => new Date(b.solvedAt).getTime() - new Date(a.solvedAt).getTime()
+  );
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Все решенные задачи</Text>
+            <TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
+              <Text style={styles.modalCloseText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          <FlatList
+            data={sortedTasks}
+            keyExtractor={(item) => item.codeTaskId}
+            contentContainerStyle={styles.modalListContent}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => {
+              const task = allTasks.find(t => t.id === item.codeTaskId);
+              if (!task) return null;
+
+              return (
+                <SolvedTaskCard
+                  task={task}
+                  solvedAt={item.solvedAt}
+                  onPress={() => {
+                    onClose();
+                    onTaskPress(task.id);
+                  }}
+                />
+              );
+            }}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyIcon}>📚</Text>
+                <Text style={styles.emptyText}>У вас еще нет решенных задач</Text>
+              </View>
+            }
+          />
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 const UserProfile = () => {
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [profile, setProfile] = useState<FullClientInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -187,9 +315,10 @@ const UserProfile = () => {
   const [activeCertIndex, setActiveCertIndex] = useState(0);
   
   // Состояния для задач и уровня
-  const [codingTasks, setCodingTasks] = useState<any[]>([]);
+  const [codingTasks, setCodingTasks] = useState<CodeTask[]>([]);
   const [studentLevel, setStudentLevel] = useState<StudentLevel | null>(null);
   const [codingLoading, setCodingLoading] = useState(false);
+  const [showAllSolvedModal, setShowAllSolvedModal] = useState(false);
  
   const loadProfile = useCallback(async () => {
     try {
@@ -207,8 +336,6 @@ const UserProfile = () => {
 
       // Проверяем и обрабатываем аватар
       if (profileData.avatar) {
-        console.log('Avatar data:', profileData.avatar);
-     
         if (profileData.avatar.imageUrl && !profileData.avatar.imageUrl.startsWith('data:')) {
           profileData.avatar.imageUrl = `data:${profileData.avatar.mimeType};base64,${profileData.avatar.imageUrl}`;
         }
@@ -259,7 +386,6 @@ const UserProfile = () => {
             imageUrl: avatarUrl,
           },
         });
-
         loadProfile();
       } else {
         setProfile({
@@ -303,6 +429,10 @@ const UserProfile = () => {
         },
       ]
     );
+  };
+
+  const handleTaskPress = (taskId: string) => {
+    navigation.navigate(ROUTES.STACK.CODING_SOLVE as any, { id: taskId });
   };
 
   const renderStars = (count: number) => {
@@ -351,17 +481,6 @@ const UserProfile = () => {
   const progress = currentExp / requiredExp;
   
   const solvedTasksCount = studentLevel?.solvedTasks?.length ?? 0;
-
-  // Получаем последние решенные задачи с названиями
-  const recentSolvedTasks = (studentLevel?.solvedTasks ?? [])
-    .map(solved => {
-      const task = codingTasks.find(t => t.id === solved.codeTaskId);
-      return {
-        title: task?.title || "Неизвестная задача",
-        solvedAt: solved.solvedAt
-      };
-    })
-    .sort((a, b) => new Date(b.solvedAt).getTime() - new Date(a.solvedAt).getTime());
 
   if (loading && !refreshing) {
     return (
@@ -444,7 +563,6 @@ const UserProfile = () => {
 
         {/* Статистика пользователя */}
         <View style={styles.statsContainer}>
-          
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{certificates.length}</Text>
@@ -472,16 +590,17 @@ const UserProfile = () => {
           </View>
         )}
 
-        {/* Баннер решенных задач */}
-        {!codingLoading && codingTasks.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Статистика решений</Text>
-            <SolvedTasksBanner
-              solvedCount={solvedTasksCount}
-              totalTasks={codingTasks.length}
-              recentTasks={recentSolvedTasks}
-            />
-          </View>
+        {/* Превью решенных задач (последние 4) */}
+        {!codingLoading && 
+         studentLevel?.solvedTasks && 
+         studentLevel.solvedTasks.length > 0 && 
+         codingTasks.length > 0 && (
+          <SolvedTasksPreview
+            solvedTasks={studentLevel.solvedTasks}
+            allTasks={codingTasks}
+            onViewAll={() => setShowAllSolvedModal(true)}
+            onTaskPress={handleTaskPress}
+          />
         )}
 
         {/* Личная информация */}
@@ -634,6 +753,15 @@ const UserProfile = () => {
           onAvatarUploaded={handleAvatarUploaded}
         />
       )}
+
+      {/* Модальное окно со всеми решенными задачами */}
+      <AllSolvedTasksModal
+        visible={showAllSolvedModal}
+        onClose={() => setShowAllSolvedModal(false)}
+        solvedTasks={studentLevel?.solvedTasks ?? []}
+        allTasks={codingTasks}
+        onTaskPress={handleTaskPress}
+      />
     </>
   );
 };
@@ -772,11 +900,21 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 15,
+  },
+  viewAllLink: {
+    fontSize: 14,
+    color: '#9F0FA7',
+    fontWeight: '500',
   },
   infoGrid: {
     flexDirection: 'row',
@@ -920,8 +1058,142 @@ const styles = StyleSheet.create({
     backgroundColor: '#9F0FA7',
     width: 20,
   },
-  
-  // Новые стили для прогресс-бара и баннера
+
+  // Стили для модального окна
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    backgroundColor: '#fff',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  modalCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    fontSize: 18,
+    color: '#666',
+    fontWeight: '600',
+  },
+  modalListContent: {
+    padding: 20,
+  },
+
+  // Стили для карточек задач (скопированы из CodingTasksList)
+  taskCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
+    borderLeftWidth: 4,
+    borderLeftColor: "transparent",
+  },
+  taskCardSolved: {
+    borderLeftColor: "#4caf50",
+    opacity: 0.85,
+  },
+  taskHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  taskTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: '#333',
+    flex: 1,
+    marginRight: 8,
+  },
+  badge: {
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
+  taskDesc: {
+    fontSize: 13,
+    color: '#666',
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  taskFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  taskMeta: {
+    fontSize: 12,
+    color: '#999',
+  },
+  xpBadge: {
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    backgroundColor: "#667eea",
+  },
+  xpBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  authorText: {
+    fontSize: 11,
+    color: '#999',
+    marginTop: 6,
+  },
+  solvedDateBadge: {
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    backgroundColor: "#f0f0f0",
+  },
+  solvedDateText: {
+    color: '#666',
+    fontSize: 10,
+    fontWeight: "500",
+  },
+
+  // Стили для прогресс-бара
   levelSection: {
     alignItems: 'center',
     paddingVertical: 10,
@@ -954,81 +1226,24 @@ const styles = StyleSheet.create({
     color: '#666',
     marginLeft: 4,
   },
-  solvedBanner: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+
+  // Стили для пустого состояния
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
   },
-  solvedHeader: {
-    marginBottom: 15,
-  },
-  solvedTitleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+  emptyIcon: {
+    fontSize: 48,
     marginBottom: 12,
   },
-  solvedTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: '#333',
-  },
-  solvedBadge: {
-    backgroundColor: '#9F0FA7',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  solvedBadgeText: {
-    color: '#fff',
+  emptyText: {
     fontSize: 14,
-    fontWeight: "700",
-  },
-  completionBar: {
-    height: 6,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 3,
-    overflow: "hidden",
-    marginBottom: 6,
-  },
-  completionFill: {
-    height: "100%",
-    backgroundColor: '#9F0FA7',
-    borderRadius: 3,
-  },
-  completionText: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: "right",
-  },
-  recentTasks: {
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    paddingTop: 15,
-  },
-  recentTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: '#666',
-    marginBottom: 10,
-  },
-  recentTaskItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 6,
-  },
-  recentTaskName: {
-    fontSize: 13,
-    color: '#333',
-    flex: 1,
-    marginRight: 8,
-  },
-  recentTaskDate: {
-    fontSize: 11,
     color: '#999',
+    textAlign: 'center',
   },
-  
-  // Недостающие стили для звезд и результатов уроков
+
+  // Стили для звезд и результатов уроков
   starsContainer: {
     flexDirection: 'row',
   },
