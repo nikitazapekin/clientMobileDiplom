@@ -1,6 +1,6 @@
 // UserProfile.tsx (обновленная версия)
 
-import React, { useCallback,useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -15,17 +15,165 @@ import {
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Svg, { Circle, Text as SvgText } from 'react-native-svg';
 
 import { ProfileService } from '../../http/profile';
 import { CertificateService } from '../../http/certificate';
 import type { CertificateResponse } from '../../http/certificate';
 import type { FullClientInfo, StudentResultResponse } from '../../http/types/profile';
+import { CodingTasksService, type StudentLevel } from '../../http/codingTasksService';
 import AvatarPicker from '../AvatarPicker';
 import { COLORS } from 'appStyles';
 
 const SECTION_HORIZONTAL_MARGIN = 20;
 const SECTION_PADDING = 20;
 const certSlideWidth = Dimensions.get('window').width - (SECTION_HORIZONTAL_MARGIN + SECTION_PADDING) * 2;
+
+// Константы для круглого прогресс-бара
+const { width } = Dimensions.get("window");
+const CIRCLE_SIZE = width * 0.28;
+const CIRCLE_RADIUS = CIRCLE_SIZE / 2 - 10;
+const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * CIRCLE_RADIUS;
+
+// Компонент круглого прогресс-бара
+const CircularProgress = ({ 
+  progress, 
+  level, 
+  experience, 
+  nextLevelExp 
+}: { 
+  progress: number; 
+  level: number; 
+  experience: number; 
+  nextLevelExp: number;
+}) => {
+  const strokeWidth = 8;
+  const center = CIRCLE_SIZE / 2;
+  const radius = CIRCLE_RADIUS;
+  const circumference = CIRCLE_CIRCUMFERENCE;
+  
+  // Ограничиваем прогресс от 0 до 1
+  const clampedProgress = Math.min(Math.max(progress, 0), 1);
+  const strokeDashoffset = circumference * (1 - clampedProgress);
+
+  return (
+    <View style={styles.circularProgressContainer}>
+      <Svg width={CIRCLE_SIZE} height={CIRCLE_SIZE} viewBox={`0 0 ${CIRCLE_SIZE} ${CIRCLE_SIZE}`}>
+        {/* Фоновый круг */}
+        <Circle
+          cx={center}
+          cy={center}
+          r={radius}
+          stroke={COLORS.GRAY_200}
+          strokeWidth={strokeWidth}
+          fill="none"
+        />
+        
+        {/* Прогресс (по часовой стрелке) */}
+        <Circle
+          cx={center}
+          cy={center}
+          r={radius}
+          stroke={COLORS.ACCENT}
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          transform={`rotate(-90, ${center}, ${center})`}
+        />
+        
+        {/* Текст уровня в центре */}
+        <SvgText
+          x={center}
+          y={center - 8}
+          fontSize="20"
+          fontWeight="bold"
+          fill={COLORS.GRAY_900}
+          textAnchor="middle"
+        >
+          {level}
+        </SvgText>
+        
+        <SvgText
+          x={center}
+          y={center + 16}
+          fontSize="12"
+          fill={COLORS.GRAY_500}
+          textAnchor="middle"
+        >
+          УРОВЕНЬ
+        </SvgText>
+      </Svg>
+      
+      <View style={styles.expInfoContainer}>
+        <Text style={styles.expValue}>{experience}</Text>
+        <Text style={styles.expSeparator}>/</Text>
+        <Text style={styles.expTotal}>{nextLevelExp}</Text>
+        <Text style={styles.expLabel}>XP</Text>
+      </View>
+    </View>
+  );
+};
+
+// Компонент баннера решенных задач
+const SolvedTasksBanner = ({ 
+  solvedCount, 
+  totalTasks,
+  recentTasks 
+}: { 
+  solvedCount: number; 
+  totalTasks: number;
+  recentTasks: Array<{ title: string; solvedAt: string }>;
+}) => {
+  const completionPercentage = totalTasks > 0 ? (solvedCount / totalTasks) * 100 : 0;
+  
+  // Форматирование даты
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+  };
+
+  return (
+    <View style={styles.solvedBanner}>
+      <View style={styles.solvedHeader}>
+        <View style={styles.solvedTitleContainer}>
+          <Text style={styles.solvedTitle}>Решено задач</Text>
+          <View style={styles.solvedBadge}>
+            <Text style={styles.solvedBadgeText}>{solvedCount}</Text>
+          </View>
+        </View>
+        
+        <View style={styles.completionBar}>
+          <View 
+            style={[
+              styles.completionFill, 
+              { width: `${completionPercentage}%` }
+            ]} 
+          />
+        </View>
+        
+        <Text style={styles.completionText}>
+          {Math.round(completionPercentage)}% от всех доступных задач
+        </Text>
+      </View>
+      
+      {recentTasks.length > 0 && (
+        <View style={styles.recentTasks}>
+          <Text style={styles.recentTitle}>Недавно решенные:</Text>
+          {recentTasks.slice(0, 3).map((task, index) => (
+            <View key={index} style={styles.recentTaskItem}>
+              <Text style={styles.recentTaskName} numberOfLines={1}>
+                {task.title}
+              </Text>
+              <Text style={styles.recentTaskDate}>{formatDate(task.solvedAt)}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+};
 
 const UserProfile = () => {
   const [profile, setProfile] = useState<FullClientInfo | null>(null);
@@ -37,6 +185,11 @@ const UserProfile = () => {
   const [certificates, setCertificates] = useState<CertificateResponse[]>([]);
   const [certificatesLoading, setCertificatesLoading] = useState(false);
   const [activeCertIndex, setActiveCertIndex] = useState(0);
+  
+  // Состояния для задач и уровня
+  const [codingTasks, setCodingTasks] = useState<any[]>([]);
+  const [studentLevel, setStudentLevel] = useState<StudentLevel | null>(null);
+  const [codingLoading, setCodingLoading] = useState(false);
  
   const loadProfile = useCallback(async () => {
     try {
@@ -47,7 +200,6 @@ const UserProfile = () => {
 
       if (!auditoryId) {
         setError('User not authenticated');
-
         return;
       }
 
@@ -56,7 +208,6 @@ const UserProfile = () => {
       // Проверяем и обрабатываем аватар
       if (profileData.avatar) {
         console.log('Avatar data:', profileData.avatar);
-
      
         if (profileData.avatar.imageUrl && !profileData.avatar.imageUrl.startsWith('data:')) {
           profileData.avatar.imageUrl = `data:${profileData.avatar.mimeType};base64,${profileData.avatar.imageUrl}`;
@@ -75,6 +226,21 @@ const UserProfile = () => {
       } finally {
         setCertificatesLoading(false);
       }
+
+      // Загружаем данные по задачам
+      setCodingLoading(true);
+      try {
+        const [tasksData, levelData] = await Promise.all([
+          CodingTasksService.getAllTasks(),
+          CodingTasksService.getStudentLevel().catch(() => null),
+        ]);
+        setCodingTasks(tasksData);
+        setStudentLevel(levelData);
+      } catch (codingErr) {
+        console.error('Failed to load coding tasks:', codingErr);
+      } finally {
+        setCodingLoading(false);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load profile');
     } finally {
@@ -86,7 +252,6 @@ const UserProfile = () => {
   const handleAvatarUploaded = (avatarUrl: string) => {
     if (profile) {
       if (avatarUrl) {
-    
         setProfile({
           ...profile,
           avatar: {
@@ -95,10 +260,8 @@ const UserProfile = () => {
           },
         });
 
-        
         loadProfile();
       } else {
-      
         setProfile({
           ...profile,
           avatar: undefined,
@@ -160,7 +323,6 @@ const UserProfile = () => {
     <TouchableOpacity
       style={styles.resultCard}
       onPress={() => {
-       
         Alert.alert('Lesson', `View lesson ${item.lessonId}`);
       }}
     >
@@ -179,6 +341,27 @@ const UserProfile = () => {
       </Text>
     </TouchableOpacity>
   );
+
+  // Вычисляем данные для прогресс-бара
+  const getRequiredExp = (level: number) => Math.pow(10, level - 1);
+  
+  const currentLevel = studentLevel?.level || 1;
+  const currentExp = studentLevel?.experience || 0;
+  const requiredExp = getRequiredExp(currentLevel);
+  const progress = currentExp / requiredExp;
+  
+  const solvedTasksCount = studentLevel?.solvedTasks?.length ?? 0;
+
+  // Получаем последние решенные задачи с названиями
+  const recentSolvedTasks = (studentLevel?.solvedTasks ?? [])
+    .map(solved => {
+      const task = codingTasks.find(t => t.id === solved.codeTaskId);
+      return {
+        title: task?.title || "Неизвестная задача",
+        solvedAt: solved.solvedAt
+      };
+    })
+    .sort((a, b) => new Date(b.solvedAt).getTime() - new Date(a.solvedAt).getTime());
 
   if (loading && !refreshing) {
     return (
@@ -219,7 +402,7 @@ const UserProfile = () => {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
-       
+        {/* Header с аватаром */}
         <View style={styles.header}>
           <TouchableOpacity
             onPress={handleAvatarPress}
@@ -255,14 +438,53 @@ const UserProfile = () => {
           </Text>
 
           <View style={styles.emailContainer}>
-      
             <Text style={styles.email}>{profile.email}</Text>
           </View>
-
-          
         </View>
 
-    
+        {/* Статистика пользователя */}
+        <View style={styles.statsContainer}>
+          
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{certificates.length}</Text>
+            <Text style={styles.statLabel}>Сертификатов</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{solvedTasksCount}</Text>
+            <Text style={styles.statLabel}>Задач</Text>
+          </View>
+        </View>
+
+        {/* Секция с уровнем и прогрессом */}
+        {!codingLoading && studentLevel && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Мой прогресс в задачах</Text>
+            <View style={styles.levelSection}>
+              <CircularProgress
+                progress={progress}
+                level={currentLevel}
+                experience={currentExp}
+                nextLevelExp={requiredExp}
+              />
+            </View>
+          </View>
+        )}
+
+        {/* Баннер решенных задач */}
+        {!codingLoading && codingTasks.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Статистика решений</Text>
+            <SolvedTasksBanner
+              solvedCount={solvedTasksCount}
+              totalTasks={codingTasks.length}
+              recentTasks={recentSolvedTasks}
+            />
+          </View>
+        )}
+
+        {/* Личная информация */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Личная информация</Text>
 
@@ -370,40 +592,16 @@ const UserProfile = () => {
           </View>
         ) : null}
 
-        {profile.studentResults.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>⭐ Recent Results</Text>
-              <TouchableOpacity
-                onPress={() => {
-                  Alert.alert('View All', 'Navigate to all results');
-                }}
-              >
-                <Text style={styles.viewAllText}>View All →</Text>
-              </TouchableOpacity>
-            </View>
-
-            <FlatList
-              data={profile.studentResults.slice(0, 5)}
-              renderItem={renderStudentResult}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-              contentContainerStyle={styles.resultsList}
-            />
-          </View>
-        )}
-
         {/* Status Badge */}
         <View style={styles.statusContainer}>
           <View style={[styles.statusBadge, profile.isActive ? styles.statusActive : styles.statusInactive]}>
-           
             <Text style={styles.statusText}>
               {profile.isActive ? 'В сети' : 'Не в сети'}
             </Text>
           </View>
         </View>
 
-      
+        {/* Кнопка выхода */}
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={() => {
@@ -418,14 +616,12 @@ const UserProfile = () => {
                   onPress: async () => {
                     await AsyncStorage.removeItem('accessToken');
                     await AsyncStorage.removeItem('auditoryId');
-                   
                   },
                 },
               ]
             );
           }}
         >
-         
           <Text style={styles.logoutText}>Выйти</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -438,15 +634,10 @@ const UserProfile = () => {
           onAvatarUploaded={handleAvatarUploaded}
         />
       )}
-
     </>
   );
 };
-/*
-  GRAY_DARK: "#303027", 
-  GRAY_TEXT: "#222121", 
 
-  */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -469,7 +660,6 @@ const styles = StyleSheet.create({
     paddingTop: 40,
     paddingBottom: 30,
     alignItems: 'center',
-   
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -526,44 +716,18 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 26,
     fontWeight: 'bold',
-    color:  COLORS.BLACK,
+    color: '#000000',
     marginTop: 5,
-    
   },
   emailContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 5,
   },
-  emailIcon: {
-    fontSize: 16,
-    marginRight: 8,
-    color:  COLORS.BLACK,
-    opacity: 0.9,
-  },
   email: {
     fontSize: 16,
-    color: COLORS.BLACK,
+    color: '#000000',
     opacity: 0.9,
-  },
-  roleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 5,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 15,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  roleIcon: {
-    fontSize: 14,
-    marginRight: 5,
-    color: '#fff',
-  },
-  role: {
-    fontSize: 14,
-    color: '#fff',
-    textTransform: 'capitalize',
   },
   statsContainer: {
     flexDirection: 'row',
@@ -608,21 +772,11 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-  },
-  viewAllText: {
-    fontSize: 14,
-    color: '#667eea',
-    fontWeight: '600',
+    marginBottom: 15,
   },
   infoGrid: {
     flexDirection: 'row',
@@ -646,48 +800,6 @@ const styles = StyleSheet.create({
     color: '#333',
     fontWeight: '500',
   },
-  resultsList: {
-    paddingBottom: 10,
-  },
-  resultCard: {
-    backgroundColor: '#f8f9fa',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
-  },
-  resultLessonId: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  resultStars: {
-    marginVertical: 5,
-  },
-  starsContainer: {
-    flexDirection: 'row',
-  },
-  star: {
-    fontSize: 20,
-    marginHorizontal: 2,
-  },
-  starFilled: {
-    color: '#FFD700',
-    textShadowColor: 'rgba(0,0,0,0.1)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  starEmpty: {
-    color: '#ddd',
-  },
-  resultDate: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 8,
-    textAlign: 'right',
-  },
   statusContainer: {
     alignItems: 'center',
     marginTop: 20,
@@ -705,11 +817,6 @@ const styles = StyleSheet.create({
   },
   statusInactive: {
     backgroundColor: '#f56565',
-  },
-  statusIcon: {
-    fontSize: 16,
-    marginRight: 8,
-    color: '#fff',
   },
   statusText: {
     color: '#fff',
@@ -763,10 +870,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  logoutIcon: {
-    fontSize: 18,
-    marginRight: 10,
-  },
   logoutText: {
     fontSize: 16,
     color: '#f56565',
@@ -814,8 +917,156 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   certDotActive: {
-    backgroundColor: COLORS.ACCENT,
+    backgroundColor: '#9F0FA7',
     width: 20,
+  },
+  
+  // Новые стили для прогресс-бара и баннера
+  levelSection: {
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  circularProgressContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  expInfoContainer: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    marginTop: 15,
+  },
+  expValue: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: '#9F0FA7',
+  },
+  expSeparator: {
+    fontSize: 18,
+    color: '#999',
+    marginHorizontal: 4,
+  },
+  expTotal: {
+    fontSize: 18,
+    color: '#666',
+  },
+  expLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 4,
+  },
+  solvedBanner: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+  },
+  solvedHeader: {
+    marginBottom: 15,
+  },
+  solvedTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  solvedTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: '#333',
+  },
+  solvedBadge: {
+    backgroundColor: '#9F0FA7',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  solvedBadgeText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  completionBar: {
+    height: 6,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 3,
+    overflow: "hidden",
+    marginBottom: 6,
+  },
+  completionFill: {
+    height: "100%",
+    backgroundColor: '#9F0FA7',
+    borderRadius: 3,
+  },
+  completionText: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: "right",
+  },
+  recentTasks: {
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    paddingTop: 15,
+  },
+  recentTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: '#666',
+    marginBottom: 10,
+  },
+  recentTaskItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 6,
+  },
+  recentTaskName: {
+    fontSize: 13,
+    color: '#333',
+    flex: 1,
+    marginRight: 8,
+  },
+  recentTaskDate: {
+    fontSize: 11,
+    color: '#999',
+  },
+  
+  // Недостающие стили для звезд и результатов уроков
+  starsContainer: {
+    flexDirection: 'row',
+  },
+  star: {
+    fontSize: 20,
+    marginHorizontal: 2,
+  },
+  starFilled: {
+    color: '#FFD700',
+    textShadowColor: 'rgba(0,0,0,0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  starEmpty: {
+    color: '#ddd',
+  },
+  resultCard: {
+    backgroundColor: '#f8f9fa',
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+  resultLessonId: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  resultStars: {
+    marginVertical: 5,
+  },
+  resultDate: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 8,
+    textAlign: 'right',
   },
 });
 
