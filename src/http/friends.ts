@@ -98,6 +98,7 @@ export class FriendsService {
 
   /**
    * Search users by name (for adding friends)
+   * Pass empty string to get all users
    */
   static async searchUsers(query: string): Promise<FriendResponse[]> {
     try {
@@ -105,7 +106,7 @@ export class FriendsService {
       const response = await $api.get(
         `/friends/search-users`,
         {
-          params: { query },
+          params: { query: query || '' },
           ...this.getHeaders(token),
         }
       );

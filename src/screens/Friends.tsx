@@ -21,16 +21,32 @@ import type { RootStackParamList } from '@/navigation/types';
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
+type TabType = 'my-friends' | 'find-friends' | 'requests';
+
 const FriendsScreen = () => {
   const navigation = useNavigation<NavigationProp>();
+  
+  // Tab state
+  const [activeTab, setActiveTab] = useState<TabType>('my-friends');
+  
+  // Friends state
   const [friends, setFriends] = useState<FriendResponse[]>([]);
   const [pendingRequests, setPendingRequests] = useState<FriendRequestResponse[]>([]);
+  
+  // Find friends state (all users)
+  const [allUsers, setAllUsers] = useState<FriendResponse[]>([]);
+  
+  // Loading states
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Search states
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<FriendResponse[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  
+  // User state
   const [userAuditoryId, setUserAuditoryId] = useState<string | null>(null);
 
   const loadFriends = useCallback(async () => {
@@ -60,13 +76,48 @@ const FriendsScreen = () => {
     }
   }, []);
 
+  const loadAllUsers = useCallback(async () => {
+    try {
+      const auditoryId = await AsyncStorage.getItem('userId');
+      if (!auditoryId) {
+        setError('User not authenticated');
+        setLoading(false);
+        return;
+      }
+
+      setUserAuditoryId(auditoryId);
+
+      // Load all users (search with empty query returns all)
+      const usersData = await FriendsService.searchUsers('');
+      setAllUsers(usersData);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load users');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    if (activeTab === 'my-friends') {
+      await loadFriends();
+    } else if (activeTab === 'find-friends') {
+      await loadAllUsers();
+    } else {
+      // requests tab - just load requests
+      await loadFriends();
+    }
+  }, [activeTab, loadFriends, loadAllUsers]);
+
   useEffect(() => {
-    loadFriends();
-  }, [loadFriends]);
+    loadData();
+  }, [loadData]);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    loadFriends();
+    loadData();
   };
 
   const handleSearch = useCallback(async () => {
@@ -80,15 +131,22 @@ const FriendsScreen = () => {
 
     try {
       setIsSearching(true);
-      const results = await FriendsService.searchUsers(searchQuery);
-      setSearchResults(results);
+      if (activeTab === 'my-friends') {
+        // Search among my friends
+        const results = await FriendsService.searchFriends(userAuditoryId, searchQuery);
+        setSearchResults(results);
+      } else if (activeTab === 'find-friends') {
+        // Search among all users
+        const results = await FriendsService.searchUsers(searchQuery);
+        setSearchResults(results);
+      }
     } catch (err: any) {
       console.error('Search error:', err);
       Alert.alert('Error', 'Failed to search users');
     } finally {
       setIsSearching(false);
     }
-  }, [searchQuery, userAuditoryId]);
+  }, [searchQuery, userAuditoryId, activeTab]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -156,6 +214,20 @@ const FriendsScreen = () => {
     if (!userAuditoryId) return;
 
     try {
+      // Check if already friends
+      const friendshipStatus = await FriendsService.checkFriendship(userAuditoryId, friendAuditoryId);
+      if (friendshipStatus.isFriend) {
+        Alert.alert('Info', 'This user is already your friend');
+        return;
+      }
+
+      // Check if there's already a pending request
+      const pendingRequest = await FriendsService.checkPendingRequest(userAuditoryId, friendAuditoryId);
+      if (pendingRequest.hasRequest) {
+        Alert.alert('Info', 'Friend request already sent');
+        return;
+      }
+
       await FriendsService.sendFriendRequest(userAuditoryId, friendAuditoryId);
       Alert.alert('Success', 'Friend request sent!');
     } catch (err: any) {
@@ -225,8 +297,40 @@ const FriendsScreen = () => {
     );
   };
 
+  const renderUserCard = ({ item }: { item: FriendResponse }) => {
+    const fullName = `${item.friendFirstName || ''} ${item.friendMiddleName || ''} ${item.friendLastName || ''}`.trim();
+
+    return (
+      <View style={styles.userCard}>
+        <TouchableOpacity
+          style={styles.userInfo}
+          onPress={() => handleFriendPress(item.friendId)}
+        >
+          <View style={styles.avatarContainer}>
+            {item.friendFirstName?.[0] ? (
+              <Text style={styles.avatarText}>{item.friendFirstName[0].toUpperCase()}</Text>
+            ) : (
+              <Text style={styles.avatarText}>?</Text>
+            )}
+          </View>
+          <View style={styles.friendInfo}>
+            <Text style={styles.userName}>{fullName || 'Unknown'}</Text>
+            <Text style={styles.userEmail}>{item.friendId}</Text>
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.addFriendButton}
+          onPress={() => handleAddFriend(item.friendId)}
+        >
+          <Text style={styles.addFriendButtonText}>+ Add</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   const renderSearchResultCard = ({ item }: { item: FriendResponse }) => {
     const fullName = `${item.friendFirstName || ''} ${item.friendMiddleName || ''} ${item.friendLastName || ''}`.trim();
+    const isMyFriendsTab = activeTab === 'my-friends';
 
     return (
       <View style={styles.searchResultCard}>
@@ -246,58 +350,148 @@ const FriendsScreen = () => {
             <Text style={styles.friendEmail}>{item.friendId}</Text>
           </View>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.addFriendButton}
-          onPress={() => handleAddFriend(item.friendId)}
-        >
-          <Text style={styles.addFriendButtonText}>+ Add</Text>
-        </TouchableOpacity>
+        {isMyFriendsTab ? (
+          <TouchableOpacity
+            style={styles.removeFriendButton}
+            onPress={() => handleRemoveFriend(item.friendId)}
+          >
+            <Text style={styles.removeFriendButtonText}>Remove</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.addFriendButton}
+            onPress={() => handleAddFriend(item.friendId)}
+          >
+            <Text style={styles.addFriendButtonText}>+ Add</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
+  };
+
+  const getCurrentData = () => {
+    if (searchResults.length > 0) {
+      return searchResults;
+    }
+    if (activeTab === 'my-friends') {
+      return friends;
+    }
+    if (activeTab === 'find-friends') {
+      return allUsers;
+    }
+    return [];
   };
 
   if (loading && !refreshing) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading friends...</Text>
+        <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
 
-  if (error && friends.length === 0 && pendingRequests.length === 0) {
+  if (error && friends.length === 0 && allUsers.length === 0 && pendingRequests.length === 0) {
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={loadFriends}>
+        <TouchableOpacity style={styles.retryButton} onPress={loadData}>
           <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
+  const currentData = getCurrentData();
+  const isMyFriendsTab = activeTab === 'my-friends';
+  const isFindFriendsTab = activeTab === 'find-friends';
+  const isRequestsTab = activeTab === 'requests';
+  const showRequests = isMyFriendsTab && searchResults.length === 0 && pendingRequests.length > 0;
+
   return (
     <View style={styles.container}>
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search friends by name..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholderTextColor="#999"
-        />
+      {/* Tab Buttons */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tabButton, isMyFriendsTab && styles.tabButtonActive]}
+          onPress={() => {
+            setActiveTab('my-friends');
+            setSearchQuery('');
+            setSearchResults([]);
+            setIsSearching(false);
+          }}
+        >
+          <Text style={[styles.tabButtonText, isMyFriendsTab && styles.tabButtonTextActive]}>
+            My Friends
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabButton, isFindFriendsTab && styles.tabButtonActive]}
+          onPress={() => {
+            setActiveTab('find-friends');
+            setSearchQuery('');
+            setSearchResults([]);
+            setIsSearching(false);
+          }}
+        >
+          <Text style={[styles.tabButtonText, isFindFriendsTab && styles.tabButtonTextActive]}>
+            Find Friends
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabButton, isRequestsTab && styles.tabButtonActive]}
+          onPress={() => {
+            setActiveTab('requests');
+            setSearchQuery('');
+            setSearchResults([]);
+            setIsSearching(false);
+          }}
+        >
+          <View style={styles.tabButtonWithBadge}>
+            <Text style={[styles.tabButtonText, isRequestsTab && styles.tabButtonTextActive]}>
+              Requests
+            </Text>
+            {pendingRequests.length > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {pendingRequests.length > 99 ? '99+' : pendingRequests.length}
+                </Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
       </View>
 
+      {/* Search Bar - hidden on requests tab */}
+      {!isRequestsTab && (
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder={isMyFriendsTab ? "Search my friends..." : "Search users by name..."}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor="#999"
+          />
+        </View>
+      )}
+
       <FlatList
-        data={searchResults.length > 0 ? searchResults : friends}
+        data={isRequestsTab ? pendingRequests : currentData}
         keyExtractor={(item) => item.id}
-        renderItem={searchResults.length > 0 ? renderSearchResultCard : renderFriendCard}
+        renderItem={
+          isRequestsTab
+            ? renderRequestCard
+            : searchResults.length > 0
+            ? renderSearchResultCard
+            : isMyFriendsTab
+            ? renderFriendCard
+            : renderUserCard
+        }
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
         ListHeaderComponent={
-          searchResults.length === 0 && pendingRequests.length > 0 ? (
+          isMyFriendsTab && showRequests ? (
             <>
               <Text style={styles.sectionTitle}>Pending Requests ({pendingRequests.length})</Text>
               <FlatList
@@ -311,12 +505,22 @@ const FriendsScreen = () => {
           ) : null
         }
         ListEmptyComponent={
-          searchResults.length === 0 ? (
+          searchResults.length === 0 && !isRequestsTab ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyIcon}>👥</Text>
               <Text style={styles.emptyText}>
-                {pendingRequests.length === 0 ? 'No friends yet' : 'No friends found'}
+                {isMyFriendsTab
+                  ? pendingRequests.length === 0 ? 'No friends yet' : 'No friends found'
+                  : isFindFriendsTab
+                  ? 'No users found'
+                  : 'No friend requests'
+                }
               </Text>
+            </View>
+          ) : isRequestsTab && pendingRequests.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyIcon}>📬</Text>
+              <Text style={styles.emptyText}>No friend requests</Text>
             </View>
           ) : null
         }
@@ -359,6 +563,53 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    paddingHorizontal: 8,
+    paddingTop: 16,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabButtonActive: {
+    borderBottomColor: '#007AFF',
+  },
+  tabButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  tabButtonTextActive: {
+    color: '#007AFF',
+  },
+  tabButtonWithBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badge: {
+    backgroundColor: '#dc3545',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 4,
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   searchContainer: {
     padding: 16,
@@ -430,6 +681,34 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#999',
   },
+  userCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  userName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  userEmail: {
+    fontSize: 13,
+    color: '#999',
+  },
   searchResultCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -456,6 +735,18 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   addFriendButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  removeFriendButton: {
+    backgroundColor: '#dc3545',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginLeft: 12,
+  },
+  removeFriendButtonText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
