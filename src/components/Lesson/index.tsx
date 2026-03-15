@@ -922,6 +922,20 @@ const SourcesModal = ({ visible, onClose, sources }: {
   onClose: () => void;
   sources: { url: string; note?: string }[]
 }) => {
+  const handleOpenUrl = async (url: string) => {
+    try {
+      const { Linking } = await import('react-native');
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Ошибка', `Не удалось открыть ссылку: ${url}`);
+      }
+    } catch (error) {
+      Alert.alert('Ошибка', 'Не удалось открыть ссылку');
+    }
+  };
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
@@ -938,7 +952,12 @@ const SourcesModal = ({ visible, onClose, sources }: {
             ) : (
               sources.map((source, index) => (
                 <View key={index} style={styles.sourceItem}>
-                  <Text style={styles.sourceUrl}>{source.url}</Text>
+                  <TouchableOpacity
+                    onPress={() => handleOpenUrl(source.url)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.sourceUrl}>🔗 {source.url}</Text>
+                  </TouchableOpacity>
                   {source.note && <Text style={styles.sourceNote}>{source.note}</Text>}
                 </View>
               ))
@@ -2070,8 +2089,9 @@ const Lesson = ({ id }: { id: string }) => {
             <TouchableOpacity
               style={styles.sourcesButton}
               onPress={() => openSourcesModal(slideSources)}
+              activeOpacity={0.7}
             >
-              <Text style={styles.sourcesButtonText}>?</Text>
+              <Text style={styles.sourcesButtonText}>📚 Источники</Text>
             </TouchableOpacity>
           )}
         </View>

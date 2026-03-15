@@ -36,17 +36,17 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   sourcesButton: {
-    width: 40,
-    height: 40,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 20,
-    // backgroundColor: COLORS.PURPLE,
+    backgroundColor: COLORS.ACCENT,
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 10,
   },
   sourcesButtonText: {
     color: COLORS.WHITE,
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: "600",
   },
   progress: {
@@ -302,9 +302,10 @@ export const styles = StyleSheet.create({
   },
   sourceUrl: {
     fontSize: 14,
-    //   color: COLORS.BLUE,
+    color: COLORS.PRIMARY,
     textDecorationLine: "underline",
     marginBottom: 5,
+    fontWeight: "500",
   },
   sourceNote: {
     fontSize: 14,

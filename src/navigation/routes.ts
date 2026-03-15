@@ -15,6 +15,8 @@ export const ROUTES = {
     LESSON: "Lesson",
     CODING_TASKS: "CodingTasks",
     CODING_SOLVE: "CodingTaskSolve",
+    FRIENDS: "Friends",
+    FRIENDS_PROFILE: "FriendsProfile",
   },
   TABS: {
     HOME: "HomeTab",

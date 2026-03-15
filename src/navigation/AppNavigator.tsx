@@ -19,6 +19,8 @@ import SandboxScreen from "@/screens/Sandbox";
 import WelcomeScreen from "@/screens/Welcome";
 import CodingTasksScreen from "@/screens/CodingTasks";
 import CodingTaskSolveScreen from "@/screens/CodingTaskSolve";
+import FriendsScreen from "@/screens/Friends";
+import FriendsProfileScreen from "@/screens/FriendsProfile";
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -67,6 +69,9 @@ export default function AppNavigator() {
 
 
         <Stack.Screen name={ROUTES.STACK.SANDBOX} component={CodingTasksScreen} />
+
+        <Stack.Screen name={ROUTES.STACK.FRIENDS} component={FriendsScreen} />
+        <Stack.Screen name={ROUTES.STACK.FRIENDS_PROFILE} component={FriendsProfileScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -559,6 +559,16 @@ const UserProfile = () => {
           <View style={styles.emailContainer}>
             <Text style={styles.email}>{profile.email}</Text>
           </View>
+
+          {/* Кнопка "Мои друзья" */}
+          <TouchableOpacity
+            style={styles.friendsButton}
+            onPress={() => {
+              navigation.navigate(ROUTES.STACK.FRIENDS as any);
+            }}
+          >
+            <Text style={styles.friendsButtonText}>👥 Мои друзья</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Статистика пользователя */}
@@ -856,6 +866,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#000000',
     opacity: 0.9,
+  },
+  friendsButton: {
+    marginTop: 15,
+    backgroundColor: '#667eea',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  friendsButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   statsContainer: {
     flexDirection: 'row',

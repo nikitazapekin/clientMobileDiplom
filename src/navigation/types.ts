@@ -23,6 +23,9 @@ export type RootStackParamList = {
   [ROUTES.STACK.LESSON]: { id: string };
   [ROUTES.STACK.CODING_TASKS]: undefined;
   [ROUTES.STACK.CODING_SOLVE]: { id: string };
+
+  [ROUTES.STACK.FRIENDS]: undefined;
+  [ROUTES.STACK.FRIENDS_PROFILE]: { auditoryId: string };
 };
 
 export type MainTabParamList = {
