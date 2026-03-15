@@ -16,6 +16,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import LessonCommentsService, { type LessonComment } from "@/http/lessonComments";
+import { ProfileService } from "@/http/profile";
 
 interface LessonCommentsProps {
   visible: boolean;
@@ -29,9 +30,10 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
   onClose
 }) => {
   const [comments, setComments] = useState<LessonComment[]>([]);
+  const [userNamesCache, setUserNamesCache] = useState<Map<string, string>>(new Map());
   const [newCommentText, setNewCommentText] = useState<string>("");
   const [commentsLoading, setCommentsLoading] = useState<boolean>(false);
-  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<{ id: string; authorName: string } | null>(null);
   const [clientId, setClientId] = useState<string | null>(null);
   const commentsLoadedRef = useRef(false);
 
@@ -47,6 +49,64 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
       console.error("Failed to get clientId:", error);
     }
   };
+
+  const fetchUserName = useCallback(async (userId: string): Promise<string> => {
+    // Check cache first
+    const cachedName = userNamesCache.get(userId);
+    if (cachedName) {
+      return cachedName;
+    }
+
+    try {
+      const userInfo = await ProfileService.getUserInfoByUserId(userId);
+      if (userInfo) {
+        const fullName = `${userInfo.lastName} ${userInfo.firstName}`;
+        setUserNamesCache(prev => new Map(prev).set(userId, fullName));
+        return fullName;
+      }
+    } catch (error) {
+      console.error("Failed to fetch user name:", error);
+    }
+
+    // Fallback to userId if fetch fails
+    return `Пользователь ${userId.slice(0, 8)}`;
+  }, [userNamesCache]);
+
+  const loadUserNames = useCallback(async (commentsList: LessonComment[]) => {
+    // Collect all user IDs that need fetching (no firstName/lastName)
+    const userIdsToFetch = new Set<string>();
+    
+    for (const comment of commentsList) {
+      if (!comment.firstName || !comment.lastName) {
+        userIdsToFetch.add(comment.userId);
+      }
+      if (comment.replies) {
+        for (const reply of comment.replies) {
+          if (!reply.firstName || !reply.lastName) {
+            userIdsToFetch.add(reply.userId);
+          }
+        }
+      }
+    }
+    
+    const uniqueUserIds = Array.from(userIdsToFetch);
+
+    const newCache = new Map(userNamesCache);
+    const fetchPromises = uniqueUserIds
+      .filter(id => !newCache.has(id))
+      .map(async (userId) => {
+        const userInfo = await ProfileService.getUserInfoByUserId(userId);
+        if (userInfo) {
+          const fullName = `${userInfo.lastName} ${userInfo.firstName}`;
+          newCache.set(userId, fullName);
+        } else {
+          newCache.set(userId, `Пользователь ${userId.slice(0, 8)}`);
+        }
+      });
+
+    await Promise.all(fetchPromises);
+    setUserNamesCache(newCache);
+  }, [userNamesCache]);
 
   const loadComments = useCallback(async (overrideLessonDetailsId?: string | null) => {
     const idToUse = overrideLessonDetailsId ?? lessonDetailsId;
@@ -78,6 +138,7 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
           Alert.alert("Комментарии", `Загружено комментариев: ${data.comments.length}    `);
         }
         setComments(data.comments);
+        await loadUserNames(data.comments);
       }
     } catch (error: any) {
       console.error("❌ Failed to load comments:", error.response?.data || error.message);
@@ -87,7 +148,7 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
     } finally {
       setCommentsLoading(false);
     }
-  }, [lessonDetailsId]);
+  }, [lessonDetailsId, loadUserNames]);
 
   const handleSubmitComment = useCallback(async () => {
     const idToUse = lessonDetailsId;
@@ -102,7 +163,7 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
       await LessonCommentsService.createComment({
         lessonDetailsId: idToUse,
         content: newCommentText.trim(),
-        parentId: replyingTo || null,
+        parentId: replyingTo?.id || null,
       });
 
       console.log("✅ Comment created, reloading comments...");
@@ -129,9 +190,20 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
   const handleToggleLike = useCallback(async (commentId: string) => {
     try {
       const updatedComment = await LessonCommentsService.toggleLike(commentId);
-      setComments(prev => prev.map(c =>
-        c.id === commentId ? { ...c, ...updatedComment } : c
-      ));
+      setComments(prev => {
+        const updateCommentInTree = (comments: LessonComment[]): LessonComment[] => {
+          return comments.map(c => {
+            if (c.id === commentId) {
+              return { ...c, ...updatedComment };
+            }
+            if (c.replies && c.replies.length > 0) {
+              return { ...c, replies: updateCommentInTree(c.replies) };
+            }
+            return c;
+          });
+        };
+        return updateCommentInTree(prev);
+      });
     } catch (error: any) {
       console.error("Failed to toggle like:", error);
       Alert.alert("Ошибка", "Не удалось поставить лайк");
@@ -141,9 +213,20 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
   const handleToggleDislike = useCallback(async (commentId: string) => {
     try {
       const updatedComment = await LessonCommentsService.toggleDislike(commentId);
-      setComments(prev => prev.map(c =>
-        c.id === commentId ? { ...c, ...updatedComment } : c
-      ));
+      setComments(prev => {
+        const updateCommentInTree = (comments: LessonComment[]): LessonComment[] => {
+          return comments.map(c => {
+            if (c.id === commentId) {
+              return { ...c, ...updatedComment };
+            }
+            if (c.replies && c.replies.length > 0) {
+              return { ...c, replies: updateCommentInTree(c.replies) };
+            }
+            return c;
+          });
+        };
+        return updateCommentInTree(prev);
+      });
     } catch (error: any) {
       console.error("Failed to toggle dislike:", error);
       Alert.alert("Ошибка", "Не удалось поставить дизлайк");
@@ -175,13 +258,10 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('ru-RU', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   if (!visible) return null;
@@ -216,94 +296,103 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
             </Text>
           ) : (
             <ScrollView nestedScrollEnabled={true} style={{ flex: 1, maxHeight: 350 }}>
-              {comments.map((comment) => (
-                <View key={comment.id} style={styles.commentItem}>
-                  <View style={styles.commentHeader}>
-                    <Text style={styles.commentAuthor}>
-                      Пользователь {comment.userId.slice(0, 8)}
-                    </Text>
-                    <Text style={styles.commentDate}>
-                      {formatDate(comment.createdAt)}
-                    </Text>
-                  </View>
-                  <Text style={styles.commentContent}>{comment.content}</Text>
-                  <View style={styles.commentActions}>
-                    <TouchableOpacity
-                      style={styles.commentAction}
-                      onPress={() => handleToggleLike(comment.id)}
-                    >
-                      <Text style={comment.hasLiked ? styles.commentActionTextLiked : styles.commentActionText}>
-                        👍 {comment.likes}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.commentAction}
-                      onPress={() => handleToggleDislike(comment.id)}
-                    >
-                      <Text style={comment.hasDisliked ? styles.commentActionTextLiked : styles.commentActionText}>
-                        👎 {comment.dislikes}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.commentAction}
-                      onPress={() => setReplyingTo(comment.id)}
-                    >
-                      <Text style={styles.commentActionText}>Ответить</Text>
-                    </TouchableOpacity>
-                    {comment.userId === clientId && (
+              {comments.map((comment) => {
+                // Use firstName/lastName from comment if available, otherwise use cache
+                const userName = comment.firstName && comment.lastName 
+                  ? `${comment.lastName} ${comment.firstName}`
+                  : userNamesCache.get(comment.userId) || `Пользователь ${comment.userId.slice(0, 8)}`;
+                return (
+                  <View key={comment.id} style={styles.commentItem}>
+                    <View style={styles.commentHeader}>
+                      <Text style={styles.commentAuthor}>{userName}</Text>
+                      <Text style={styles.commentDate}>{formatDate(comment.createdAt)}</Text>
+                    </View>
+                    <Text style={styles.commentContent}>{comment.content}</Text>
+                    <View style={styles.commentActions}>
                       <TouchableOpacity
                         style={styles.commentAction}
-                        onPress={() => handleDeleteComment(comment.id)}
+                        onPress={() => handleToggleLike(comment.id)}
                       >
-                        <Text style={styles.commentActionText}>Удалить</Text>
+                        <Text style={comment.hasLiked ? styles.commentActionTextLiked : styles.commentActionText}>
+                          👍 {comment.likes}
+                        </Text>
                       </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.commentAction}
+                        onPress={() => handleToggleDislike(comment.id)}
+                      >
+                        <Text style={comment.hasDisliked ? styles.commentActionTextLiked : styles.commentActionText}>
+                          👎 {comment.dislikes}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.commentAction}
+                        onPress={() => setReplyingTo({ id: comment.id, authorName: userName })}
+                      >
+                        <Text style={styles.commentActionText}>Ответить</Text>
+                      </TouchableOpacity>
+                      {comment.userId === clientId && (
+                        <TouchableOpacity
+                          style={styles.commentAction}
+                          onPress={() => handleDeleteComment(comment.id)}
+                        >
+                          <Text style={styles.commentActionText}>Удалить</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    {comment.replies && comment.replies.length > 0 && (
+                      <View style={styles.replyContainer}>
+                        {comment.replies.map((reply) => {
+                          const replyUserName = reply.firstName && reply.lastName 
+                            ? `${reply.lastName} ${reply.firstName}`
+                            : userNamesCache.get(reply.userId) || `Пользователь ${reply.userId.slice(0, 8)}`;
+                          return (
+                            <View key={reply.id} style={[styles.commentItem, { marginTop: 8 }]}>
+                              <View style={styles.commentHeader}>
+                                <Text style={styles.commentAuthor}>{replyUserName}</Text>
+                                <Text style={styles.commentDate}>{formatDate(reply.createdAt)}</Text>
+                              </View>
+                              <Text style={styles.commentContent}>{reply.content}</Text>
+                              <View style={styles.commentActions}>
+                                <TouchableOpacity
+                                  style={styles.commentAction}
+                                  onPress={() => handleToggleLike(reply.id)}
+                                >
+                                  <Text style={reply.hasLiked ? styles.commentActionTextLiked : styles.commentActionText}>
+                                    👍 {reply.likes}
+                                  </Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  style={styles.commentAction}
+                                  onPress={() => handleToggleDislike(reply.id)}
+                                >
+                                  <Text style={reply.hasDisliked ? styles.commentActionTextLiked : styles.commentActionText}>
+                                    👎 {reply.dislikes}
+                                  </Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  style={styles.commentAction}
+                                  onPress={() => setReplyingTo({ id: reply.id, authorName: replyUserName })}
+                                >
+                                  <Text style={styles.commentActionText}>Ответить</Text>
+                                </TouchableOpacity>
+                                {reply.userId === clientId && (
+                                  <TouchableOpacity
+                                    style={styles.commentAction}
+                                    onPress={() => handleDeleteComment(reply.id)}
+                                  >
+                                    <Text style={styles.commentActionText}>Удалить</Text>
+                                  </TouchableOpacity>
+                                )}
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </View>
                     )}
                   </View>
-                  {comment.replies && comment.replies.length > 0 && (
-                    <View style={[styles.replyContainer, { marginTop: 10, paddingLeft: 15 }]}>
-                      {comment.replies.map((reply) => (
-                        <View key={reply.id} style={[styles.commentItem, { marginTop: 8 }]}>
-                          <View style={styles.commentHeader}>
-                            <Text style={styles.commentAuthor}>
-                              Пользователь {reply.userId.slice(0, 8)}
-                            </Text>
-                            <Text style={styles.commentDate}>
-                              {formatDate(reply.createdAt)}
-                            </Text>
-                          </View>
-                          <Text style={styles.commentContent}>{reply.content}</Text>
-                          <View style={styles.commentActions}>
-                            <TouchableOpacity
-                              style={styles.commentAction}
-                              onPress={() => handleToggleLike(reply.id)}
-                            >
-                              <Text style={reply.hasLiked ? styles.commentActionTextLiked : styles.commentActionText}>
-                                👍 {reply.likes}
-                              </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              style={styles.commentAction}
-                              onPress={() => handleToggleDislike(reply.id)}
-                            >
-                              <Text style={reply.hasDisliked ? styles.commentActionTextLiked : styles.commentActionText}>
-                                👎 {reply.dislikes}
-                              </Text>
-                            </TouchableOpacity>
-                            {reply.userId === clientId && (
-                              <TouchableOpacity
-                                style={styles.commentAction}
-                                onPress={() => handleDeleteComment(reply.id)}
-                              >
-                                <Text style={styles.commentActionText}>Удалить</Text>
-                              </TouchableOpacity>
-                            )}
-                          </View>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                </View>
-              ))}
+                );
+              })}
             </ScrollView>
           )}
 
@@ -311,7 +400,7 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
             {replyingTo && (
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
                 <Text style={{ fontSize: 14, color: '#666' }}>
-                  Ответ на комментарий
+                  Ответ пользователю {replyingTo.authorName}
                 </Text>
                 <TouchableOpacity onPress={() => setReplyingTo(null)}>
                   <Text style={{ fontSize: 14, color: '#999' }}>✕</Text>
@@ -341,7 +430,7 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
   );
 };
 
- 
+
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
@@ -472,9 +561,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   replyContainer: {
-    marginLeft: 20,
     marginTop: 10,
-    paddingLeft: 10,
+    paddingLeft: 15,
     borderLeftWidth: 2,
     borderLeftColor: COLORS.GRAY_LIGHT,
   },

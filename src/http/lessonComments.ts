@@ -6,6 +6,7 @@ export interface LessonComment {
   id: string;
   lessonDetailsId: string;
   userId: string;
+  clientId?: string;
   content: string;
   parentId: string | null;
   likes: number;
@@ -17,6 +18,8 @@ export interface LessonComment {
   hasLiked: boolean;
   hasDisliked: boolean;
   replies?: LessonComment[];
+  firstName?: string;
+  lastName?: string;
 }
 
 export interface LessonCommentsWithMeta {

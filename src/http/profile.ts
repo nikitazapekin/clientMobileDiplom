@@ -91,6 +91,41 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
     }
   }
 
+  /**
+   * Получение информации о пользователе по userId (для комментариев)
+   * userId может быть как auditoryId (auth_...), так и clientId (client_...)
+   */
+  static async getUserInfoByUserId(userId: string): Promise<{ firstName: string; lastName: string } | null> {
+    try {
+      const token = await this.getToken();
+      
+      // Если userId начинается с client_, используем clientId endpoint
+      if (userId.startsWith('client_')) {
+        const response = await $api.get(
+          `/profile/client/${userId}/full`,
+          this.getHeaders(token)
+        );
+        return {
+          firstName: response.data.firstName,
+          lastName: response.data.lastName,
+        };
+      }
+      
+      // Иначе пробуем найти по auditoryId
+      const response = await $api.get(
+        `/profile/client/auditory/${userId}/full`,
+        this.getHeaders(token)
+      );
+      return {
+        firstName: response.data.firstName,
+        lastName: response.data.lastName,
+      };
+    } catch (error: any) {
+      console.error("Get user info error:", error.response?.data || error.message);
+      return null;
+    }
+  }
+
   // ============= AVATAR METHODS =============
 
   /**
