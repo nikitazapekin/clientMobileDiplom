@@ -69,10 +69,6 @@ export default function AchievementsScreen() {
     }
   };
 
-  useEffect(() => {
-    loadAchievements();
-  }, []);
-
   // Пересчитываем достижения при каждом фокусе экрана
   useFocusEffect(
     React.useCallback(() => {
