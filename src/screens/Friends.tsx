@@ -475,57 +475,68 @@ const FriendsScreen = () => {
         </View>
       )}
 
-      <FlatList
-        data={isRequestsTab ? pendingRequests : currentData}
-        keyExtractor={(item) => item.id}
-        renderItem={
-          isRequestsTab
-            ? renderRequestCard
-            : searchResults.length > 0
-            ? renderSearchResultCard
-            : isMyFriendsTab
-            ? renderFriendCard
-            : renderUserCard
-        }
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
-        ListHeaderComponent={
-          isMyFriendsTab && showRequests ? (
-            <>
-              <Text style={styles.sectionTitle}>Pending Requests ({pendingRequests.length})</Text>
-              <FlatList
-                data={pendingRequests}
-                keyExtractor={(item) => item.id}
-                renderItem={renderRequestCard}
-                scrollEnabled={false}
-                contentContainerStyle={styles.requestsList}
-              />
-            </>
-          ) : null
-        }
-        ListEmptyComponent={
-          searchResults.length === 0 && !isRequestsTab ? (
+      {/* Requests Tab */}
+      {isRequestsTab && (
+        <FlatList
+          data={pendingRequests}
+          keyExtractor={(item: FriendRequestResponse) => item.id}
+          renderItem={renderRequestCard}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyIcon}>📬</Text>
+              <Text style={styles.emptyText}>No friend requests</Text>
+            </View>
+          }
+          contentContainerStyle={styles.listContent}
+        />
+      )}
+
+      {/* My Friends / Find Friends / Search Results Tabs */}
+      {!isRequestsTab && (
+        <FlatList
+          data={currentData as FriendResponse[]}
+          keyExtractor={(item: FriendResponse) => item.id}
+          renderItem={
+            searchResults.length > 0
+              ? renderSearchResultCard
+              : isMyFriendsTab
+              ? renderFriendCard
+              : renderUserCard
+          }
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+          ListHeaderComponent={
+            isMyFriendsTab && showRequests ? (
+              <>
+                <Text style={styles.sectionTitle}>Pending Requests ({pendingRequests.length})</Text>
+                <FlatList
+                  data={pendingRequests}
+                  keyExtractor={(item: FriendRequestResponse) => item.id}
+                  renderItem={renderRequestCard}
+                  scrollEnabled={false}
+                  contentContainerStyle={styles.requestsList}
+                />
+              </>
+            ) : null
+          }
+          ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyIcon}>👥</Text>
               <Text style={styles.emptyText}>
                 {isMyFriendsTab
                   ? pendingRequests.length === 0 ? 'No friends yet' : 'No friends found'
-                  : isFindFriendsTab
-                  ? 'No users found'
-                  : 'No friend requests'
+                  : 'No users found'
                 }
               </Text>
             </View>
-          ) : isRequestsTab && pendingRequests.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>📬</Text>
-              <Text style={styles.emptyText}>No friend requests</Text>
-            </View>
-          ) : null
-        }
-        contentContainerStyle={styles.listContent}
-      />
+          }
+          contentContainerStyle={styles.listContent}
+        />
+      )}
     </View>
   );
 };

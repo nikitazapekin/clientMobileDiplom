@@ -81,4 +81,12 @@ export class CodingTasksService {
     const response = await $api.get("/coding-tasks/student-level");
     return response.data;
   }
+
+  /**
+   * Get student level by clientId (for viewing other users' progress)
+   */
+  static async getStudentLevelByClientId(clientId: string): Promise<StudentLevel> {
+    const response = await $api.get(`/coding-tasks/student-level/${clientId}`);
+    return response.data;
+  }
 }
