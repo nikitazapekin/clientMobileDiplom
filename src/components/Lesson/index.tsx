@@ -8,6 +8,7 @@ import {
   Modal,
   ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
   View
 } from "react-native";
@@ -25,7 +26,6 @@ import type {
   CodeTaskBlock,
   ImageBlock,
   Slide,
-  SlideBlock,
   SourceBlock,
   TableBlock,
   TextBlock,
@@ -36,6 +36,7 @@ import CustomButton from "@/components/Button";
 import CodeEditor from "@/components/CodeEditor";
 import { CodeService } from "@/http/codeService";
 import { LessonDetailsService } from "@/http/lessonDetails";
+import LessonCommentsService, { type LessonComment } from "@/http/lessonComments";
 import LessonResultService from "@/http/lessonResult";
 
 // Функция для сортировки блоков
@@ -1261,9 +1262,18 @@ const Lesson = ({ id }: { id: string }) => {
     }
   }>({});
 
+  // Состояния для комментариев
+  const [commentsModalVisible, setCommentsModalVisible] = useState(false);
+  const [comments, setComments] = useState<LessonComment[]>([]);
+  const [lessonDetailsId, setLessonDetailsId] = useState<string | null>(null);
+  const [newCommentText, setNewCommentText] = useState<string>("");
+  const [commentsLoading, setCommentsLoading] = useState<boolean>(false);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const commentsLoadedRef = useRef(false);
+
   useEffect(() => {
-    loadLessonDetails();
-    getClientId();
+    void loadLessonDetails();
+    void getClientId();
   }, [id]);
 
   const getClientId = async () => {
@@ -1316,12 +1326,173 @@ const Lesson = ({ id }: { id: string }) => {
         setError("В уроке нет слайдов");
       } else {
         setSlides(allSlides);
+        // Set lessonDetailsId from the lesson details
+        if (data.id) {
+          setLessonDetailsId(data.id);
+          console.log("📝 LessonDetailsId set to:", data.id);
+        } else {
+          console.log("⚠️ No lessonDetails id found in response");
+        }
       }
     } catch (err: any) {
       setError(err.message || "Ошибка загрузки");
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadComments = useCallback(async (overrideLessonDetailsId?: string | null) => {
+    const idToUse = overrideLessonDetailsId ?? lessonDetailsId;
+
+    if (!idToUse) {
+      console.log("⚠️ No lessonDetailsId available for loading comments");
+      return;
+    }
+
+    console.log("📥 Loading comments for lessonDetailsId:", idToUse);
+    setCommentsLoading(true);
+    try {
+      const data = await LessonCommentsService.getCommentsByLessonDetailsId(idToUse);
+      console.log("📬 Comments API response:", JSON.stringify(data, null, 2));
+      console.log("📬 Comments count:", data.comments?.length);
+      console.log("📬 Comments data:", data.comments);
+      console.log("📬 data.comments is array:", Array.isArray(data.comments));
+      console.log("📬 data.total:", data.total);
+      console.log("📬 data.canComment:", data.canComment);
+      
+      if (!data.comments || !Array.isArray(data.comments)) {
+        console.error("❌ Comments is not an array:", data.comments);
+        console.error("❌ Full data:", JSON.stringify(data));
+        Alert.alert("Ошибка", "Неверный формат данных комментариев");
+        setComments([]);
+      } else {
+        console.log("✅ Setting comments:", data.comments.length, "items");
+        if (data.comments.length > 0) {
+          Alert.alert("Комментарии", `Загружено комментариев: ${data.comments.length}    `);
+        }
+        setComments(data.comments);
+
+        
+      }
+    } catch (error: any) {
+      console.error("❌ Failed to load comments:", error.response?.data || error.message);
+      console.error("❌ Full error:", JSON.stringify(error, null, 2));
+      Alert.alert("Ошибка", "Не удалось загрузить комментарии: " + (error.response?.data?.message || error.message));
+      setComments([]);
+    } finally {
+      setCommentsLoading(false);
+    }
+  }, [lessonDetailsId]);
+
+  const handleOpenComments = useCallback(async () => {
+    console.log("🔓 Opening comments modal");
+    console.log("🔓 lessonDetailsId value:", lessonDetailsId);
+    console.log("🔓 lessonDetailsId type:", typeof lessonDetailsId);
+    
+    if (lessonDetailsId) {
+      console.log("🔓 Calling loadComments with:", lessonDetailsId);
+      await loadComments(lessonDetailsId);
+    } else {
+      console.log("⚠️ lessonDetailsId is not set yet, will load when available");
+    }
+    console.log("🔓 Setting commentsModalVisible to true");
+    setCommentsModalVisible(true);
+    commentsLoadedRef.current = false;
+  }, [lessonDetailsId, loadComments]);
+
+  const handleSubmitComment = useCallback(async () => {
+    const idToUse = lessonDetailsId;
+    
+    if (!newCommentText.trim() || !idToUse) {
+      console.log("⚠️ Cannot submit comment: missing text or lessonDetailsId");
+      return;
+    }
+
+    try {
+      console.log("📤 Submitting comment to lessonDetailsId:", idToUse);
+      await LessonCommentsService.createComment({
+        lessonDetailsId: idToUse,
+        content: newCommentText.trim(),
+        parentId: replyingTo || null,
+      });
+
+      console.log("✅ Comment created, reloading comments...");
+      setNewCommentText("");
+      setReplyingTo(null);
+      // Force a fresh reload by clearing comments first
+      setComments([]);
+      await loadComments(idToUse);
+    } catch (error: any) {
+      console.error("Failed to create comment:", error);
+      Alert.alert("Ошибка", error.message || "Не удалось создать комментарий");
+    }
+  }, [newCommentText, lessonDetailsId, replyingTo, loadComments]);
+
+  // Effect to load comments when modal is open and lessonDetailsId becomes available
+  useEffect(() => {
+    if (commentsModalVisible && lessonDetailsId && !commentsLoadedRef.current && !commentsLoading) {
+      console.log("📥 Effect: Loading comments for lessonDetailsId:", lessonDetailsId);
+      commentsLoadedRef.current = true;
+      loadComments(lessonDetailsId);
+    }
+  }, [commentsModalVisible, lessonDetailsId, commentsLoading]);
+
+  const handleToggleLike = useCallback(async (commentId: string) => {
+    try {
+      const updatedComment = await LessonCommentsService.toggleLike(commentId);
+      setComments(prev => prev.map(c => 
+        c.id === commentId ? { ...c, ...updatedComment } : c
+      ));
+    } catch (error: any) {
+      console.error("Failed to toggle like:", error);
+      Alert.alert("Ошибка", "Не удалось поставить лайк");
+    }
+  }, []);
+
+  const handleToggleDislike = useCallback(async (commentId: string) => {
+    try {
+      const updatedComment = await LessonCommentsService.toggleDislike(commentId);
+      setComments(prev => prev.map(c => 
+        c.id === commentId ? { ...c, ...updatedComment } : c
+      ));
+    } catch (error: any) {
+      console.error("Failed to toggle dislike:", error);
+      Alert.alert("Ошибка", "Не удалось поставить дизлайк");
+    }
+  }, []);
+
+  const handleDeleteComment = useCallback(async (commentId: string) => {
+    Alert.alert(
+      "Удаление комментария",
+      "Вы уверены, что хотите удалить комментарий?",
+      [
+        { text: "Отмена", style: "cancel" },
+        {
+          text: "Удалить",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await LessonCommentsService.deleteComment(commentId);
+              await loadComments();
+            } catch (error: any) {
+              console.error("Failed to delete comment:", error);
+              Alert.alert("Ошибка", "Не удалось удалить комментарий");
+            }
+          },
+        },
+      ]
+    );
+  }, [loadComments]);
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   const saveLessonResult = useCallback(async (stars: number) => {
@@ -2085,15 +2256,24 @@ const Lesson = ({ id }: { id: string }) => {
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <Text style={styles.title}>{currentSlide.title}</Text>
-          {slideSources.length > 0 && (
+          <View style={{ flexDirection: 'row' }}>
+            {slideSources.length > 0 && (
+              <TouchableOpacity
+                style={styles.sourcesButton}
+                onPress={() => openSourcesModal(slideSources)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.sourcesButtonText}>📚 Источники</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
-              style={styles.sourcesButton}
-              onPress={() => openSourcesModal(slideSources)}
+              style={styles.commentsButton}
+              onPress={handleOpenComments}
               activeOpacity={0.7}
             >
-              <Text style={styles.sourcesButtonText}>📚 Источники</Text>
+              <Text style={styles.commentsButtonText}>💬 Комментарии</Text>
             </TouchableOpacity>
-          )}
+          </View>
         </View>
         <Text style={styles.progress}>
           {currentIndex + 1} / {slides.length}
@@ -2198,6 +2378,158 @@ const Lesson = ({ id }: { id: string }) => {
         earnedStars={lessonResults.stars}
         onRetrySave={retrySaveResult}
       />
+
+      <Modal
+        visible={commentsModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCommentsModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.commentsModalContent, { height: 500 }]}>
+            <View style={styles.commentsModalHeader}>
+              <Text style={styles.commentsModalTitle}>Комментарии к уроку</Text>
+              <TouchableOpacity
+                onPress={() => setCommentsModalVisible(false)}
+                style={styles.commentsModalCloseButton}
+              >
+                <Text style={styles.commentsModalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {commentsLoading ? (
+              <View style={[styles.centerContent, { paddingVertical: 40 }]}>
+                <ActivityIndicator size="large" color={COLORS.BLACK} />
+                <Text style={styles.loadingText}>Загрузка комментариев...</Text>
+              </View>
+            ) : comments.length === 0 ? (
+              <Text style={styles.noCommentsText}>
+                Пока нет комментариев. Будьте первым!
+              </Text>
+            ) : (
+              <ScrollView nestedScrollEnabled={true} style={{ flex: 1, maxHeight: 350 }}>
+                {comments.map((comment) => (
+                  <View key={comment.id} style={styles.commentItem}>
+                    <View style={styles.commentHeader}>
+                      <Text style={styles.commentAuthor}>
+                        Пользователь {comment.userId.slice(0, 8)}
+                      </Text>
+                      <Text style={styles.commentDate}>
+                        {formatDate(comment.createdAt)}
+                      </Text>
+                    </View>
+                    <Text style={styles.commentContent}>{comment.content}</Text>
+                    <View style={styles.commentActions}>
+                      <TouchableOpacity
+                        style={styles.commentAction}
+                        onPress={() => handleToggleLike(comment.id)}
+                      >
+                        <Text style={comment.hasLiked ? styles.commentActionTextLiked : styles.commentActionText}>
+                          👍 {comment.likes}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.commentAction}
+                        onPress={() => handleToggleDislike(comment.id)}
+                      >
+                        <Text style={comment.hasDisliked ? styles.commentActionTextLiked : styles.commentActionText}>
+                          👎 {comment.dislikes}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.commentAction}
+                        onPress={() => setReplyingTo(comment.id)}
+                      >
+                        <Text style={styles.commentActionText}>Ответить</Text>
+                      </TouchableOpacity>
+                      {comment.userId === clientId && (
+                        <TouchableOpacity
+                          style={styles.commentAction}
+                          onPress={() => handleDeleteComment(comment.id)}
+                        >
+                          <Text style={styles.commentActionText}>Удалить</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    {comment.replies && comment.replies.length > 0 && (
+                      <View style={[styles.replyContainer, { marginTop: 10, paddingLeft: 15 }]}>
+                        {comment.replies.map((reply) => (
+                          <View key={reply.id} style={[styles.commentItem, { marginTop: 8 }]}>
+                            <View style={styles.commentHeader}>
+                              <Text style={styles.commentAuthor}>
+                                Пользователь {reply.userId.slice(0, 8)}
+                              </Text>
+                              <Text style={styles.commentDate}>
+                                {formatDate(reply.createdAt)}
+                              </Text>
+                            </View>
+                            <Text style={styles.commentContent}>{reply.content}</Text>
+                            <View style={styles.commentActions}>
+                              <TouchableOpacity
+                                style={styles.commentAction}
+                                onPress={() => handleToggleLike(reply.id)}
+                              >
+                                <Text style={reply.hasLiked ? styles.commentActionTextLiked : styles.commentActionText}>
+                                  👍 {reply.likes}
+                                </Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={styles.commentAction}
+                                onPress={() => handleToggleDislike(reply.id)}
+                              >
+                                <Text style={reply.hasDisliked ? styles.commentActionTextLiked : styles.commentActionText}>
+                                  👎 {reply.dislikes}
+                                </Text>
+                              </TouchableOpacity>
+                              {reply.userId === clientId && (
+                                <TouchableOpacity
+                                  style={styles.commentAction}
+                                  onPress={() => handleDeleteComment(reply.id)}
+                                >
+                                  <Text style={styles.commentActionText}>Удалить</Text>
+                                </TouchableOpacity>
+                              )}
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+
+            <View style={styles.commentInputContainer}>
+              {replyingTo && (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <Text style={{ fontSize: 14, color: '#666' }}>
+                    Ответ на комментарий
+                  </Text>
+                  <TouchableOpacity onPress={() => setReplyingTo(null)}>
+                    <Text style={{ fontSize: 14, color: '#999' }}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              <TextInput
+                style={styles.commentInput}
+                multiline
+                placeholder={replyingTo ? "Введите ваш ответ..." : "Введите ваш комментарий..."}
+                value={newCommentText}
+                onChangeText={setNewCommentText}
+              />
+              <TouchableOpacity
+                style={styles.commentSubmitButton}
+                onPress={handleSubmitComment}
+                disabled={!newCommentText.trim()}
+              >
+                <Text style={styles.commentSubmitButtonText}>
+                  {replyingTo ? "Отправить ответ" : "Отправить комментарий"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };

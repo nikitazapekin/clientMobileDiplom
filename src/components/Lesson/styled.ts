@@ -260,13 +260,6 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  modalContent: {
-    width: "80%",
-    maxHeight: "80%",
-    backgroundColor: COLORS.WHITE,
-    borderRadius: 10,
-    padding: 20,
-  },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -534,5 +527,175 @@ export const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginLeft: 10,
+  },
+
+  commentsButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: COLORS.BLACK,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 10,
+  },
+
+  commentsButtonText: {
+    color: COLORS.WHITE,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  commentsModalContent: {
+    width: '95%',
+    maxHeight: '85%',
+    backgroundColor: COLORS.WHITE,
+    borderRadius: 10,
+    padding: 20,
+    flexDirection: 'column',
+  },
+
+  commentsModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.GRAY_LIGHT,
+  },
+
+  commentsModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.BLACK,
+  },
+
+  commentsModalCloseButton: {
+    padding: 5,
+  },
+
+  commentsModalCloseText: {
+    fontSize: 20,
+    color: COLORS.GRAY_LIGHT,
+  },
+
+  commentsList: {
+    flex: 1,
+    maxHeight: 400,
+    marginBottom: 10,
+  },
+
+  commentItem: {
+    padding: 12,
+    marginBottom: 10,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.GRAY_LIGHT,
+  },
+
+  commentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+
+  commentAuthor: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.BLACK,
+  },
+
+  commentDate: {
+    fontSize: 12,
+    color: '#999',
+  },
+
+  commentContent: {
+    fontSize: 15,
+    color: COLORS.BLACK,
+    lineHeight: 22,
+    marginBottom: 10,
+  },
+
+  commentActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15,
+  },
+
+  commentAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+
+  commentActionText: {
+    fontSize: 13,
+    color: '#666',
+  },
+
+  commentActionTextLiked: {
+    fontSize: 13,
+    color: COLORS.BLACK,
+    fontWeight: '600',
+  },
+
+  noCommentsText: {
+    fontSize: 16,
+    color: '#999',
+    textAlign: 'center',
+    padding: 30,
+  },
+
+  commentInputContainer: {
+    marginTop: 15,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.GRAY_LIGHT,
+  },
+
+  commentInput: {
+    borderWidth: 1,
+    borderColor: COLORS.GRAY_LIGHT,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 15,
+    minHeight: 120,
+    height: 120,
+    textAlignVertical: 'top',
+    backgroundColor: '#fff',
+  },
+
+  commentSubmitButton: {
+    marginTop: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: COLORS.BLACK,
+    alignItems: 'center',
+  },
+
+  commentSubmitButtonText: {
+    color: COLORS.WHITE,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
+  replyContainer: {
+    marginLeft: 20,
+    marginTop: 10,
+    paddingLeft: 10,
+    borderLeftWidth: 2,
+    borderLeftColor: COLORS.GRAY_LIGHT,
+  },
+
+  cannotCommentText: {
+    fontSize: 13,
+    color: '#999',
+    textAlign: 'center',
+    padding: 10,
+    fontStyle: 'italic',
   },
 });

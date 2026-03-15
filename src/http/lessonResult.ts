@@ -241,6 +241,34 @@ export default class LessonResultService {
   }
 
   /**
+   * Проверка, прошел ли студент урок с хотя бы 1 звездой
+   * @param clientId - ID пользователя
+   * @param lessonId - ID урока
+   * @returns true, если урок пройден с хотя бы 1 звездой
+   */
+  static async hasCompletedLessonWithStars(clientId: string, lessonId: string): Promise<boolean> {
+    try {
+      const token = await this.getToken();
+      const response = await $api.get<LessonResultResponse[]>(
+        `/profile/student-results/lesson/${lessonId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const results = response.data;
+      const userResult = results.find(result => result.clientId === clientId);
+
+      return userResult ? userResult.countOfStars >= 1 : false;
+    } catch (error: any) {
+      console.error("Check lesson completion with stars error:", error.response?.data || error.message);
+      return false;
+    }
+  }
+
+  /**
    * Получение статистики по урокам для студента
    * Вспомогательный метод
    */
