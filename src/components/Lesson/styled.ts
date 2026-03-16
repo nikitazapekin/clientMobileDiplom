@@ -260,6 +260,13 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  modalContent: {
+    backgroundColor: COLORS.WHITE,
+    borderRadius: 10,
+    padding: 20,
+    width: "85%",
+    maxWidth: 400,
+  },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",

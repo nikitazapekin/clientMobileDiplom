@@ -3,7 +3,7 @@ import type { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axio
 import axios from 'axios';
 
 // Cloudflare Tunnel к бэкенду (localhost:3002)
-export const BASE_URL = 'https://blend-bacon-bargain-searched.trycloudflare.com';
+export const BASE_URL = 'https://ultram-endless-modify-winners.trycloudflare.com';
 const $api = axios.create({
   baseURL: BASE_URL,
   withCredentials: true, // Важно для отправки cookies
