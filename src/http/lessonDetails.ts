@@ -57,7 +57,8 @@ export class LessonDetailsService {
   static async getLessonDetailsByLessonId(lessonId: string): Promise<LessonDetailsResponse> {
     try {
       const token = await this.getToken();
-      const response = await $api.get(`${this.BASE_URL}/lesson/${lessonId}`, this.getHeaders(token));
+      // Add cache busting parameter
+      const response = await $api.get(`${this.BASE_URL}/lesson/${lessonId}?t=${Date.now()}`, this.getHeaders(token));
 
       return response.data;
     } catch (error: any) {

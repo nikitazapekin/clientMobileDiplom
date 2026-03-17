@@ -19,7 +19,7 @@ import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { styles } from "./styled";
-import type { CodeLanguage } from "./types";
+import type { CodeLanguage, ArgumentSchema, TestCaseArgument } from "./types";
 import type {
   CodeConstraintType,
   CodeExampleBlock,
@@ -163,6 +163,306 @@ const formatArgumentsForCode = (args: any[]): string => {
       return String(arg);
     })
     .join(", ");
+};
+
+// Функция для преобразования аргументов тест-кейса в строку для JavaScript/Python
+const formatArgsForDynamicLang = (
+  testCaseArgs: TestCaseArgument[] | undefined,
+  argumentScheme: ArgumentSchema[],
+  language: CodeLanguage
+): string => {
+  if (!testCaseArgs || !argumentScheme) return "";
+  
+  const cleanValue = (val: string) => {
+    if ((val.startsWith('"') && val.endsWith('"')) || 
+        (val.startsWith("'") && val.endsWith("'"))) {
+      return val.slice(1, -1);
+    }
+    return val;
+  };
+  
+  const args = testCaseArgs.map((arg, idx) => {
+    const scheme = argumentScheme[idx];
+    if (!scheme) return null;
+    
+    const cleanVal = cleanValue(arg.value);
+    
+    if (scheme.type === "string") {
+      return `"${cleanVal}"`;
+    }
+    if (scheme.type === "number") {
+      return cleanVal;
+    }
+    if (scheme.type === "char") {
+      return `'${cleanVal}'`;
+    }
+    if (scheme.type === "boolean") {
+      if (language === "python") {
+        return cleanVal.toLowerCase() === "true" ? "True" : "False";
+      }
+      return cleanVal.toLowerCase() === "true" ? "true" : "false";
+    }
+    if (scheme.type === "object") {
+      return arg.value || "{}";
+    }
+    if (scheme.type && scheme.type.startsWith("array_")) {
+      const elementType = scheme.type.replace("array_", "");
+      
+      if (arg.value && arg.value.trim().startsWith("[")) {
+        try {
+          const arr = JSON.parse(arg.value);
+          if (Array.isArray(arr)) {
+            const formatted = arr.map((item: any) => {
+              if (elementType === "string") return `"${item}"`;
+              if (elementType === "boolean") {
+                if (language === "python") return item ? "True" : "False";
+                return item ? "true" : "false";
+              }
+              return String(item);
+            });
+            return `[${formatted.join(", ")}]`;
+          }
+        } catch {
+          // Not valid JSON
+        }
+      }
+      return arg.value;
+    }
+    if (scheme.type === "array" || scheme.type === "list") {
+      if (arg.value && arg.value.trim().startsWith("[")) {
+        try {
+          const arr = JSON.parse(arg.value);
+          if (Array.isArray(arr)) {
+            const formatted = arr.map(item => {
+              if (scheme.arrayElementType === "string") return `"${item}"`;
+              if (scheme.arrayElementType === "boolean") {
+                if (language === "python") return item ? "True" : "False";
+                return item ? "true" : "false";
+              }
+              return String(item);
+            });
+            return `[${formatted.join(", ")}]`;
+          }
+        } catch {
+          // Not valid JSON
+        }
+      }
+      return arg.value;
+    }
+    
+    return arg.value;
+  }).filter(Boolean);
+  
+  return args.join(", ");
+};
+
+// Функция для преобразования аргументов тест-кейса в строку для Java/C#
+const formatArgsForJavaOrCSharp = (
+  testCaseArgs: TestCaseArgument[] | undefined,
+  argumentScheme: ArgumentSchema[],
+  language: CodeLanguage
+): string => {
+  if (!testCaseArgs || !argumentScheme) return "";
+  
+  const cleanValue = (val: string) => {
+    if ((val.startsWith('"') && val.endsWith('"')) || 
+        (val.startsWith("'") && val.endsWith("'"))) {
+      return val.slice(1, -1);
+    }
+    return val;
+  };
+  
+  const args = testCaseArgs.map((arg, idx) => {
+    const scheme = argumentScheme[idx];
+    if (!scheme) return null;
+    
+    const cleanVal = cleanValue(arg.value);
+    
+    if (scheme.type === "string") {
+      return `"${cleanVal}"`;
+    }
+    if (scheme.type === "char") {
+      return `'${cleanVal}'`;
+    }
+    if (scheme.type === "boolean") {
+      return cleanVal.toLowerCase() === "true" ? "true" : "false";
+    }
+    if (scheme.type === "object" && scheme.objectFields) {
+      const objValues = arg.objectValues ?? {};
+      const fields = scheme.objectFields.map(f => {
+        const val = cleanValue(objValues[f.name] ?? "");
+        if (f.type === "string") {
+          return `"${val}"`;
+        } else if (f.type === "boolean") {
+          return val.toLowerCase() === "true" ? "true" : "false";
+        } else if (f.type === "double" || f.type === "float") {
+          return val;
+        } else if (f.type === "char") {
+          return `'${val}'`;
+        } else {
+          return val;
+        }
+      });
+      
+      if (language === "java") {
+        const className = scheme.className || scheme.name.charAt(0).toUpperCase() + scheme.name.slice(1);
+        return `new ${className}(${fields.join(", ")})`;
+      } else if (language === "csharp") {
+        const className = scheme.className || scheme.name.charAt(0).toUpperCase() + scheme.name.slice(1);
+        return `new ${className}(${fields.join(", ")})`;
+      }
+      return `{${fields.join(", ")}}`;
+    }
+    if (scheme.type && scheme.type.startsWith("array_")) {
+      const elementType = scheme.type.replace("array_", "");
+      const typeToUse = elementType === "string" ? "String" : elementType;
+      
+      if (arg.value && arg.value.trim().startsWith("[")) {
+        try {
+          const arr = JSON.parse(arg.value);
+          if (Array.isArray(arr)) {
+            const formatted = arr.map((item: any) => {
+              if (elementType === "string") return `"${item}"`;
+              if (elementType === "boolean") return item ? "true" : "false";
+              return String(item);
+            });
+            if (language === "java") {
+              return `new ${typeToUse}[] { ${formatted.join(", ")} }`;
+            }
+            return `new ${typeToUse}[] { ${formatted.join(", ")} }`;
+          }
+        } catch {
+          // Not valid JSON
+        }
+      }
+      return `new ${typeToUse}[0]`;
+    }
+    if (scheme.type === "array" || scheme.type === "list") {
+      const arrayElementType = scheme.arrayElementType ?? "int";
+      
+      if (arg.value && arg.value.trim().startsWith("[")) {
+        try {
+          const arr = JSON.parse(arg.value);
+          if (Array.isArray(arr)) {
+            const formatted = arr.map(item => {
+              if (arrayElementType === "string") return `"${item}"`;
+              if (arrayElementType === "boolean") return item ? "true" : "false";
+              return String(item);
+            });
+            return `new ${arrayElementType === "string" ? "String" : arrayElementType}[] { ${formatted.join(", ")} }`;
+          }
+        } catch {
+          // Not valid JSON
+        }
+      }
+      return arg.value;
+    }
+    
+    return arg.value;
+  }).filter(Boolean);
+  
+  return args.join(", ");
+};
+
+// Функция для получения входных данных для отображения
+const getDisplayInput = (
+  testCase: { input?: string; args?: TestCaseArgument[] } | undefined,
+  argumentScheme: ArgumentSchema[] | undefined,
+  language: CodeLanguage | undefined
+): string => {
+  if (!testCase) return "";
+  
+  // Если есть аргументы в новом формате - используем их
+  if (testCase.args && argumentScheme && argumentScheme.length > 0) {
+    const lang = language || "javascript";
+    // Для Java и C# используем соответствующую функцию форматирования
+    if (lang === "java" || lang === "csharp") {
+      return formatArgsForJavaOrCSharp(testCase.args, argumentScheme, lang);
+    }
+    // Для JS и Python используем другую функцию
+    return formatArgsForDynamicLang(testCase.args, argumentScheme, lang);
+  }
+  
+  // Иначе используем старый формат
+  return testCase.input || "";
+};
+
+// Функция для удаления main метода из кода (нужно для отображения)
+const stripMainMethod = (code: string, language: CodeLanguage): string => {
+  if (language === "java") {
+    return code
+      .replace(/public\s+static\s+void\s+main\s*\(String\[\]\s*args\)\s*\{[\s\S]*?\}\s*\n?/g, "")
+      .replace(/\n\s*\n\s*\n/g, "\n\n")
+      .trim();
+  }
+  if (language === "csharp") {
+    return code
+      .replace(/public\s+static\s+void\s+Main\s*\(string\[\]\s*args\)\s*\{[\s\S]*?\}\s*\n?/g, "")
+      .trim();
+  }
+  return code;
+};
+
+// Исправленный addJavaMainMethod для Java с поддержкой логов
+const addJavaMainMethod = (code: string, funcName: string | null, input: string = "5"): string => {
+  if (!funcName) return code;
+
+  const mainMethod = `
+    public static void main(String[] args) {
+        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+        java.io.PrintStream originalOut = System.out;
+        System.setOut(new java.io.PrintStream(baos));
+        
+        try {
+            Object result = ${funcName}(${input});
+            
+            System.setOut(originalOut);
+           
+            String logs = baos.toString();
+            
+            if (!logs.isEmpty()) {
+                System.out.println("===LOGS_START===");
+                System.out.print(logs);
+                System.out.println("===LOGS_END===");
+            }
+            
+            System.out.println("===RESULT_START===");
+            if (result == null) {
+                System.out.print("null");
+            } else if (result instanceof String) {
+                System.out.print("\\"" + result + "\\"");
+            } else if (result.getClass().isArray()) {
+                if (result instanceof int[]) {
+                    System.out.print(java.util.Arrays.toString((int[])result));
+                } else if (result instanceof Integer[]) {
+                    System.out.print(java.util.Arrays.toString((Integer[])result));
+                } else if (result instanceof String[]) {
+                    System.out.print(java.util.Arrays.toString((String[])result));
+                } else {
+                    System.out.print(java.util.Arrays.toString((Object[])result));
+                }
+            } else {
+                System.out.print(result);
+            }
+            System.out.println("===RESULT_END===");
+            
+        } catch (Exception e) {
+            System.setOut(originalOut);
+            System.out.println("===RESULT_START===");
+            System.out.print("{\\"error\\":\\"" + e.getMessage() + "\\"}");
+            System.out.println("===RESULT_END===");
+        }
+    }`;
+
+  if (code.includes("public static void main")) {
+    return code.replace(
+      /public\s+static\s+void\s+main\(String\[\]\s*args\)\s*\{[\s\S]*?\}/,
+      mainMethod
+    );
+  } else {
+    const codeWithoutLastBrace = code.trim().replace(/\}\s*$/, "");
+    return `${codeWithoutLastBrace}\n${mainMethod}\n}`;
+  }
 };
 
 // Функция для извлечения имени функции
@@ -391,12 +691,16 @@ const buildTestCode = (
   userCode: string,
   input: string,
   lang: CodeLanguage,
-  funcName: string | null
+  funcName: string | null,
+  preformattedArgs?: string // Для JS/Python с аргументами из схемы
 ): string => {
   if (!funcName) return userCode;
 
-  const args = parseArguments(input);
-  const argsStr = formatArgumentsForCode(args);
+  // Если переданы предварительно отформатированные аргументы - используем их
+  const argsStr = preformattedArgs ?? (() => {
+    const args = parseArguments(input);
+    return formatArgumentsForCode(args);
+  })();
 
   switch (lang) {
     case "javascript":
@@ -1491,7 +1795,17 @@ const Lesson = ({ id }: { id: string }) => {
     setCodeRunOutput(prev => ({ ...prev, [blockId]: "" }));
 
     try {
-      const res = await CodeService.executeCode({ language, code });
+      let codeToRun = code;
+
+      // Для Java добавляем main метод с тестовым вводом (как в превью EditLesson)
+      if (language === "java") {
+        const funcName = extractFunctionName(code, language);
+        if (funcName) {
+          codeToRun = addJavaMainMethod(code, funcName, "5");
+        }
+      }
+
+      const res = await CodeService.executeCode({ language, code: codeToRun });
       const text = res.error ? `Ошибка: ${res.error}` : res.output || "Код выполнен успешно";
 
       // Парсим вывод для отделения логов от результата
@@ -1586,9 +1900,18 @@ const Lesson = ({ id }: { id: string }) => {
       const results: any[] = [];
       let allLogs: string[] = [];
 
-      // Специальная обработка для Java
-      if (block.language === "java") {
-        const codeToRun = buildJavaTestSuite(userCode, block.testCases, funcName);
+    // Специальная обработка для Java
+    if (block.language === "java") {
+      // Форматируем тест-кейсы с учетом схемы аргументов
+      const formattedTestCases = (block.testCases ?? []).map(tc => {
+        const argsInput = formatArgsForJavaOrCSharp(tc.args, block.argumentScheme ?? [], "java");
+        return {
+          input: argsInput || tc.input || "",
+          expectedOutput: tc.expectedOutput
+        };
+      });
+      
+      const codeToRun = buildJavaTestSuite(userCode, formattedTestCases, funcName);
 
         const res = await CodeService.executeCode({
           language: "java",
@@ -1623,7 +1946,7 @@ const Lesson = ({ id }: { id: string }) => {
               inLogs = false;
 
               if (currentLogs.length > 0) {
-                testLogs.push(`📋 Логи теста #${testNum} (вход: ${block.testCases[i].input}):`);
+                testLogs.push(`📋 Логи теста #${testNum} (вход: ${getDisplayInput(block.testCases[i], block.argumentScheme, block.language)}):`);
                 testLogs.push(currentLogs.join("\n"));
                 testLogs.push("");
               }
@@ -1662,7 +1985,7 @@ const Lesson = ({ id }: { id: string }) => {
                 const passed = compareOutputs(actualParsed, expectedParsed);
 
                 results.push({
-                  input: block.testCases[i].input,
+                  input: getDisplayInput(block.testCases[i], block.argumentScheme, block.language),
                   expected,
                   actual,
                   passed,
@@ -1686,7 +2009,16 @@ const Lesson = ({ id }: { id: string }) => {
       }
       // Специальная обработка для C#
       else if (block.language === "csharp") {
-        const codeToRun = buildCSharpTestSuite(userCode, block.testCases, funcName);
+        // Форматируем тест-кейсы с учетом схемы аргументов
+        const formattedTestCases = (block.testCases ?? []).map(tc => {
+          const argsInput = formatArgsForJavaOrCSharp(tc.args, block.argumentScheme ?? [], "csharp");
+          return {
+            input: argsInput || tc.input || "",
+            expectedOutput: tc.expectedOutput
+          };
+        });
+        
+        const codeToRun = buildCSharpTestSuite(userCode, formattedTestCases, funcName);
 
         const res = await CodeService.executeCode({
           language: "csharp",
@@ -1721,7 +2053,7 @@ const Lesson = ({ id }: { id: string }) => {
               inLogs = false;
 
               if (currentLogs.length > 0) {
-                testLogs.push(`📋 Логи теста #${testNum} (вход: ${block.testCases[i].input}):`);
+                testLogs.push(`📋 Логи теста #${testNum} (вход: ${getDisplayInput(block.testCases[i], block.argumentScheme, block.language)}):`);
                 testLogs.push(currentLogs.join("\n"));
                 testLogs.push("");
               }
@@ -1760,7 +2092,7 @@ const Lesson = ({ id }: { id: string }) => {
                 const passed = compareOutputs(actualParsed, expectedParsed);
 
                 results.push({
-                  input: block.testCases[i].input,
+                  input: getDisplayInput(block.testCases[i], block.argumentScheme, block.language),
                   expected,
                   actual,
                   passed,
@@ -1782,7 +2114,119 @@ const Lesson = ({ id }: { id: string }) => {
           }
         }
       }
-      // Для остальных языков
+      // Для JavaScript и Python используем схему аргументов
+      else if (block.language === "javascript" || block.language === "python") {
+        const lang = block.language;
+        
+        for (let i = 0; i < block.testCases.length; i++) {
+          const tc = block.testCases[i];
+          
+          // Форматируем аргументы с использованием схемы
+          const argsInput = formatArgsForDynamicLang(tc.args, block.argumentScheme ?? [], lang);
+          
+          // Если есть аргументы в схеме, используем их, иначе используем старый input
+          const inputToUse = (block.argumentScheme?.length ?? 0) > 0 ? argsInput : (tc.input || "");
+          
+          if (!inputToUse || !tc.expectedOutput) {
+            setTestErrors(prev => ({ ...prev, [slideId]: "Заполните все тест-кейсы (входные данные и ожидаемый вывод)" }));
+            return;
+          }
+
+          // Для JS/Python передаём предварительно отформатированные аргументы
+          const codeToRun = buildTestCode(
+            userCode,
+            "",
+            lang,
+            funcName,
+            inputToUse
+          );
+
+          const res = await CodeService.executeCode({
+            language: lang,
+            code: codeToRun,
+          });
+
+          if (res.error) {
+            setTestErrors(prev => ({ ...prev, [slideId]: `Ошибка выполнения: ${res.error}` }));
+            return;
+          }
+
+          const output = res.output || "";
+          const lines = output.split("\n");
+
+          let inLogs = false;
+          let inResult = false;
+          let currentLogs: string[] = [];
+          let currentResult: string[] = [];
+          let testLogs: string[] = [];
+          const testNum = i + 1;
+
+          for (const line of lines) {
+            if (line.includes("===LOGS_START===")) {
+              inLogs = true;
+              currentLogs = [];
+              continue;
+            }
+            if (line.includes("===LOGS_END===")) {
+              inLogs = false;
+              if (currentLogs.length > 0) {
+                testLogs.push(`📋 Логи теста #${testNum} (вход: ${getDisplayInput(tc, block.argumentScheme, block.language)}):`);
+                testLogs.push(currentLogs.join("\n"));
+                testLogs.push("");
+              }
+              continue;
+            }
+            if (line.includes("===RESULT_START===")) {
+              inResult = true;
+              currentResult = [];
+              continue;
+            }
+            if (line.includes("===RESULT_END===")) {
+              inResult = false;
+              if (currentResult.length > 0) {
+                const actual = currentResult.join("\n").trim();
+                const expected = tc.expectedOutput.trim();
+
+                let actualParsed: any;
+                let expectedParsed: any;
+
+                try {
+                  actualParsed = JSON.parse(actual);
+                } catch {
+                  actualParsed = actual;
+                }
+
+                try {
+                  expectedParsed = JSON.parse(expected);
+                } catch {
+                  expectedParsed = expected;
+                }
+
+                const passed = compareOutputs(actualParsed, expectedParsed);
+
+                results.push({
+                  input: getDisplayInput(tc, block.argumentScheme, block.language),
+                  expected,
+                  actual,
+                  passed,
+                });
+              }
+              continue;
+            }
+
+            if (inLogs) {
+              currentLogs.push(line);
+            } else if (inResult) {
+              currentResult.push(line);
+            }
+          }
+
+          if (testLogs.length > 0) {
+            allLogs.push(...testLogs);
+          }
+        }
+      }
+      // Для остальных языков (C#, Golang, старый формат)
       else {
         for (const tc of block.testCases) {
           if (!tc.input || !tc.expectedOutput) {
@@ -1866,7 +2310,7 @@ const Lesson = ({ id }: { id: string }) => {
                 const passed = compareOutputs(actualParsed, expectedParsed);
 
                 results.push({
-                  input: tc.input,
+                  input: getDisplayInput(tc, block.argumentScheme, block.language),
                   expected: tc.expectedOutput,
                   actual: resultStr,
                   passed,
