@@ -387,6 +387,131 @@ const getDisplayInput = (
   return testCase.input || "";
 };
 
+// Функция для генерации классов объектов для C#/Java
+const generateObjectClasses = (args: ArgumentSchema[], language: CodeLanguage): string => {
+  const objectArgs = args.filter((a) => a.type === "object" && a.objectFields);
+  
+  const arrayObjectArgs = args.filter(
+    (a) => (a.type === "array" || a.type === "list") && 
+           a.arrayElementType === "object" && 
+           a.arrayElementObjectFields
+  );
+  
+  const allClasses = [...objectArgs, ...arrayObjectArgs];
+  
+  if (allClasses.length === 0) return "";
+
+  return allClasses
+    .map((arg) => {
+      let className: string;
+      const objectFields = arg.objectFields ?? arg.arrayElementObjectFields ?? [];
+      
+      if (arg.objectFields) {
+        className = arg.className || arg.name.charAt(0).toUpperCase() + arg.name.slice(1);
+      } else if (arg.arrayElementObjectFields) {
+        className = arg.arrayElementClassName || arg.name.charAt(0).toUpperCase() + arg.name.slice(1);
+      } else {
+        className = arg.className || arg.name.charAt(0).toUpperCase() + arg.name.slice(1);
+      }
+
+      if (language === "csharp") {
+        const fields = objectFields.map((f) => `        public ${getCSharpType(f.type)} ${f.name};`).join("\n");
+        const constructorParams = objectFields.map(f => `${getCSharpType(f.type)} ${f.name}`).join(", ");
+        const constructorBody = objectFields.map(f => `this.${f.name} = ${f.name};`).join("\n        ");
+        const constructor = objectFields.length > 0 ? `
+    public ${className}(${constructorParams}) {
+        ${constructorBody}
+    }` : "";
+        const gettersSetters = objectFields
+          .map((f) => {
+            const fieldName = f.name;
+            const fieldType = getCSharpType(f.type);
+            return `
+    public ${fieldType} get${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}() {
+        return ${fieldName};
+    }
+    public void set${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}(${fieldType} ${fieldName}) {
+        this.${fieldName} = ${fieldName};
+    }`;
+          })
+          .join("");
+        return `public class ${className} {
+${fields.replace(/        /g, "    ")}
+${constructor.replace(/        /g, "    ")}
+${gettersSetters}
+}`;
+      }
+      if (language === "java") {
+        const fields = objectFields.map((f) => `        private ${getJavaType(f.type)} ${f.name};`).join("\n");
+        const constructorParams = objectFields.map(f => `${getJavaType(f.type)} ${f.name}`).join(", ");
+        const constructorBody = objectFields.map(f => `this.${f.name} = ${f.name};`).join("\n        ");
+        const constructor = objectFields.length > 0 ? `
+    public ${className}(${constructorParams}) {
+        ${constructorBody}
+    }` : "";
+        const gettersSetters = objectFields
+          .map((f) => {
+            const fieldName = f.name;
+            const fieldType = getJavaType(f.type);
+            return `
+    public ${fieldType} get${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}() {
+        return ${fieldName};
+    }
+    public void set${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}(${fieldType} ${fieldName}) {
+        this.${fieldName} = ${fieldName};
+    }`;
+          })
+          .join("");
+        return `    class ${className} {
+${fields}
+${constructor}
+${gettersSetters}
+    }`;
+      }
+      return "";
+    })
+    .join("\n\n");
+};
+
+// Вспомогательные функции для получения типов
+const getCSharpType = (type: string): string => {
+  const typeMap: Record<string, string> = {
+    int: "int",
+    string: "string",
+    number: "int",
+    boolean: "bool",
+    double: "double",
+    float: "float",
+    long: "long",
+    char: "char",
+    byte: "byte",
+    short: "short",
+    object: "object",
+    array: "object[]",
+    list: "List<object>",
+  };
+  return typeMap[type] || "object";
+};
+
+const getJavaType = (type: string): string => {
+  const typeMap: Record<string, string> = {
+    int: "int",
+    string: "String",
+    number: "int",
+    boolean: "boolean",
+    double: "double",
+    float: "float",
+    long: "long",
+    char: "char",
+    byte: "byte",
+    short: "short",
+    object: "Object",
+    array: "Object[]",
+    list: "List<Object>",
+  };
+  return typeMap[type] || "Object";
+};
+
 // Функция для удаления main метода из кода (нужно для отображения)
 const stripMainMethod = (code: string, language: CodeLanguage): string => {
   if (language === "java") {
@@ -519,8 +644,8 @@ const buildJavaTestSuite = (
   const testCasesCode = testCases
     .map((tc, index) => {
       const testNum = index + 1;
-      const args = parseArguments(tc.input);
-      const argsStr = formatArgumentsForCode(args);
+      // Используем напрямую input без парсинса (как в десктопной версии)
+      const argsStr = tc.input || "";
 
       return `
         // Тест ${testNum}
@@ -609,8 +734,8 @@ const buildCSharpTestSuite = (
   const testCasesCode = testCases
     .map((tc, index) => {
       const testNum = index + 1;
-      const args = parseArguments(tc.input);
-      const argsStr = formatArgumentsForCode(args);
+      // Используем напрямую input без парсинга (как в десктопной версии)
+      const argsStr = tc.input || "";
 
       return `
         // Тест ${testNum}
@@ -1911,7 +2036,12 @@ const Lesson = ({ id }: { id: string }) => {
         };
       });
       
-      const codeToRun = buildJavaTestSuite(userCode, formattedTestCases, funcName);
+      const codeWithTests = buildJavaTestSuite(userCode, formattedTestCases, funcName);
+      // Добавляем определения классов для объектов в аргументах
+      const objectClasses = generateObjectClasses(block.argumentScheme ?? [], "java");
+      const codeToRun = objectClasses 
+        ? `${codeWithTests}\n\n${objectClasses}` 
+        : codeWithTests;
 
         const res = await CodeService.executeCode({
           language: "java",
@@ -2018,7 +2148,12 @@ const Lesson = ({ id }: { id: string }) => {
           };
         });
         
-        const codeToRun = buildCSharpTestSuite(userCode, formattedTestCases, funcName);
+        const codeWithTests = buildCSharpTestSuite(userCode, formattedTestCases, funcName);
+        // Добавляем определения классов для объектов в аргументах
+        const objectClasses = generateObjectClasses(block.argumentScheme ?? [], "csharp");
+        const codeToRun = objectClasses 
+          ? `${codeWithTests}\n\n${objectClasses}` 
+          : codeWithTests;
 
         const res = await CodeService.executeCode({
           language: "csharp",
