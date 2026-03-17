@@ -109,3 +109,11 @@ export type SlideBlock =
   | ImageBlock
   | CodeTaskBlock
   | TheoryQuestionBlock;
+
+export interface ConstraintResult {
+  type: CodeConstraintType;
+  name: string;
+  passed: boolean;
+  expected: string;
+  actual: string;
+}

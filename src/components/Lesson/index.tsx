@@ -19,7 +19,7 @@ import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { styles } from "./styled";
-import type { CodeLanguage, ArgumentSchema, TestCaseArgument } from "./types";
+import type { CodeLanguage, ArgumentSchema, TestCaseArgument, ConstraintResult } from "./types";
 import type {
   CodeConstraintType,
   CodeExampleBlock,
@@ -510,6 +510,111 @@ const getJavaType = (type: string): string => {
     list: "List<Object>",
   };
   return typeMap[type] || "Object";
+};
+
+// Функция для отображения описаний классов объектов (как в EditLesson)
+const generateObjectClassesForPreview = (args: ArgumentSchema[], language: CodeLanguage): string => {
+  const objectArgs = args.filter((a) => a.type === "object" && a.objectFields);
+  if (objectArgs.length === 0) return "";
+
+  return objectArgs
+    .map((arg) => {
+      const className = arg.className || arg.name.charAt(0).toUpperCase() + arg.name.slice(1);
+      const objectFields = arg.objectFields ?? [];
+
+      if (language === "java") {
+        const fields = objectFields
+          ?.map((f) => `    private ${getJavaType(f.type)} ${f.name};`)
+          .join("\n");
+        const constructorParams = objectFields.map(f => `${getJavaType(f.type)} ${f.name}`).join(", ");
+        const constructorBody = objectFields.map(f => `this.${f.name} = ${f.name};`).join("\n        ");
+        const constructor = objectFields.length > 0 ? `
+    public ${className}(${constructorParams}) {
+        ${constructorBody}
+    }` : "";
+        const gettersSetters = objectFields
+          ?.map((f) => {
+            const fieldName = f.name;
+            const fieldType = getJavaType(f.type);
+            return `
+    public ${fieldType} get${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}() {
+        return ${fieldName};
+    }
+    public void set${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}(${fieldType} ${fieldName}) {
+        this.${fieldName} = ${fieldName};
+    }`;
+          })
+          .join("");
+        return `class ${className} {
+${fields}
+${constructor}
+${gettersSetters}
+}`;
+      }
+      if (language === "csharp") {
+        const fields = objectFields
+          ?.map((f) => `    private ${getCSharpType(f.type)} ${f.name};`)
+          .join("\n");
+        const constructorParams = objectFields.map(f => `${getCSharpType(f.type)} ${f.name}`).join(", ");
+        const constructorBody = objectFields.map(f => `this.${f.name} = ${f.name};`).join("\n        ");
+        const constructor = objectFields.length > 0 ? `
+    public ${className}(${constructorParams}) {
+        ${constructorBody}
+    }` : "";
+        const gettersSetters = objectFields
+          ?.map((f) => {
+            const fieldName = f.name;
+            const fieldType = getCSharpType(f.type);
+            return `
+    public ${fieldType} get${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}() {
+        return ${fieldName};
+    }
+    public void set${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}(${fieldType} ${fieldName}) {
+        this.${fieldName} = ${fieldName};
+    }`;
+          })
+          .join("");
+        return `public class ${className} {
+${fields}
+${constructor}
+${gettersSetters}
+}`;
+      }
+      return "";
+    })
+    .join("\n\n");
+};
+
+// Функция для получения описания типа аргумента
+const getArgumentTypeDescription = (arg: ArgumentSchema): string => {
+  if (arg.type === "object" && arg.objectFields) {
+    const className = arg.className || arg.name.charAt(0).toUpperCase() + arg.name.slice(1);
+    const fields = arg.objectFields.map(f => `${getJavaType(f.type)} ${f.name}`).join(", ");
+    return `${className} (${fields})`;
+  }
+  if (arg.type && arg.type.startsWith("array_")) {
+    const elementType = arg.type.replace("array_", "");
+    return `${elementType}[]`;
+  }
+  if (arg.type === "array" || arg.type === "list") {
+    if (arg.arrayElementType === "object" && arg.arrayElementObjectFields) {
+      const className = arg.arrayElementClassName || arg.name.charAt(0).toUpperCase() + arg.name.slice(1);
+      const fields = arg.arrayElementObjectFields.map(f => `${getJavaType(f.type)} ${f.name}`).join(", ");
+      return `${className}[] (${fields})`;
+    }
+    return `${arg.arrayElementType || "object"}[]`;
+  }
+  return arg.type || "unknown";
+};
+
+// Функция для отображения схемы аргументов в читаемом виде
+const renderArgumentScheme = (args: ArgumentSchema[], language: CodeLanguage): string => {
+  if (!args || args.length === 0) return "";
+  
+  return args.map((arg, idx) => {
+    const typeDesc = getArgumentTypeDescription(arg);
+    return `${idx + 1}. ${arg.name}: ${typeDesc}`;
+  }).join("\n");
 };
 
 // Функция для удаления main метода из кода (нужно для отображения)
@@ -1071,6 +1176,170 @@ const compareOutputs = (actual: any, expected: any): boolean => {
   return String(actual).trim() === String(expected).trim();
 };
 
+// Вспомогательные функции для проверки ограничений
+const countCodeLines = (code: string): number => {
+  return code.split("\n").filter(line => line.trim().length > 0).length;
+};
+
+const hasComments = (code: string): boolean => {
+  const singleLineComment = /\/\/.*$/m;
+  const multiLineComment = /\/\*[\s\S]*?\*\//;
+  const pythonComment = /#.*$/m;
+  
+  return singleLineComment.test(code) || multiLineComment.test(code) || pythonComment.test(code);
+};
+
+const hasConsoleLog = (code: string): boolean => {
+  return /console\.(log|error|warn|info)/.test(code) || /print\s*\(/.test(code);
+};
+
+const hasRequiredKeywords = (code: string, keywords: string[]): boolean => {
+  return keywords.every(keyword => code.toLowerCase().includes(keyword.toLowerCase()));
+};
+
+const calculateComplexity = (code: string): number => {
+  let complexity = 1;
+  const patterns = [
+    /\bif\s*\(/,
+    /\belse\s+if\s*\(/,
+    /\bfor\s*\(/,
+    /\bwhile\s*\(/,
+    /\bswitch\s*\(/,
+    /\bcase\s+/,
+    /\bcatch\s*\(/,
+    /\&\&/,
+    /\|\|/,
+    /\?\s*[^?]+\s*:/,
+  ];
+  
+  patterns.forEach(pattern => {
+    const matches = code.match(pattern);
+    if (matches) {
+      complexity += matches.length;
+    }
+  });
+  
+  return complexity;
+};
+
+// Функция проверки ограничений
+const checkConstraints = (
+  code: string,
+  constraints?: { type: CodeConstraintType; value: number | string[] | boolean }[]
+): ConstraintResult[] => {
+  const results: ConstraintResult[] = [];
+
+  for (const constraint of constraints || []) {
+    switch (constraint.type) {
+      case "maxLines": {
+        const maxLines = constraint.value as number;
+        const actualLines = countCodeLines(code);
+        results.push({
+          type: "maxLines",
+          name: "📏 Максимум строк кода",
+          passed: actualLines <= maxLines,
+          expected: `≤ ${maxLines} строк`,
+          actual: `${actualLines} строк`,
+        });
+        break;
+      }
+
+      case "forbiddenTokens": {
+        const forbidden = constraint.value as string[];
+        const passed = !forbidden.some(
+          (token) => token.trim() && code.toLowerCase().includes(token.toLowerCase().trim())
+        );
+        results.push({
+          type: "forbiddenTokens",
+          name: "🚫 Запрещённые слова",
+          passed,
+          expected: forbidden.filter((t) => t.trim()).join(", ") || "нет",
+          actual: passed ? "не используются" : "используются",
+        });
+        break;
+      }
+
+      case "noComments": {
+        const passed = !hasComments(code);
+        results.push({
+          type: "noComments",
+          name: "💬 Без комментариев",
+          passed,
+          expected: "без комментариев",
+          actual: passed ? "нет комментариев" : "есть комментарии",
+        });
+        break;
+      }
+
+      case "noConsoleLog": {
+        const passed = !hasConsoleLog(code);
+        results.push({
+          type: "noConsoleLog",
+          name: "📢 Без отладочного вывода",
+          passed,
+          expected: "без console.log/print",
+          actual: passed ? "нет" : "используется",
+        });
+        break;
+      }
+
+      case "maxComplexity": {
+        const maxComplexity = constraint.value as number;
+        const actualComplexity = calculateComplexity(code);
+        results.push({
+          type: "maxComplexity",
+          name: "🔄 Цикломатическая сложность",
+          passed: actualComplexity <= maxComplexity,
+          expected: `≤ ${maxComplexity}`,
+          actual: `${actualComplexity}`,
+        });
+        break;
+      }
+
+      case "memoryLimit": {
+        const memoryLimit = constraint.value as number;
+        const codeSize = new Blob([code]).size / 1024;
+        const estimatedMemory = Math.round(codeSize * 2);
+
+        results.push({
+          type: "memoryLimit",
+          name: "💾 Использование памяти",
+          passed: estimatedMemory <= memoryLimit,
+          expected: `≤ ${memoryLimit} МБ`,
+          actual: `~${estimatedMemory} МБ`,
+        });
+        break;
+      }
+
+      case "requiredKeywords": {
+        const keywords = constraint.value as string[];
+        const passed = hasRequiredKeywords(code, keywords);
+        results.push({
+          type: "requiredKeywords",
+          name: "🔑 Обязательные ключевые слова",
+          passed,
+          expected: keywords.join(", "),
+          actual: passed ? "все присутствуют" : "не все присутствуют",
+        });
+        break;
+      }
+
+      case "maxTimeMs": {
+        results.push({
+          type: "maxTimeMs",
+          name: "⏱️ Время выполнения",
+          passed: true,
+          expected: `≤ ${constraint.value} мс`,
+          actual: "проверяется на сервере",
+        });
+        break;
+      }
+    }
+  }
+
+  return results;
+};
+
 // Компонент для текстового блока
 const TextBlockView = ({ block }: { block: TextBlock }) => {
   return <Text style={styles.textBlock}>{block.content}</Text>;
@@ -1148,6 +1417,78 @@ const ImageBlockView = ({ block }: { block: ImageBlock }) => {
   );
 };
 
+// Компонент для отображения описания классов объектов (для Java/C#)
+const ObjectDescriptions = ({ argumentScheme, language }: { argumentScheme?: ArgumentSchema[]; language?: CodeLanguage }) => {
+  if (!argumentScheme || argumentScheme.length === 0) return null;
+  if (language !== "java" && language !== "csharp") return null;
+  
+  const hasObjects = argumentScheme.some(a => a.type === "object" && a.objectFields);
+  if (!hasObjects) return null;
+
+  return (
+    <View style={styles.objectDescriptions}>
+      <Text style={styles.objectDescriptionsTitle}>Описание классов:</Text>
+      <ScrollView style={styles.objectCodeScroll} horizontal>
+        <Text style={styles.objectCodeText}>
+          {generateObjectClassesForPreview(argumentScheme, language)}
+        </Text>
+      </ScrollView>
+    </View>
+  );
+};
+
+// Компонент для отображения ограничений до запуска проверки
+const ConstraintsInfo = ({ constraints }: { constraints?: CodeTaskBlock['constraints'] }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!constraints || constraints.length === 0) return null;
+
+  const getConstraintDescription = (constraint: { type: CodeConstraintType; value: number | string[] | boolean }) => {
+    switch (constraint.type) {
+      case "maxLines":
+        return `📏 Максимум строк кода: ${constraint.value}`;
+      case "forbiddenTokens":
+        return `🚫 Запрещённые слова: ${(constraint.value as string[]).join(", ")}`;
+      case "noComments":
+        return `💬 Без комментариев`;
+      case "noConsoleLog":
+        return `📢 Без отладочного вывода (console.log/print)`;
+      case "maxComplexity":
+        return `🔄 Максимальная сложность: ${constraint.value}`;
+      case "memoryLimit":
+        return `💾 Лимит памяти: ${constraint.value} МБ`;
+      case "requiredKeywords":
+        return `🔑 Обязательные ключевые слова: ${(constraint.value as string[]).join(", ")}`;
+      case "maxTimeMs":
+        return `⏱️ Максимальное время: ${constraint.value} мс`;
+      default:
+        return `${constraint.type}: ${constraint.value}`;
+    }
+  };
+
+  return (
+    <View style={styles.constraintsInfo}>
+      <TouchableOpacity 
+        style={styles.constraintsHeader} 
+        onPress={() => setExpanded(!expanded)}
+      >
+        <Text style={styles.constraintsTitle}>🎯 Ограничения ({constraints.length})</Text>
+        <Text style={styles.constraintsToggle}>{expanded ? "▼ Скрыть" : "▶ Показать"}</Text>
+      </TouchableOpacity>
+      
+      {expanded && (
+        <View style={styles.constraintsList}>
+          {constraints.map((constraint, index) => (
+            <Text key={index} style={styles.constraintItem}>
+              {getConstraintDescription(constraint)}
+            </Text>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+};
+
 // Компонент для задачи с кодом
 const CodeTaskBlockView = ({
   block,
@@ -1171,13 +1512,7 @@ const CodeTaskBlockView = ({
   isRunning: boolean;
   output?: string;
   testResults?: { input: string; expected: string; actual: string; passed: boolean }[];
-  constraintResults?: {
-    type: CodeConstraintType;
-    name: string;
-    passed: boolean;
-    expected: string;
-    actual: string;
-  }[];
+  constraintResults?: ConstraintResult[];
   testError?: string;
 }) => {
   return (
@@ -1185,6 +1520,22 @@ const CodeTaskBlockView = ({
       {block.description && (
         <Text style={styles.taskDescription}>{block.description}</Text>
       )}
+
+      {block.argumentScheme && block.argumentScheme.length > 0 && (
+        <View style={styles.argumentSchemeInfo}>
+          <Text style={styles.argumentSchemeTitle}>📋 Аргументы функции:</Text>
+          <Text style={styles.argumentSchemeText}>
+            {renderArgumentScheme(block.argumentScheme, block.language)}
+          </Text>
+        </View>
+      )}
+
+      <ObjectDescriptions 
+        argumentScheme={block.argumentScheme} 
+        language={block.language} 
+      />
+
+      <ConstraintsInfo constraints={block.constraints} />
 
       <CodeEditor
         value={codeValue}
@@ -2470,17 +2821,37 @@ const Lesson = ({ id }: { id: string }) => {
 
       setTestResults(prev => ({ ...prev, [slideId]: results }));
 
-      const allPassed = results.every((r: any) => r.passed);
+      // Проверяем ограничения
+      const constraintCheckResults = checkConstraints(userCode, block.constraints);
+      setConstraintResults(prev => ({ ...prev, [slideId]: constraintCheckResults }));
 
-      if (allPassed) {
-        // Можно показать уведомление
+      const allPassed = results.every((r: any) => r.passed);
+      const allConstraintsPassed = constraintCheckResults.every((c) => c.passed);
+
+      if (allPassed && allConstraintsPassed) {
+        // Все тесты и ограничения пройдены
       } else {
         const failedCount = results.filter((r: any) => !r.passed).length;
+        const failedConstraints = constraintCheckResults.filter((c) => !c.passed);
+        
+        let errorMessage = "";
+        
+        if (failedCount > 0) {
+          errorMessage += `❌ Провалено тестов: ${failedCount} из ${results.length}`;
+        }
+        
+        if (failedConstraints.length > 0) {
+          if (errorMessage) errorMessage += "\n\n";
+          errorMessage += `❌ Не пройдены ограничения:\n`;
+          errorMessage += failedConstraints.map(c => `- ${c.name}: ${c.actual}`).join("\n");
+        }
 
-        setTestErrors(prev => ({
-          ...prev,
-          [slideId]: `❌ Провалено тестов: ${failedCount} из ${results.length}`
-        }));
+        if (errorMessage) {
+          setTestErrors(prev => ({
+            ...prev,
+            [slideId]: errorMessage
+          }));
+        }
       }
 
     } catch (error: any) {

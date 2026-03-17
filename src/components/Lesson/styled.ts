@@ -649,6 +649,89 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
+  // Стили для отображения схемы аргументов
+  argumentSchemeInfo: {
+    marginBottom: 10,
+    padding: 10,
+    backgroundColor: '#E3F2FD',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#BBDEFB',
+  },
+  argumentSchemeTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1565C0',
+    marginBottom: 5,
+  },
+  argumentSchemeText: {
+    fontSize: 13,
+    color: '#333',
+    fontFamily: 'monospace',
+  },
+
+  // Стили для описания классов объектов
+  objectDescriptions: {
+    marginBottom: 10,
+    padding: 10,
+    backgroundColor: '#F3E5F5',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#CE93D8',
+  },
+  objectDescriptionsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#7B1FA2',
+    marginBottom: 5,
+  },
+  objectCodeScroll: {
+    maxHeight: 150,
+    backgroundColor: '#FAFAFA',
+    borderRadius: 4,
+    padding: 5,
+  },
+  objectCodeText: {
+    fontSize: 11,
+    fontFamily: 'monospace',
+    color: '#333',
+  },
+
+  // Стили для отображения ограничений
+  constraintsInfo: {
+    marginBottom: 10,
+    padding: 10,
+    backgroundColor: '#FFF3E0',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FFB74D',
+  },
+  constraintsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  constraintsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#E65100',
+  },
+  constraintsToggle: {
+    fontSize: 13,
+    color: '#F57C00',
+  },
+  constraintsList: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#FFB74D',
+  },
+  constraintItem: {
+    fontSize: 13,
+    color: '#333',
+    marginBottom: 5,
+  },
+
   noCommentsText: {
     fontSize: 16,
     color: '#999',
