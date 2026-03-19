@@ -25,10 +25,7 @@ export class AchievementsService {
       },
     };
   }
-
-  /**
-   * Get all achievements for a client by clientId
-   */
+ 
   static async getAchievementsByClientId(clientId: string): Promise<Achievement[]> {
     try {
       const token = await this.getToken();
@@ -43,10 +40,7 @@ export class AchievementsService {
       throw new Error(error.response?.data?.message || 'Failed to fetch achievements');
     }
   }
-
-  /**
-   * Get all achievements for a client by auditoryId
-   */
+ 
   static async getAchievementsByAuditoryId(auditoryId: string): Promise<Achievement[]> {
     try {
       const token = await this.getToken();
@@ -61,10 +55,7 @@ export class AchievementsService {
       throw new Error(error.response?.data?.message || 'Failed to fetch achievements');
     }
   }
-
-  /**
-   * Get achievement by ID
-   */
+ 
   static async getAchievementById(id: string): Promise<Achievement> {
     try {
       const token = await this.getToken();
@@ -80,9 +71,7 @@ export class AchievementsService {
     }
   }
 
-  /**
-   * Get achievement progress for a client
-   */
+  
   static async getAchievementProgress(auditoryId: string): Promise<AchievementProgress> {
     try {
       const token = await this.getToken();
@@ -97,10 +86,7 @@ export class AchievementsService {
       throw new Error(error.response?.data?.message || 'Failed to fetch achievement progress');
     }
   }
-
-  /**
-   * Get all achievement definitions
-   */
+ 
   static async getAchievementDefinitions(): Promise<AchievementDefinitions> {
     try {
       const token = await this.getToken();
@@ -115,10 +101,7 @@ export class AchievementsService {
       throw new Error(error.response?.data?.message || 'Failed to fetch achievement definitions');
     }
   }
-
-  /**
-   * Check and award achievements to a client
-   */
+ 
   static async checkAndAwardAchievements(auditoryId: string): Promise<Achievement[]> {
     try {
       const token = await this.getToken();
@@ -134,10 +117,7 @@ export class AchievementsService {
       throw new Error(error.response?.data?.message || 'Failed to check and award achievements');
     }
   }
-
-  /**
-   * Delete achievement by ID
-   */
+ 
   static async deleteAchievement(id: string): Promise<{ success: boolean }> {
     try {
       const token = await this.getToken();
@@ -155,10 +135,7 @@ export class AchievementsService {
       throw new Error(error.response?.data?.message || 'Failed to delete achievement');
     }
   }
-
-  /**
-   * Delete all achievements for a client
-   */
+ 
   static async deleteAllAchievements(clientId: string): Promise<{ success: boolean }> {
     try {
       const token = await this.getToken();

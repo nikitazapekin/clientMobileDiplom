@@ -18,7 +18,7 @@ export const styles = StyleSheet.create({
     backgroundColor: COLORS.GRAY_LIGHT,
     justifyContent: "center",
     alignItems: "center",
-    //    marginHorizontal: 4,
+  
     padding: 8,
   },
   footerButtonActive: {
@@ -32,7 +32,7 @@ export const styles = StyleSheet.create({
   },
 
   footerButtonTextActive: {
-    //color: COLORS.GRAY_DARK,
+   
     borderColor: "#9F0FA7",
     borderWidth: 2,
 

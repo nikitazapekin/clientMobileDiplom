@@ -41,7 +41,7 @@ export interface FullClientInfo {
 
 export interface CreateAvatarRequest {
   auditoryId: string;
-  imageData: string; // base64 без префикса
+  imageData: string;  
   mimeType: string;
 }
 

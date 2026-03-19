@@ -29,26 +29,22 @@ import { COLORS } from 'appStyles';
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 type FriendsProfileRouteProp = RouteProp<RootStackParamList, 'FriendsProfile'>;
-
-// Константы для отображения
+ 
 const SECTION_HORIZONTAL_MARGIN = 20;
 const SECTION_PADDING = 20;
 const certSlideWidth = Dimensions.get('window').width - (SECTION_HORIZONTAL_MARGIN + SECTION_PADDING) * 2;
-
-// Константы для круглого прогресс-бара
+ 
 const { width } = Dimensions.get("window");
 const CIRCLE_SIZE = width * 0.28;
 const CIRCLE_RADIUS = CIRCLE_SIZE / 2 - 10;
 const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * CIRCLE_RADIUS;
-
-// Цвета для сложности задач
+ 
 const DIFFICULTIES: Record<string, { label: string; color: string }> = {
   easy: { label: "Легкий", color: "#4caf50" },
   medium: { label: "Средний", color: "#ff9800" },
   hard: { label: "Сложный", color: "#f44336" },
 };
-
-// Компонент круглого прогресс-бара
+ 
 const CircularProgress = ({
   progress,
   level,
@@ -64,8 +60,7 @@ const CircularProgress = ({
   const center = CIRCLE_SIZE / 2;
   const radius = CIRCLE_RADIUS;
   const circumference = CIRCLE_CIRCUMFERENCE;
-
-  // Ограничиваем прогресс от 0 до 1
+ 
   const clampedProgress = Math.min(Math.max(progress, 0), 1);
   const strokeDashoffset = circumference * (1 - clampedProgress);
 
@@ -81,8 +76,7 @@ const CircularProgress = ({
           strokeWidth={strokeWidth}
           fill="none"
         />
-
-        {/* Прогресс (по часовой стрелке) */}
+ 
         <Circle
           cx={center}
           cy={center}
@@ -95,8 +89,7 @@ const CircularProgress = ({
           strokeLinecap="round"
           transform={`rotate(-90, ${center}, ${center})`}
         />
-
-        {/* Текст уровня в центре */}
+ 
         <SvgText
           x={center}
           y={center - 8}
@@ -128,8 +121,7 @@ const CircularProgress = ({
     </View>
   );
 };
-
-// Компонент карточки решенной задачи
+ 
 const SolvedTaskCard = ({
   task,
   solvedAt,
@@ -140,8 +132,7 @@ const SolvedTaskCard = ({
   onPress: () => void;
 }) => {
   const diffInfo = DIFFICULTIES[task.difficulty] || DIFFICULTIES.easy;
-
-  // Форматирование даты
+ 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -161,7 +152,7 @@ const SolvedTaskCard = ({
     >
       <View style={styles.taskHeader}>
         <Text style={styles.taskTitle} numberOfLines={1}>
-          ✅ {task.title}
+           {task.title}
         </Text>
         <View style={[styles.badge, { backgroundColor: diffInfo.color }]}>
           <Text style={styles.badgeText}>{diffInfo.label}</Text>
@@ -187,8 +178,7 @@ const SolvedTaskCard = ({
     </TouchableOpacity>
   );
 };
-
-// Компонент для отображения превью решенных задач (последние 4)
+ 
 const SolvedTasksPreview = ({
   solvedTasks,
   allTasks,
@@ -200,7 +190,7 @@ const SolvedTasksPreview = ({
   onViewAll: () => void;
   onTaskPress: (taskId: string) => void;
 }) => {
-  // Получаем последние 4 решенные задачи
+  
   const recentSolved = [...solvedTasks]
     .sort((a, b) => new Date(b.solvedAt).getTime() - new Date(a.solvedAt).getTime())
     .slice(0, 4);
@@ -233,9 +223,7 @@ const SolvedTasksPreview = ({
       })}
     </View>
   );
-};
-
-// Компонент модального окна со всеми решенными задачами
+}; 
 const AllSolvedTasksModal = ({
   visible,
   onClose,
@@ -249,7 +237,7 @@ const AllSolvedTasksModal = ({
   allTasks: CodeTask[];
   onTaskPress: (taskId: string) => void;
 }) => {
-  // Сортируем задачи по дате решения (сначала новые)
+  
   const sortedTasks = [...solvedTasks].sort(
     (a, b) => new Date(b.solvedAt).getTime() - new Date(a.solvedAt).getTime()
   );
@@ -317,8 +305,7 @@ const FriendsProfileScreen = () => {
   const [requestSent, setRequestSent] = useState(false);
   const [requestReceived, setRequestReceived] = useState(false);
   const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
-
-  // Состояния для сертификатов и задач
+ 
   const [certificates, setCertificates] = useState<CertificateResponse[]>([]);
   const [certificatesLoading, setCertificatesLoading] = useState(false);
   const [activeCertIndex, setActiveCertIndex] = useState(0);
@@ -339,11 +326,9 @@ const FriendsProfileScreen = () => {
         setError('User not authenticated');
         return;
       }
-
-      // Load profile
+ 
       const profileData = await FriendsService.getProfileByAuditoryId(auditoryId);
-
-      // Process avatar
+ 
       if (profileData.avatar) {
         if (profileData.avatar.imageUrl && !profileData.avatar.imageUrl.startsWith('data:')) {
           profileData.avatar.imageUrl = `data:${profileData.avatar.mimeType};base64,${profileData.avatar.imageUrl}`;
@@ -351,8 +336,7 @@ const FriendsProfileScreen = () => {
       }
 
       setProfile(profileData);
-
-      // Загружаем сертификаты
+ 
       setCertificatesLoading(true);
       try {
         const certs = await CertificateService.getCertificatesByAuditoryId(auditoryId);
@@ -362,8 +346,7 @@ const FriendsProfileScreen = () => {
       } finally {
         setCertificatesLoading(false);
       }
-
-      // Загружаем данные по задачам (используем clientId из профиля)
+ 
       setCodingLoading(true);
       try {
         const [tasksData, levelData] = await Promise.all([
@@ -379,23 +362,20 @@ const FriendsProfileScreen = () => {
       } finally {
         setCodingLoading(false);
       }
-
-      // Check friendship status
+ 
       const [friendshipStatus, pendingRequests] = await Promise.all([
         FriendsService.checkFriendship(myAuditoryId, auditoryId).catch(() => ({ isFriend: false })),
         FriendsService.getPendingFriendRequests(myAuditoryId).catch(() => []),
       ]);
 
       setIsFriend(friendshipStatus.isFriend);
-
-      // Check if there's a pending request from this user
+ 
       const requestFromUser = pendingRequests.find(req => req.senderId === profileData.clientId);
       if (requestFromUser) {
         setRequestReceived(true);
         setPendingRequestId(requestFromUser.id);
       }
-
-      // Check if we've sent a request to this user
+ 
       const sentRequests = await FriendsService.getSentFriendRequests(myAuditoryId).catch(() => []);
       const requestToUser = sentRequests.find(req => req.receiverId === profileData.clientId);
       if (requestToUser) {
@@ -470,7 +450,7 @@ const FriendsProfileScreen = () => {
 
   const handleSendMessage = () => {
     Alert.alert('Message', 'Chat feature coming soon!');
-    // TODO: Navigate to chat screen with this user
+  
   };
 
   const handleRemoveFriend = () => {
@@ -502,8 +482,7 @@ const FriendsProfileScreen = () => {
   const handleTaskPress = (taskId: string) => {
     navigation.navigate(ROUTES.STACK.CODING_SOLVE as any, { id: taskId });
   };
-
-  // Вычисляем данные для прогресс-бара
+ 
   const getRequiredExp = (level: number) => Math.pow(10, level - 1);
 
   const currentLevel = studentLevel?.level || 1;
@@ -534,7 +513,7 @@ const FriendsProfileScreen = () => {
   }
 
   const renderActionButton = () => {
-    // Already friends
+   
     if (isFriend) {
       return (
         <View style={styles.buttonContainer}>
@@ -542,24 +521,23 @@ const FriendsProfileScreen = () => {
             style={[styles.actionButton, styles.messageButton]}
             onPress={handleSendMessage}
           >
-            <Text style={styles.actionButtonText}>💬 Написать</Text>
+            <Text style={styles.actionButtonText}> Написать</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionButton, styles.removeButton]}
             onPress={handleRemoveFriend}
           >
-            <Text style={styles.actionButtonText}>❌ Удалить из друзей</Text>
+            <Text style={styles.actionButtonText}> Удалить из друзей</Text>
           </TouchableOpacity>
         </View>
       );
     }
-
-    // Request received (user sent us a request)
+ 
     if (requestReceived) {
       return (
         <View style={styles.buttonContainer}>
           <View style={styles.requestStatusContainer}>
-            <Text style={styles.requestStatusText}>📨 Заявка в друзья</Text>
+            <Text style={styles.requestStatusText}> Заявка в друзья</Text>
           </View>
           <TouchableOpacity
             style={[styles.actionButton, styles.acceptButton]}
@@ -576,38 +554,36 @@ const FriendsProfileScreen = () => {
         </View>
       );
     }
-
-    // Request sent (we sent a request)
+ 
     if (requestSent) {
       return (
         <View style={styles.buttonContainer}>
           <View style={[styles.requestStatusContainer, styles.sentStatusContainer]}>
-            <Text style={styles.requestStatusText}>📤 Заявка отправлена</Text>
+            <Text style={styles.requestStatusText}> Заявка отправлена</Text>
           </View>
           <TouchableOpacity
             style={[styles.actionButton, styles.cancelButton]}
             onPress={handleCancelRequest}
           >
-            <Text style={styles.actionButtonText}>↩️ Отозвать</Text>
+            <Text style={styles.actionButtonText}> Отозвать</Text>
           </TouchableOpacity>
         </View>
       );
     }
-
-    // Not friends, no pending requests
+ 
     return (
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={[styles.actionButton, styles.addButton]}
           onPress={handleSendFriendRequest}
         >
-          <Text style={styles.actionButtonText}>➕ Добавить в друзья</Text>
+          <Text style={styles.actionButtonText}>  Добавить в друзья</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionButton, styles.messageButton]}
           onPress={handleSendMessage}
         >
-          <Text style={styles.actionButtonText}>💬 Написать</Text>
+          <Text style={styles.actionButtonText}>  Написать</Text>
         </TouchableOpacity>
       </View>
     );
@@ -616,7 +592,7 @@ const FriendsProfileScreen = () => {
   return (
     <>
       <ScrollView style={styles.container}>
-        {/* Header with avatar */}
+      
         <View style={styles.header}>
         <View style={styles.avatarContainer}>
           {profile.avatar ? (
@@ -641,12 +617,11 @@ const FriendsProfileScreen = () => {
         <View style={styles.emailContainer}>
           <Text style={styles.email}>{profile.email}</Text>
         </View>
-
-        {/* Action Buttons */}
+ 
         {renderActionButton()}
       </View>
 
-      {/* Statistics */}
+   
       <View style={styles.statsContainer}>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
@@ -659,8 +634,7 @@ const FriendsProfileScreen = () => {
           <Text style={styles.statLabel}>Задач</Text>
         </View>
       </View>
-
-      {/* Секция с уровнем и прогрессом */}
+ 
       {!codingLoading && studentLevel && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Прогресс в задачах</Text>
@@ -674,8 +648,7 @@ const FriendsProfileScreen = () => {
           </View>
         </View>
       )}
-
-      {/* Превью решенных задач (последние 4) */}
+ 
       {!codingLoading &&
        studentLevel?.solvedTasks &&
        studentLevel.solvedTasks.length > 0 &&
@@ -687,8 +660,7 @@ const FriendsProfileScreen = () => {
           onTaskPress={handleTaskPress}
         />
       )}
-
-      {/* Сертификаты */}
+ 
       {certificatesLoading ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Сертификаты</Text>
@@ -746,7 +718,7 @@ const FriendsProfileScreen = () => {
         </View>
       ) : null}
 
-      {/* Personal Information */}
+       
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Личная информация</Text>
 
@@ -796,7 +768,7 @@ const FriendsProfileScreen = () => {
         </View>
       </View>
 
-      {/* Status Badge */}
+    
       <View style={styles.statusContainer}>
         <View style={[styles.statusBadge, profile.isActive ? styles.statusActive : styles.statusInactive]}>
           <Text style={styles.statusText}>
@@ -805,8 +777,7 @@ const FriendsProfileScreen = () => {
         </View>
       </View>
     </ScrollView>
-
-    {/* Модальное окно со всеми решенными задачами */}
+ 
     <AllSolvedTasksModal
       visible={showAllSolvedModal}
       onClose={() => setShowAllSolvedModal(false)}
@@ -1042,7 +1013,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  // Стили для круглого прогресс-бара
+  
   circularProgressContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -1076,7 +1047,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
   },
-  // Стили для карточек задач
+  
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1168,7 +1139,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
   },
-  // Стили для модального окна
+ 
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -1217,7 +1188,7 @@ const styles = StyleSheet.create({
     color: COLORS.GRAY_500,
     textAlign: 'center',
   },
-  // Стили для сертификатов
+ 
   certSection: {
     backgroundColor: '#fff',
     marginHorizontal: SECTION_HORIZONTAL_MARGIN,

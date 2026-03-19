@@ -38,7 +38,7 @@ export const styles = StyleSheet.create({
     color: COLORS.WHITE,
   },
 
-  // Achievements styles
+ 
   achievementsContainer: {
     padding: 16,
   },

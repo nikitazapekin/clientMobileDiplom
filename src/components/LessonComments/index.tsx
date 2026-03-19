@@ -51,7 +51,7 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
   };
 
   const fetchUserName = useCallback(async (userId: string): Promise<string> => {
-    // Check cache first
+ 
     const cachedName = userNamesCache.get(userId);
     if (cachedName) {
       return cachedName;
@@ -67,13 +67,12 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
     } catch (error) {
       console.error("Failed to fetch user name:", error);
     }
-
-    // Fallback to userId if fetch fails
+ 
     return `Пользователь ${userId.slice(0, 8)}`;
   }, [userNamesCache]);
 
   const loadUserNames = useCallback(async (commentsList: LessonComment[]) => {
-    // Collect all user IDs that need fetching (no firstName/lastName)
+     
     const userIdsToFetch = new Set<string>();
     
     for (const comment of commentsList) {
@@ -112,28 +111,23 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
     const idToUse = overrideLessonDetailsId ?? lessonDetailsId;
 
     if (!idToUse) {
-      console.log("⚠️ No lessonDetailsId available for loading comments");
+      console.log("No lessonDetailsId available for loading comments");
       return;
     }
 
-    console.log("📥 Loading comments for lessonDetailsId:", idToUse);
+    console.log("Loading comments for lessonDetailsId:", idToUse);
     setCommentsLoading(true);
     try {
       const data = await LessonCommentsService.getCommentsByLessonDetailsId(idToUse);
-      console.log("📬 Comments API response:", JSON.stringify(data, null, 2));
-      console.log("📬 Comments count:", data.comments?.length);
-      console.log("📬 Comments data:", data.comments);
-      console.log("📬 data.comments is array:", Array.isArray(data.comments));
-      console.log("📬 data.total:", data.total);
-      console.log("📬 data.canComment:", data.canComment);
+   
 
       if (!data.comments || !Array.isArray(data.comments)) {
-        console.error("❌ Comments is not an array:", data.comments);
-        console.error("❌ Full data:", JSON.stringify(data));
+        console.error("Comments is not an array:", data.comments);
+        console.error("Full data:", JSON.stringify(data));
         Alert.alert("Ошибка", "Неверный формат данных комментариев");
         setComments([]);
       } else {
-        console.log("✅ Setting comments:", data.comments.length, "items");
+        console.log("Setting comments:", data.comments.length, "items");
         if (data.comments.length > 0) {
           Alert.alert("Комментарии", `Загружено комментариев: ${data.comments.length}    `);
         }
@@ -141,8 +135,8 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
         await loadUserNames(data.comments);
       }
     } catch (error: any) {
-      console.error("❌ Failed to load comments:", error.response?.data || error.message);
-      console.error("❌ Full error:", JSON.stringify(error, null, 2));
+      console.error("Failed to load comments:", error.response?.data || error.message);
+      console.error("Full error:", JSON.stringify(error, null, 2));
       Alert.alert("Ошибка", "Не удалось загрузить комментарии: " + (error.response?.data?.message || error.message));
       setComments([]);
     } finally {
@@ -166,10 +160,10 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
         parentId: replyingTo?.id || null,
       });
 
-      console.log("✅ Comment created, reloading comments...");
+      console.log("Comment created, reloading comments...");
       setNewCommentText("");
       setReplyingTo(null);
-      // Force a fresh reload by clearing comments first
+  
       setComments([]);
       await loadComments(idToUse);
     } catch (error: any) {
@@ -178,10 +172,10 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
     }
   }, [newCommentText, lessonDetailsId, replyingTo, loadComments]);
 
-  // Effect to load comments when modal is open and lessonDetailsId becomes available
+ 
   useEffect(() => {
     if (visible && lessonDetailsId && !commentsLoadedRef.current && !commentsLoading) {
-      console.log("📥 Effect: Loading comments for lessonDetailsId:", lessonDetailsId);
+      console.log("Effect: Loading comments for lessonDetailsId:", lessonDetailsId);
       commentsLoadedRef.current = true;
       loadComments(lessonDetailsId);
     }
@@ -209,7 +203,6 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
       Alert.alert("Ошибка", "Не удалось поставить лайк");
     }
   }, []);
-
   const handleToggleDislike = useCallback(async (commentId: string) => {
     try {
       const updatedComment = await LessonCommentsService.toggleDislike(commentId);
@@ -297,7 +290,7 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
           ) : (
             <ScrollView nestedScrollEnabled={true} style={{ flex: 1, maxHeight: 350 }}>
               {comments.map((comment) => {
-                // Use firstName/lastName from comment if available, otherwise use cache
+          
                 const userName = comment.firstName && comment.lastName 
                   ? `${comment.lastName} ${comment.firstName}`
                   : userNamesCache.get(comment.userId) || `Пользователь ${comment.userId.slice(0, 8)}`;

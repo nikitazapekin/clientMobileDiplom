@@ -64,8 +64,7 @@ export const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
   },
-
-  // Стили для элементов карты
+ 
   imagePlaceholder: {
     width: '100%',
     height: '100%',
@@ -245,14 +244,13 @@ starText: {
   marginHorizontal: 2,
 },
 starFilledText: {
-  color: '#FFD700', // золотой
+  color: '#FFD700',  
 },
 starEmptyText: {
-  color: '#D3D3D3', // серый
+  color: '#D3D3D3', 
 },
  
-
-// Добавьте в конец файла со стилями
+ 
 
 certificateModalOverlay: {
   flex: 1,

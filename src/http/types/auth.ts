@@ -1,5 +1,5 @@
 export interface LoginRequest {
-  login: string; // В форме используется login, но бэкенд ожидает email
+  login: string;  
   password: string;
 }
 

@@ -68,7 +68,7 @@ export const SyncStorage = {
     keyValuePairs.forEach(([key, value]) => {
       initializedStorage[key] = value;
       DefaultPreference.set(key, value).catch((error) => {
-        console.log('❌ SyncStorage setMultiple error for key:', key, error);
+        console.log('  SyncStorage setMultiple error for key:', key, error);
       });
     });
   }

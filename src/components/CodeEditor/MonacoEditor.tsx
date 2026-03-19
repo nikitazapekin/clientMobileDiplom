@@ -95,7 +95,7 @@ const MonacoEditor = forwardRef<MonacoEditorRef, MonacoEditorProps>(
         );
       },
       getValue: () => {
-        // Note: Getting value requires async communication with WebView
+       
         return value;
       },
     }));

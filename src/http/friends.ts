@@ -55,11 +55,7 @@ export class FriendsService {
     };
   }
 
-  // ============= FRIENDS METHODS =============
-
-  /**
-   * Get all friends of a client by auditoryId
-   */
+   
   static async getFriendsByAuditoryId(clientAuditoryId: string): Promise<FriendResponse[]> {
     try {
       const token = await this.getToken();
@@ -74,10 +70,7 @@ export class FriendsService {
       throw new Error(error.response?.data?.message || 'Failed to fetch friends');
     }
   }
-
-  /**
-   * Search friends by name
-   */
+ 
   static async searchFriends(clientAuditoryId: string, query: string): Promise<FriendResponse[]> {
     try {
       const token = await this.getToken();
@@ -95,11 +88,7 @@ export class FriendsService {
       throw new Error(error.response?.data?.message || 'Failed to search friends');
     }
   }
-
-  /**
-   * Search users by name (for adding friends)
-   * Pass empty string to get all users
-   */
+ 
   static async searchUsers(query: string): Promise<FriendResponse[]> {
     try {
       const token = await this.getToken();
@@ -117,10 +106,7 @@ export class FriendsService {
       throw new Error(error.response?.data?.message || 'Failed to search users');
     }
   }
-
-  /**
-   * Add a friend (direct friendship - for testing)
-   */
+ 
   static async addFriend(clientAuditoryId: string, friendAuditoryId: string): Promise<FriendResponse> {
     try {
       const token = await this.getToken();
@@ -136,10 +122,7 @@ export class FriendsService {
       throw new Error(error.response?.data?.message || 'Failed to add friend');
     }
   }
-
-  /**
-   * Remove a friend
-   */
+ 
   static async removeFriend(clientAuditoryId: string, friendAuditoryId: string): Promise<void> {
     try {
       const token = await this.getToken();
@@ -155,10 +138,7 @@ export class FriendsService {
       throw new Error(error.response?.data?.message || 'Failed to remove friend');
     }
   }
-
-  /**
-   * Check if users are friends
-   */
+ 
   static async checkFriendship(clientAuditoryId: string, friendAuditoryId: string): Promise<{ isFriend: boolean }> {
     try {
       const token = await this.getToken();
@@ -176,12 +156,7 @@ export class FriendsService {
       throw new Error(error.response?.data?.message || 'Failed to check friendship');
     }
   }
-
-  // ============= FRIEND REQUESTS METHODS =============
-
-  /**
-   * Send a friend request
-   */
+ 
   static async sendFriendRequest(senderAuditoryId: string, receiverAuditoryId: string): Promise<FriendRequestResponse> {
     try {
       const token = await this.getToken();
@@ -197,10 +172,7 @@ export class FriendsService {
       throw new Error(error.response?.data?.message || 'Failed to send friend request');
     }
   }
-
-  /**
-   * Accept a friend request
-   */
+ 
   static async acceptFriendRequest(requestId: string): Promise<FriendResponse> {
     try {
       const token = await this.getToken();
@@ -216,10 +188,7 @@ export class FriendsService {
       throw new Error(error.response?.data?.message || 'Failed to accept friend request');
     }
   }
-
-  /**
-   * Reject a friend request
-   */
+ 
   static async rejectFriendRequest(requestId: string): Promise<FriendRequestResponse> {
     try {
       const token = await this.getToken();
@@ -235,10 +204,7 @@ export class FriendsService {
       throw new Error(error.response?.data?.message || 'Failed to reject friend request');
     }
   }
-
-  /**
-   * Get pending friend requests (received)
-   */
+ 
   static async getPendingFriendRequests(userAuditoryId: string): Promise<FriendRequestResponse[]> {
     try {
       const token = await this.getToken();
@@ -253,10 +219,7 @@ export class FriendsService {
       throw new Error(error.response?.data?.message || 'Failed to fetch pending friend requests');
     }
   }
-
-  /**
-   * Get sent friend requests
-   */
+ 
   static async getSentFriendRequests(userAuditoryId: string): Promise<FriendRequestResponse[]> {
     try {
       const token = await this.getToken();
@@ -271,10 +234,7 @@ export class FriendsService {
       throw new Error(error.response?.data?.message || 'Failed to fetch sent friend requests');
     }
   }
-
-  /**
-   * Cancel a sent friend request
-   */
+ 
   static async cancelFriendRequest(senderAuditoryId: string, receiverAuditoryId: string): Promise<void> {
     try {
       const token = await this.getToken();
@@ -290,10 +250,7 @@ export class FriendsService {
       throw new Error(error.response?.data?.message || 'Failed to cancel friend request');
     }
   }
-
-  /**
-   * Check if a pending friend request exists
-   */
+ 
   static async checkPendingRequest(senderAuditoryId: string, receiverAuditoryId: string): Promise<{ hasRequest: boolean }> {
     try {
       const token = await this.getToken();
@@ -311,10 +268,7 @@ export class FriendsService {
       throw new Error(error.response?.data?.message || 'Failed to check pending request');
     }
   }
-
-  /**
-   * Get full profile by auditoryId (for displaying friend profiles)
-   */
+ 
   static async getProfileByAuditoryId(auditoryId: string) {
     try {
       const token = await this.getToken();

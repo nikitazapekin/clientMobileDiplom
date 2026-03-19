@@ -72,10 +72,7 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
       throw new Error(error.response?.data?.message || "Failed to fetch profile");
     }
   }
-
-  /**
-   * Получение полной информации о клиенте по clientId
-   */
+ 
   static async getFullProfileByClientId(clientId: string): Promise<FullClientInfo> {
     try {
       const token = await this.getToken();
@@ -90,16 +87,11 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
       throw new Error(error.response?.data?.message || "Failed to fetch profile");
     }
   }
-
-  /**
-   * Получение информации о пользователе по userId (для комментариев)
-   * userId может быть как auditoryId (auth_...), так и clientId (client_...)
-   */
+ 
   static async getUserInfoByUserId(userId: string): Promise<{ firstName: string; lastName: string } | null> {
     try {
       const token = await this.getToken();
-      
-      // Если userId начинается с client_, используем clientId endpoint
+     
       if (userId.startsWith('client_')) {
         const response = await $api.get(
           `/profile/client/${userId}/full`,
@@ -111,7 +103,6 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
         };
       }
       
-      // Иначе пробуем найти по auditoryId
       const response = await $api.get(
         `/profile/client/auditory/${userId}/full`,
         this.getHeaders(token)
@@ -125,12 +116,7 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
       return null;
     }
   }
-
-  // ============= AVATAR METHODS =============
-
-  /**
-   * Создание аватара через base64 (РЕКОМЕНДУЕТСЯ ДЛЯ EXPO)
-   */
+ 
   static async createAvatarBase64(auditoryId: string, base64Image: string, mimeType: string): Promise<AvatarResponse> {
     try {
       const token = await this.getToken();
@@ -161,10 +147,7 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
       throw new Error(error.response?.data?.message || "Failed to create avatar");
     }
   }
-
-  /**
-   * Обновление аватара через base64
-   */
+ 
   static async updateAvatarBase64(avatarId: string, base64Image: string, mimeType: string): Promise<AvatarResponse> {
     try {
       const token = await this.getToken();
@@ -194,10 +177,7 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
       throw new Error(error.response?.data?.message || "Failed to update avatar");
     }
   }
-
-  /**
-   * Обновление аватара по ID пользователя через base64
-   */
+ 
   static async updateAvatarByAuditoryIdBase64(auditoryId: string, base64Image: string, mimeType: string): Promise<AvatarResponse> {
     try {
       const token = await this.getToken();
@@ -231,29 +211,29 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
   
   static async uploadAvatarBase64(auditoryId: string, base64Image: string, mimeType: string): Promise<AvatarResponse> {
     try {
-    // Проверяем, существует ли уже аватар
+    
       let existingAvatar: AvatarResponse | null = null;
 
       try {
         existingAvatar = await this.getAvatarByAuditoryId(auditoryId);
         console.log('Existing avatar found:', existingAvatar?.id);
       } catch (error: any) {
-      // Если ошибка 404 - аватара нет, создаем новый
+       
         if (error.message.includes('not found')) {
           console.log('No existing avatar, will create new one');
         } else {
-        // Другая ошибка - пробрасываем дальше
+      
           throw error;
         }
       }
 
       if (existingAvatar) {
-      // Обновляем существующий аватар
+    
         console.log('Updating existing avatar with ID:', existingAvatar.id);
 
         return await this.updateAvatarByAuditoryIdBase64(auditoryId, base64Image, mimeType);
       } else {
-      // Создаем новый аватар
+   
         console.log('Creating new avatar');
 
         return await this.createAvatarBase64(auditoryId, base64Image, mimeType);
@@ -263,9 +243,7 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
       throw error;
     }
   }
-  /**
-   * Загрузка аватара через multipart/form-data (старый метод, оставлен для совместимости)
-   */
+ 
   static async uploadAvatar(auditoryId: string, file: {
     uri: string;
     type: string;
@@ -278,7 +256,7 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
 
       formData.append('auditoryId', auditoryId);
 
-      // @ts-ignore - FormData в React Native работает иначе
+      // @ts-ignore 
       formData.append('file', {
         uri: file.uri,
         type: file.type || 'image/jpeg',
@@ -310,10 +288,7 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
       throw new Error(error.response?.data?.message || error.message || "Failed to upload avatar");
     }
   }
-
-  /**
-   * Получение аватара по ID
-   */
+ 
   static async getAvatarById(id: string): Promise<AvatarResponse> {
     try {
       const token = await this.getToken();
@@ -328,10 +303,7 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
       throw new Error(error.response?.data?.message || "Failed to fetch avatar");
     }
   }
-
-  /**
-   * Получение аватара по ID пользователя
-   */
+ 
   static async getAvatarByAuditoryId(auditoryId: string): Promise<AvatarResponse> {
     try {
       const token = await this.getToken();
@@ -343,15 +315,11 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
       return response.data;
     } catch (error: any) {
       console.error("Get avatar by user error:", error.response?.data || error.message);
-
-      // Пробрасываем ошибку для обработки в вызывающем коде
+ 
       throw new Error(error.response?.data?.message || "Failed to fetch avatar");
     }
   }
-
-  /**
-   * Обновление аватара по ID
-   */
+ 
   static async updateAvatar(id: string, data: UpdateAvatarRequest): Promise<AvatarResponse> {
     try {
       const token = await this.getToken();
@@ -367,10 +335,7 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
       throw new Error(error.response?.data?.message || "Failed to update avatar");
     }
   }
-
-  /**
-   * Обновление аватара по ID пользователя
-   */
+ 
   static async updateAvatarByAuditoryId(auditoryId: string, data: UpdateAvatarRequest): Promise<AvatarResponse> {
     try {
       const token = await this.getToken();
@@ -386,10 +351,7 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
       throw new Error(error.response?.data?.message || "Failed to update avatar");
     }
   }
-
-  /**
-   * Удаление аватара по ID
-   */
+ 
   static async deleteAvatar(id: string): Promise<{ success: boolean }> {
     try {
       const token = await this.getToken();
@@ -407,10 +369,7 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
       throw new Error(error.response?.data?.message || "Failed to delete avatar");
     }
   }
-
-  /**
-   * Удаление аватара по ID пользователя
-   */
+ 
   static async deleteAvatarByAuditoryId(auditoryId: string): Promise<{ success: boolean }> {
     try {
       const token = await this.getToken();
@@ -428,12 +387,7 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
       throw new Error(error.response?.data?.message || "Failed to delete avatar");
     }
   }
-
-  // ============= STUDENT RESULTS METHODS =============
-
-  /**
-   * Создание результата прохождения урока
-   */
+ 
   static async createStudentResult(data: CreateStudentResultRequest): Promise<StudentResultResponse> {
     try {
       const token = await this.getToken();
@@ -449,10 +403,7 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
       throw new Error(error.response?.data?.message || "Failed to create student result");
     }
   }
-
-  /**
-   * Получение результата по ID
-   */
+ 
   static async getStudentResultById(id: string): Promise<StudentResultResponse> {
     try {
       const token = await this.getToken();
@@ -602,10 +553,7 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
       );
     });
   }
-
-  /**
-   * Сделать фото с камеры с base64
-   */
+ 
   static async takePhotoWithCameraWithBase64(): Promise<{ base64: string; mimeType: string } | null> {
     return new Promise((resolve, reject) => {
       launchCamera(
@@ -638,16 +586,13 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
       );
     });
   }
-
-  /**
-   * Загрузить аватар с base64 (рекомендуемый метод)
-   */
+ 
   static async uploadAvatarWithBase64(
     auditoryId: string,
     imageSource: 'gallery' | 'camera'
   ): Promise<AvatarResponse> {
     try {
-      // Выбираем изображение с base64
+    
       const imageData = imageSource === 'gallery'
         ? await this.pickImageFromGalleryWithBase64()
         : await this.takePhotoWithCameraWithBase64();
@@ -660,8 +605,7 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
         mimeType: imageData.mimeType,
         base64Length: imageData.base64.length
       });
-
-      // Загружаем через base64
+ 
       const response = await this.uploadAvatarBase64(
         auditoryId,
         imageData.base64,

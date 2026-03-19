@@ -35,15 +35,15 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    position: "relative",     // Для позиционирования ошибки
-    minHeight: 20,            // Минимальная высота для ошибки
-    // backgroundColor: "red",
+    position: "relative",     
+    minHeight: 20,           
+ 
 
     gap: 10,
   },
 
   label: {
-    // Лейбл слева
+  
     zIndex: 1,
   },
 

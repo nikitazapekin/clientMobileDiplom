@@ -147,14 +147,14 @@ const CodingTaskSolver = ({ id }: Props) => {
           <Text style={st.constraintsTitle}>Ограничения</Text>
           {task.constraints.map((c, i) => (
             <Text key={i} style={st.constraintItem}>
-              {c.type === "maxTimeMs" && `⏱ Время: ${c.value}мс`}
-              {c.type === "maxLines" && `📏 Макс. строк: ${c.value}`}
-              {c.type === "forbiddenTokens" && `🚫 Запрещено: ${(c.value as string[]).join(", ")}`}
-              {c.type === "noComments" && "💬 Без комментариев"}
-              {c.type === "noConsoleLog" && "📢 Без console.log"}
-              {c.type === "maxComplexity" && `🔄 Макс. сложность: ${c.value}`}
-              {c.type === "memoryLimit" && `💾 Память: ${c.value} МБ`}
-              {c.type === "requiredKeywords" && `🔑 Обязательно: ${(c.value as string[]).join(", ")}`}
+              {c.type === "maxTimeMs" && `Время: ${c.value}мс`}
+              {c.type === "maxLines" && `Макс. строк: ${c.value}`}
+              {c.type === "forbiddenTokens" && `Запрещено: ${(c.value as string[]).join(", ")}`}
+              {c.type === "noComments" && "Без комментариев"}
+              {c.type === "noConsoleLog" && "Без console.log"}
+              {c.type === "maxComplexity" && `Макс. сложность: ${c.value}`}
+              {c.type === "memoryLimit" && `Память: ${c.value} МБ`}
+              {c.type === "requiredKeywords" && `Обязательно: ${(c.value as string[]).join(", ")}`}
             </Text>
           ))}
         </View>

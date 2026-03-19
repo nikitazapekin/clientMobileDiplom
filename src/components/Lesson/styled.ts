@@ -1,4 +1,4 @@
-// app/lesson/[id]/styles.ts
+ 
 import { StyleSheet } from "react-native";
 import { COLORS } from "appStyles";
 
@@ -15,7 +15,7 @@ export const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    // color: COLORS.GRAY,
+   
   },
   header: {
     padding: 20,
@@ -51,7 +51,7 @@ export const styles = StyleSheet.create({
   },
   progress: {
     fontSize: 14,
-    //  color: COLORS.GRAY,
+    
     textAlign: "right",
   },
   content: {
@@ -139,7 +139,7 @@ export const styles = StyleSheet.create({
   },
   passedTest: {
     backgroundColor: "#E8F5E9",
-  //  borderColor: COLORS.GREEN,
+  
   },
   failedTest: {
     backgroundColor: "#FFEBEE",
@@ -160,7 +160,7 @@ export const styles = StyleSheet.create({
   },
   passedConstraint: {
     backgroundColor: "#E8F5E9",
-  //  borderColor: COLORS.GREEN,
+  
   },
   failedConstraint: {
     backgroundColor: "#FFEBEE",
@@ -218,7 +218,7 @@ export const styles = StyleSheet.create({
     borderRadius: 8,
   },
   selectedOption: {
-  //  borderColor: COLORS.PURPLE,
+ 
     backgroundColor: "#F3E5F5",
   },
   optionRadio: {
@@ -226,7 +226,7 @@ export const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    //  borderColor: COLORS.GRAY,
+ 
     marginRight: 10,
     justifyContent: "center",
     alignItems: "center",
@@ -235,7 +235,7 @@ export const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    //    backgroundColor: COLORS.PURPLE,
+     
   },
   optionText: {
     fontSize: 16,
@@ -244,7 +244,7 @@ export const styles = StyleSheet.create({
   },
   correctText: {
     marginTop: 10,
-    //color: COLORS.GREEN,
+    
     fontSize: 16,
     fontWeight: "600",
   },
@@ -283,14 +283,14 @@ export const styles = StyleSheet.create({
   },
   modalCloseText: {
     fontSize: 20,
-    //   color: COLORS.GRAY,
+    
   },
   modalBody: {
     maxHeight: 300,
   },
   noSourcesText: {
     fontSize: 16,
-    //   color: COLORS.GRAY,
+ 
     textAlign: "center",
     padding: 20,
   },
@@ -309,7 +309,7 @@ export const styles = StyleSheet.create({
   },
   sourceNote: {
     fontSize: 14,
-  //  color: COLORS.GRAY,
+  
   },
   unknownBlock: {
     padding: 10,
@@ -319,7 +319,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // Добавьте эти стили в ваш файл styled.ts
+ 
 
   image: {
     width: '100%',
@@ -359,8 +359,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
 
-  // Добавьте в конец файла styles.ts
-
+ 
   starsContainer: {
     position: 'relative',
     height: 100,
@@ -648,8 +647,7 @@ export const styles = StyleSheet.create({
     color: COLORS.BLACK,
     fontWeight: '600',
   },
-
-  // Стили для отображения схемы аргументов
+ 
   argumentSchemeInfo: {
     marginBottom: 10,
     padding: 10,
@@ -669,8 +667,7 @@ export const styles = StyleSheet.create({
     color: '#333',
     fontFamily: 'monospace',
   },
-
-  // Стили для описания классов объектов
+ 
   objectDescriptions: {
     marginBottom: 10,
     padding: 10,
@@ -696,8 +693,7 @@ export const styles = StyleSheet.create({
     fontFamily: 'monospace',
     color: '#333',
   },
-
-  // Стили для отображения ограничений
+ 
   constraintsInfo: {
     marginBottom: 10,
     padding: 10,

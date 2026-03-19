@@ -1,4 +1,4 @@
-// app/lesson/[id]/types.ts
+ 
 export type SlideType = "lesson" | "test";
 
 export interface Slide {

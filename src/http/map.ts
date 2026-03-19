@@ -126,9 +126,9 @@ export class MapService {
     try {
       const token = await this.getToken();
 
-      // Если это временный ID, пробуем найти реальный ID
+    
       if (elementId.startsWith("temp_")) {
-        console.warn("⚠️ Попытка обновить элемент с временным ID:", elementId);
+        console.warn(" Попытка обновить элемент с временным ID:", elementId);
         throw new Error("Элемент еще не сохранен на сервере");
       }
 
@@ -138,7 +138,7 @@ export class MapService {
     } catch (error: any) {
       console.error("Update map element error:", error.response?.data || error.message);
 
-      // Более подробная информация об ошибке
+       
       if (error.response?.status === 404) {
         console.error(`Элемент с ID ${elementId} не найден на сервере`);
         throw new Error(`Элемент с ID ${elementId} не найден. Возможно, он был удален.`);
@@ -153,7 +153,7 @@ export class MapService {
       const token = await this.getToken();
 
       if (elementId.startsWith("temp_")) {
-        console.warn("⚠️ Попытка удалить элемент с временным ID:", elementId);
+        console.warn(" Попытка удалить элемент с временным ID:", elementId);
 
         return { success: true };
       }
@@ -165,7 +165,7 @@ export class MapService {
       console.error("Delete map element error:", error.response?.data || error.message);
 
       if (error.response?.status === 404) {
-        return { success: true }; // Элемент уже удален
+        return { success: true };  
       }
 
       throw new Error(error.response?.data?.message || "Failed to delete map element");

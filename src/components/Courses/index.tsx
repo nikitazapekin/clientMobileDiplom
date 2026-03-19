@@ -1,4 +1,4 @@
-// screens/CoursesList.tsx
+
 import React, { useCallback, useEffect, useRef,useState } from 'react';
 import {
   ActivityIndicator,
@@ -108,7 +108,6 @@ const CoursesList = () => {
     <Course item={item} />
   );
 
-  // Фиксированная панель поиска и фильтров
   const renderFixedHeader = () => (
     <View style={styles.fixedHeader}>
       <View style={styles.header}>
@@ -154,7 +153,6 @@ const CoursesList = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Отображение активных фильтров */}
       {filters.status && (
         <View style={styles.activeFilters}>
           <View style={styles.activeFilterTag}>
@@ -198,10 +196,10 @@ const CoursesList = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
       >
-        {/* Фиксированная панель поиска */}
+       
         {renderFixedHeader()}
 
-        {/* Список курсов */}
+    
         <FlatList
           data={courses}
           renderItem={renderCourse}

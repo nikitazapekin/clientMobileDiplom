@@ -1,5 +1,4 @@
-// UserProfile.tsx (обновленная версия)
-
+ 
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -33,21 +32,18 @@ import type { RootStackParamList } from '@/navigation/types';
 const SECTION_HORIZONTAL_MARGIN = 20;
 const SECTION_PADDING = 20;
 const certSlideWidth = Dimensions.get('window').width - (SECTION_HORIZONTAL_MARGIN + SECTION_PADDING) * 2;
-
-// Константы для круглого прогресс-бара
+ 
 const { width } = Dimensions.get("window");
 const CIRCLE_SIZE = width * 0.28;
 const CIRCLE_RADIUS = CIRCLE_SIZE / 2 - 10;
 const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * CIRCLE_RADIUS;
-
-// Цвета для сложности задач
+ 
 const DIFFICULTIES: Record<string, { label: string; color: string }> = {
   easy: { label: "Легкий", color: "#4caf50" },
   medium: { label: "Средний", color: "#ff9800" },
   hard: { label: "Сложный", color: "#f44336" },
 };
-
-// Компонент круглого прогресс-бара
+ 
 const CircularProgress = ({ 
   progress, 
   level, 
@@ -63,15 +59,14 @@ const CircularProgress = ({
   const center = CIRCLE_SIZE / 2;
   const radius = CIRCLE_RADIUS;
   const circumference = CIRCLE_CIRCUMFERENCE;
-  
-  // Ограничиваем прогресс от 0 до 1
+   
   const clampedProgress = Math.min(Math.max(progress, 0), 1);
   const strokeDashoffset = circumference * (1 - clampedProgress);
 
   return (
     <View style={styles.circularProgressContainer}>
       <Svg width={CIRCLE_SIZE} height={CIRCLE_SIZE} viewBox={`0 0 ${CIRCLE_SIZE} ${CIRCLE_SIZE}`}>
-        {/* Фоновый круг */}
+       
         <Circle
           cx={center}
           cy={center}
@@ -81,7 +76,6 @@ const CircularProgress = ({
           fill="none"
         />
         
-        {/* Прогресс (по часовой стрелке) */}
         <Circle
           cx={center}
           cy={center}
@@ -95,7 +89,7 @@ const CircularProgress = ({
           transform={`rotate(-90, ${center}, ${center})`}
         />
         
-        {/* Текст уровня в центре */}
+        
         <SvgText
           x={center}
           y={center - 8}
@@ -127,8 +121,7 @@ const CircularProgress = ({
     </View>
   );
 };
-
-// Компонент карточки решенной задачи (в том же стиле, что и в списке задач)
+ 
 const SolvedTaskCard = ({ 
   task, 
   solvedAt,
@@ -139,8 +132,7 @@ const SolvedTaskCard = ({
   onPress: () => void;
 }) => {
   const diffInfo = DIFFICULTIES[task.difficulty] || DIFFICULTIES.easy;
-  
-  // Форматирование даты
+   
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -160,7 +152,7 @@ const SolvedTaskCard = ({
     >
       <View style={styles.taskHeader}>
         <Text style={styles.taskTitle} numberOfLines={1}>
-          ✅ {task.title}
+          {task.title}
         </Text>
         <View style={[styles.badge, { backgroundColor: diffInfo.color }]}>
           <Text style={styles.badgeText}>{diffInfo.label}</Text>
@@ -187,7 +179,6 @@ const SolvedTaskCard = ({
   );
 };
 
-// Компонент для отображения превью решенных задач (последние 4)
 const SolvedTasksPreview = ({ 
   solvedTasks, 
   allTasks,
@@ -199,7 +190,7 @@ const SolvedTasksPreview = ({
   onViewAll: () => void;
   onTaskPress: (taskId: string) => void;
 }) => {
-  // Получаем последние 4 решенные задачи
+
   const recentSolved = [...solvedTasks]
     .sort((a, b) => new Date(b.solvedAt).getTime() - new Date(a.solvedAt).getTime())
     .slice(0, 4);
@@ -234,7 +225,6 @@ const SolvedTasksPreview = ({
   );
 };
 
-// Компонент модального окна со всеми решенными задачами
 const AllSolvedTasksModal = ({ 
   visible, 
   onClose, 
@@ -248,7 +238,7 @@ const AllSolvedTasksModal = ({
   allTasks: CodeTask[];
   onTaskPress: (taskId: string) => void;
 }) => {
-  // Сортируем задачи по дате решения (сначала новые)
+  
   const sortedTasks = [...solvedTasks].sort(
     (a, b) => new Date(b.solvedAt).getTime() - new Date(a.solvedAt).getTime()
   );
@@ -291,7 +281,7 @@ const AllSolvedTasksModal = ({
             }}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyIcon}>📚</Text>
+          
                 <Text style={styles.emptyText}>У вас еще нет решенных задач</Text>
               </View>
             }
@@ -313,8 +303,7 @@ const UserProfile = () => {
   const [certificates, setCertificates] = useState<CertificateResponse[]>([]);
   const [certificatesLoading, setCertificatesLoading] = useState(false);
   const [activeCertIndex, setActiveCertIndex] = useState(0);
-  
-  // Состояния для задач и уровня
+
   const [codingTasks, setCodingTasks] = useState<CodeTask[]>([]);
   const [studentLevel, setStudentLevel] = useState<StudentLevel | null>(null);
   const [codingLoading, setCodingLoading] = useState(false);
@@ -334,7 +323,6 @@ const UserProfile = () => {
 
       const profileData = await ProfileService.getFullProfileByAuditoryId(auditoryId);
 
-      // Проверяем и обрабатываем аватар
       if (profileData.avatar) {
         if (profileData.avatar.imageUrl && !profileData.avatar.imageUrl.startsWith('data:')) {
           profileData.avatar.imageUrl = `data:${profileData.avatar.mimeType};base64,${profileData.avatar.imageUrl}`;
@@ -343,7 +331,6 @@ const UserProfile = () => {
 
       setProfile(profileData);
 
-      // Загружаем сертификаты
       setCertificatesLoading(true);
       try {
         const certs = await CertificateService.getCertificatesByAuditoryId(auditoryId);
@@ -354,7 +341,6 @@ const UserProfile = () => {
         setCertificatesLoading(false);
       }
 
-      // Загружаем данные по задачам
       setCodingLoading(true);
       try {
         const [tasksData, levelData] = await Promise.all([
@@ -472,7 +458,7 @@ const UserProfile = () => {
     </TouchableOpacity>
   );
 
-  // Вычисляем данные для прогресс-бара
+  
   const getRequiredExp = (level: number) => Math.pow(10, level - 1);
   
   const currentLevel = studentLevel?.level || 1;
@@ -494,7 +480,7 @@ const UserProfile = () => {
   if (error) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.errorIcon}>⚠️</Text>
+     
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={loadProfile}>
           <Text style={styles.retryButtonText}>Try Again</Text>
@@ -502,7 +488,6 @@ const UserProfile = () => {
       </View>
     );
   }
-
   if (!profile) {
     return (
       <View style={styles.centerContainer}>
@@ -560,7 +545,7 @@ const UserProfile = () => {
             <Text style={styles.email}>{profile.email}</Text>
           </View>
 
-          {/* Кнопка "Мои друзья" */}
+        
           <TouchableOpacity
             style={styles.friendsButton}
             onPress={() => {
@@ -571,7 +556,6 @@ const UserProfile = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Статистика пользователя */}
         <View style={styles.statsContainer}>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
@@ -585,7 +569,6 @@ const UserProfile = () => {
           </View>
         </View>
 
-        {/* Секция с уровнем и прогрессом */}
         {!codingLoading && studentLevel && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Мой прогресс в задачах</Text>
@@ -600,7 +583,6 @@ const UserProfile = () => {
           </View>
         )}
 
-        {/* Превью решенных задач (последние 4) */}
         {!codingLoading && 
          studentLevel?.solvedTasks && 
          studentLevel.solvedTasks.length > 0 && 
@@ -613,7 +595,6 @@ const UserProfile = () => {
           />
         )}
 
-        {/* Личная информация */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Личная информация</Text>
 
@@ -663,7 +644,6 @@ const UserProfile = () => {
           </View>
         </View>
 
-        {/* Сертификаты */}
         {certificatesLoading ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Сертификаты</Text>
@@ -721,7 +701,6 @@ const UserProfile = () => {
           </View>
         ) : null}
 
-        {/* Status Badge */}
         <View style={styles.statusContainer}>
           <View style={[styles.statusBadge, profile.isActive ? styles.statusActive : styles.statusInactive]}>
             <Text style={styles.statusText}>
@@ -730,7 +709,6 @@ const UserProfile = () => {
           </View>
         </View>
 
-        {/* Кнопка выхода */}
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={() => {
@@ -763,8 +741,7 @@ const UserProfile = () => {
           onAvatarUploaded={handleAvatarUploaded}
         />
       )}
-
-      {/* Модальное окно со всеми решенными задачами */}
+      
       <AllSolvedTasksModal
         visible={showAllSolvedModal}
         onClose={() => setShowAllSolvedModal(false)}
@@ -1086,7 +1063,6 @@ const styles = StyleSheet.create({
     width: 20,
   },
 
-  // Стили для модального окна
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -1136,7 +1112,6 @@ const styles = StyleSheet.create({
     padding: 20,
   },
 
-  // Стили для карточек задач (скопированы из CodingTasksList)
   taskCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -1220,7 +1195,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 
-  // Стили для прогресс-бара
   levelSection: {
     alignItems: 'center',
     paddingVertical: 10,
@@ -1254,7 +1228,6 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
 
-  // Стили для пустого состояния
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -1270,7 +1243,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Стили для звезд и результатов уроков
   starsContainer: {
     flexDirection: 'row',
   },

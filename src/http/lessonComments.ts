@@ -38,11 +38,7 @@ export default class LessonCommentsService {
   private static async getToken(): Promise<string | null> {
     return await AsyncStorage.getItem("accessToken");
   }
-
-  /**
-   * Получить все комментарии к уроку с древовидной структурой
-   * @param lessonDetailsId - ID lesson_details
-   */
+ 
   static async getCommentsByLessonDetailsId(
     lessonDetailsId: string
   ): Promise<LessonCommentsWithMeta> {
@@ -63,11 +59,7 @@ console.log(" Response data COMMMMMENSTSSS:", response.data);
       throw new Error(error.response?.data?.message || "Failed to fetch lesson comments");
     }
   }
-
-  /**
-   * Создать комментарий к уроку
-   * @param dto - данные комментария
-   */
+ 
   static async createComment(dto: CreateLessonCommentDto): Promise<LessonComment> {
     try {
       const token = await this.getToken();
@@ -87,12 +79,7 @@ console.log(" Response data COMMMMMENSTSSS:", response.data);
       throw new Error(error.response?.data?.message || "Failed to create lesson comment");
     }
   }
-
-  /**
-   * Обновить комментарий
-   * @param id - ID комментария
-   * @param content - новый текст комментария
-   */
+ 
   static async updateComment(id: string, content: string): Promise<LessonComment> {
     try {
       const token = await this.getToken();
@@ -112,11 +99,7 @@ console.log(" Response data COMMMMMENSTSSS:", response.data);
       throw new Error(error.response?.data?.message || "Failed to update lesson comment");
     }
   }
-
-  /**
-   * Удалить комментарий
-   * @param id - ID комментария
-   */
+ 
   static async deleteComment(id: string): Promise<{ success: boolean }> {
     try {
       const token = await this.getToken();
@@ -135,11 +118,7 @@ console.log(" Response data COMMMMMENSTSSS:", response.data);
       throw new Error(error.response?.data?.message || "Failed to delete lesson comment");
     }
   }
-
-  /**
-   * Поставить/убрать лайк комментарию
-   * @param id - ID комментария
-   */
+ 
   static async toggleLike(id: string): Promise<LessonComment> {
     try {
       const token = await this.getToken();
@@ -159,11 +138,7 @@ console.log(" Response data COMMMMMENSTSSS:", response.data);
       throw new Error(error.response?.data?.message || "Failed to toggle like");
     }
   }
-
-  /**
-   * Поставить/убрать дизлайк комментарию
-   * @param id - ID комментария
-   */
+ 
   static async toggleDislike(id: string): Promise<LessonComment> {
     try {
       const token = await this.getToken();

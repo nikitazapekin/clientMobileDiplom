@@ -26,27 +26,22 @@ type TabType = 'my-friends' | 'find-friends' | 'requests';
 const FriendsScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   
-  // Tab state
   const [activeTab, setActiveTab] = useState<TabType>('my-friends');
   
-  // Friends state
   const [friends, setFriends] = useState<FriendResponse[]>([]);
   const [pendingRequests, setPendingRequests] = useState<FriendRequestResponse[]>([]);
-  
-  // Find friends state (all users)
+   
   const [allUsers, setAllUsers] = useState<FriendResponse[]>([]);
-  
-  // Loading states
+   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   
-  // Search states
+ 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<FriendResponse[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  
-  // User state
+   
   const [userAuditoryId, setUserAuditoryId] = useState<string | null>(null);
 
   const loadFriends = useCallback(async () => {
@@ -87,7 +82,7 @@ const FriendsScreen = () => {
 
       setUserAuditoryId(auditoryId);
 
-      // Load all users (search with empty query returns all)
+    
       const usersData = await FriendsService.searchUsers('');
       setAllUsers(usersData);
       setError(null);
@@ -106,7 +101,7 @@ const FriendsScreen = () => {
     } else if (activeTab === 'find-friends') {
       await loadAllUsers();
     } else {
-      // requests tab - just load requests
+    
       await loadFriends();
     }
   }, [activeTab, loadFriends, loadAllUsers]);
@@ -132,11 +127,11 @@ const FriendsScreen = () => {
     try {
       setIsSearching(true);
       if (activeTab === 'my-friends') {
-        // Search among my friends
+    
         const results = await FriendsService.searchFriends(userAuditoryId, searchQuery);
         setSearchResults(results);
       } else if (activeTab === 'find-friends') {
-        // Search among all users
+      
         const results = await FriendsService.searchUsers(searchQuery);
         setSearchResults(results);
       }
@@ -214,14 +209,13 @@ const FriendsScreen = () => {
     if (!userAuditoryId) return;
 
     try {
-      // Check if already friends
+   
       const friendshipStatus = await FriendsService.checkFriendship(userAuditoryId, friendAuditoryId);
       if (friendshipStatus.isFriend) {
         Alert.alert('Info', 'This user is already your friend');
         return;
       }
-
-      // Check if there's already a pending request
+ 
       const pendingRequest = await FriendsService.checkPendingRequest(userAuditoryId, friendAuditoryId);
       if (pendingRequest.hasRequest) {
         Alert.alert('Info', 'Friend request already sent');
@@ -410,7 +404,7 @@ const FriendsScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Tab Buttons */}
+   
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tabButton, isMyFriendsTab && styles.tabButtonActive]}
@@ -462,7 +456,7 @@ const FriendsScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Search Bar - hidden on requests tab */}
+   
       {!isRequestsTab && (
         <View style={styles.searchContainer}>
           <TextInput
@@ -474,8 +468,7 @@ const FriendsScreen = () => {
           />
         </View>
       )}
-
-      {/* Requests Tab */}
+ 
       {isRequestsTab && (
         <FlatList
           data={pendingRequests}
@@ -493,8 +486,7 @@ const FriendsScreen = () => {
           contentContainerStyle={styles.listContent}
         />
       )}
-
-      {/* My Friends / Find Friends / Search Results Tabs */}
+ 
       {!isRequestsTab && (
         <FlatList
           data={currentData as FriendResponse[]}

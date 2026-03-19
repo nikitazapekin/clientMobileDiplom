@@ -17,9 +17,9 @@ export default function ChatsScreen() {
       <View style={styles.containerLight}>
         <Header title="Chats" />
 
-        {/* Content */}
+     
         <View style={styles.content}>
-          {/* Chats content goes here */}
+         
         </View>
 
         <Footer activeTab={activeTab} />

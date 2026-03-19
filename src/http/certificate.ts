@@ -1,8 +1,7 @@
 import { Platform, Linking, Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import $api, { BASE_URL } from "./api";
-
-// Типы для сертификатов
+ 
 export interface CertificateResponse {
   id: string;
   clientId: string;
@@ -47,15 +46,12 @@ export class CertificateService {
       },
     };
   }
-
-  /**
-   * Создание нового сертификата
-   */
+ 
   static async createCertificate(data: CreateCertificateRequest): Promise<CertificateResponse> {
     try {
       const token = await this.getToken();
       
-      console.log("📝 Creating certificate:", {
+      console.log("Creating certificate:", {
         auditoryId: data.auditoryId,
         studentName: data.studentName,
         courseName: data.courseName
@@ -67,17 +63,14 @@ export class CertificateService {
         this.getHeaders(token)
       );
       
-      console.log("✅ Certificate created:", response.data);
+      console.log("Certificate created:", response.data);
       return response.data;
     } catch (error: any) {
-      console.error("❌ Create certificate error:", error.response?.data || error.message);
+      console.error("Create certificate error:", error.response?.data || error.message);
       throw new Error(error.response?.data?.message || "Failed to create certificate");
     }
   }
 
-  /**
-   * Отметить сертификат как просмотренный
-   */
   static async setIsViewed(id: string): Promise<CertificateResponse> {
     try {
       const token = await this.getToken();
@@ -88,26 +81,20 @@ export class CertificateService {
       );
       return response.data;
     } catch (error: any) {
-      console.error("❌ setIsViewed error:", error.response?.data || error.message);
+      console.error("setIsViewed error:", error.response?.data || error.message);
       throw new Error(error.response?.data?.message || "Failed to set isViewed");
     }
   }
 
-  /**
-   * Получение URL изображения сертификата
-   */
   static getCertificateImageUrl(id: string): string {
     return `${BASE_URL}/certificates/${id}`;
   }
-
-  /**
-   * Получение всех сертификатов по auditoryId
-   */
+ 
   static async getCertificatesByAuditoryId(auditoryId: string): Promise<CertificateResponse[]> {
     try {
       const token = await this.getToken();
       
-      console.log("📥 Fetching certificates for auditory:", auditoryId);
+      console.log("Fetching certificates for auditory:", auditoryId);
       
       const response = await $api.get(
         `/certificates/auditory/${auditoryId}`,
@@ -116,14 +103,11 @@ export class CertificateService {
       
       return response.data;
     } catch (error: any) {
-      console.error("❌ Get certificates error:", error.response?.data || error.message);
+      console.error("Get certificates error:", error.response?.data || error.message);
       throw new Error(error.response?.data?.message || "Failed to fetch certificates");
     }
   }
 
-  /**
-   * Получение всех сертификатов по clientId
-   */
   static async getCertificatesByClientId(clientId: string): Promise<CertificateResponse[]> {
     try {
       const token = await this.getToken();
@@ -135,14 +119,13 @@ export class CertificateService {
       
       return response.data;
     } catch (error: any) {
-      console.error("❌ Get certificates error:", error.response?.data || error.message);
+      console.error("Get certificates error:", error.response?.data || error.message);
       throw new Error(error.response?.data?.message || "Failed to fetch certificates");
     }
   }
 
-  /**
-   * Создание сертификата для студента
-   */
+
+  
   static async createStudentCertificate(
     auditoryId: string,
     studentName: string,
@@ -160,14 +143,12 @@ export class CertificateService {
     return this.createCertificate(data);
   }
 
-  /**
-   * Открыть сертификат в браузере
-   */
+  
   static async openDigitalVersion(id: string): Promise<void> {
     try {
       const imageUrl = this.getCertificateImageUrl(id);
       
-      console.log("🌐 Opening certificate:", imageUrl);
+      console.log(" Opening certificate:", imageUrl);
       
       const supported = await Linking.canOpenURL(imageUrl);
       
@@ -177,45 +158,38 @@ export class CertificateService {
         Alert.alert("Ошибка", "Не удалось открыть ссылку");
       }
     } catch (error: any) {
-      console.error("❌ Open certificate error:", error);
+      console.error(" Open certificate error:", error);
       Alert.alert("Ошибка", "Не удалось открыть сертификат");
     }
   }
-
-  /**
-   * Поделиться сертификатом
-   */
+ 
   static async shareCertificate(id: string, title?: string): Promise<void> {
     try {
       const imageUrl = this.getCertificateImageUrl(id);
       
-      console.log("📤 Sharing certificate URL:", imageUrl);
+      console.log(" Sharing certificate URL:", imageUrl);
       
      
-      console.log("✅ Certificate shared");
+      console.log(" Certificate shared");
     } catch (error: any) {
-      console.error("❌ Share certificate error:", error);
+      console.error(" Share certificate error:", error);
       
       if (error.message !== 'User cancelled') {
         Alert.alert("Ошибка", "Не удалось поделиться сертификатом");
       }
     }
   }
-
-  /**
-   * Сохранить сертификат в галерею (альтернатива скачиванию)
-   */
+ 
   static async saveToGallery(id: string): Promise<void> {
     try {
       const imageUrl = this.getCertificateImageUrl(id);
       
-      console.log("💾 Saving to gallery:", imageUrl);
+      console.log(" Saving to gallery:", imageUrl);
       
      
     } catch (error: any) {
-      console.error("❌ Save to gallery error:", error);
+      console.error(" Save to gallery error:", error);
       
-      // Если не получается сохранить в галерею, предлагаем открыть в браузере
       Alert.alert(
         "Ошибка сохранения",
         "Не удалось сохранить в галерею. Хотите открыть сертификат в браузере?",

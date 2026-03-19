@@ -1,4 +1,4 @@
-// components/AvatarPicker.tsx
+ 
 
 import React, { useState } from 'react';
 import {
@@ -30,8 +30,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
   onAvatarUploaded,
 }) => {
   const [loading, setLoading] = useState(false);
-
-  // Запрос разрешений для галереи
+ 
   const requestGalleryPermission = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
@@ -59,8 +58,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
 
     return true;
   };
-
-  // Запрос разрешений для камеры
+ 
   const requestCameraPermission = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
 
@@ -91,14 +89,13 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
 
   const handleSelectFromGallery = async () => {
     try {
-      // Проверяем разрешения
+      
       const hasPermission = await requestGalleryPermission();
 
       if (!hasPermission) return;
 
       console.log('Opening gallery...');
-
-      // Открываем галерею
+ 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -114,8 +111,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
         const asset = result.assets[0];
 
         setLoading(true);
-
-        // Создаем файл для загрузки
+ 
         const file = {
           uri: asset.uri,
           type: 'image/jpeg',
@@ -123,8 +119,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
         };
 
         console.log('Uploading file:', file);
-
-        // Загружаем на сервер
+ 
         const uploadResponse = await ProfileService.uploadAvatar(auditoryId, file);
 
         if (uploadResponse && uploadResponse.imageUrl) {
@@ -143,14 +138,13 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
 
   const handleTakePhoto = async () => {
     try {
-      // Проверяем разрешения
+     
       const hasPermission = await requestCameraPermission();
 
       if (!hasPermission) return;
 
       console.log('Opening camera...');
-
-      // Открываем камеру
+ 
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         aspect: [1, 1],
@@ -165,8 +159,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
         const asset = result.assets[0];
 
         setLoading(true);
-
-        // Создаем файл для загрузки
+ 
         const file = {
           uri: asset.uri,
           type: 'image/jpeg',
@@ -174,8 +167,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
         };
 
         console.log('Uploading file:', file);
-
-        // Загружаем на сервер
+ 
         const uploadResponse = await ProfileService.uploadAvatar(auditoryId, file);
 
         if (uploadResponse && uploadResponse.imageUrl) {
@@ -242,7 +234,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
                 style={styles.optionButton}
                 onPress={handleSelectFromGallery}
               >
-                <Text style={styles.optionIcon}>🖼️</Text>
+              
                 <Text style={styles.optionText}>Выбрать из галереи</Text>
               </TouchableOpacity>
 
@@ -250,7 +242,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
                 style={styles.optionButton}
                 onPress={handleTakePhoto}
               >
-                <Text style={styles.optionIcon}>📷</Text>
+               
                 <Text style={styles.optionText}>Сделать фото</Text>
               </TouchableOpacity>
 
@@ -258,7 +250,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
                 style={[styles.optionButton, styles.removeButton]}
                 onPress={handleRemoveAvatar}
               >
-                <Text style={styles.optionIcon}>🗑️</Text>
+               
                 <Text style={[styles.optionText, styles.removeText]}>
                   Удалить аватар
                 </Text>

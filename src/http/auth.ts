@@ -7,9 +7,9 @@ export default class AuthService {
   static async login(credentials: LoginRequest): Promise<AuthResponse> {
     try {
       console.log("Attempting login...");
-      // Бэкенд ожидает email, а не login
+    
       const response = await $api.post<AuthResponse>("/auth/login", {
-        email: credentials.login, // Преобразуем login в email
+        email: credentials.login, 
         password: credentials.password
       });
 
@@ -33,7 +33,7 @@ export default class AuthService {
 
   static async register(userData: RegisterRequest): Promise<AuthResponse> {
     try {
-      // Приводим данные к формату, который ожидает бэкенд
+   
       const registerData = {
         email: userData.email,
         password: userData.password,
@@ -64,7 +64,7 @@ export default class AuthService {
 
   static async refreshToken(): Promise<string> {
     try {
-      // Refresh token автоматически отправляется через cookies
+    
       const response = await $api.post<AuthResponse>("/auth/refresh");
 
       if (response.data.accessToken) {
@@ -136,7 +136,7 @@ export default class AuthService {
         return false;
       }
 
-      // Проверяем валидность токена на сервере
+     
       await this.validateToken();
 
       return true;

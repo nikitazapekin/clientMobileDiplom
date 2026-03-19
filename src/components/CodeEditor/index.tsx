@@ -82,10 +82,9 @@ const COLORS = {
   autocompleteBorder: '#374151',
   autocompleteSelected: '#2D3748',
 };
-
-// Более моноширинный шрифт
+ 
 const FONT_FAMILY = Platform.select({
-  ios: 'Courier', // Самый моноширинный шрифт на iOS
+  ios: 'Courier', 
   android: 'monospace',
   default: 'monospace',
 });
@@ -95,15 +94,13 @@ const LINE_HEIGHT = 20;
 const PADDING_VERTICAL = 8;
 const PADDING_HORIZONTAL = 8;
 const LINE_NUMBER_WIDTH = 40;
-
-// Общий letter-spacing для обоих слоев
+ 
 const LETTER_SPACING = Platform.select({
   ios: -0.3,
   android: -0.2,
   default: -0.2,
 });
-
-// Расширяем типы для TextInput чтобы включить Android-специфичные пропсы
+ 
 type ExtendedTextInputProps = Omit<TextInputProps, 'ref'> & {
   includeFontPadding?: boolean;
   importantForAutofill?: 'auto' | 'no' | 'noExcludeDescendants' | 'yes' | 'yesExcludeDescendants';
@@ -129,8 +126,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   const [cursorVisible, setCursorVisible] = useState(true);
   const [isFocused, setIsFocused] = useState(false);
   const [scrollY, setScrollY] = useState(0);
-
-  // Мигание курсора
+ 
   useEffect(() => {
     const interval = setInterval(() => {
       setCursorVisible(prev => !prev);
@@ -138,8 +134,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 
     return () => clearInterval(interval);
   }, []);
-
-  // Получение текущего слова
+ 
   const getCurrentWord = useCallback((text: string, pos: number) => {
     const beforeCursor = text.slice(0, pos);
     const afterCursor = text.slice(pos);
@@ -149,8 +144,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 
     return (beforeMatch ? beforeMatch[0] : '') + (afterMatch ? afterMatch[0] : '');
   }, []);
-
-  // Обновление автокомплита
+ 
   useEffect(() => {
     const word = getCurrentWord(value, selection.start);
 
@@ -169,8 +163,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
       setShowAutocomplete(false);
     }
   }, [value, selection.start, language, readOnly, isFocused, getCurrentWord]);
-
-  // Вставка сниппета
+ 
   const insertSnippet = useCallback((snippet: string) => {
     const beforeCursor = value.slice(0, selection.start);
     const afterCursor = value.slice(selection.end);
@@ -185,8 +178,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     setSelection({ start: newPosition, end: newPosition });
     setShowAutocomplete(false);
   }, [value, selection, onChange]);
-
-  // Обработка клавиш
+ 
   const handleKeyPress = useCallback((e: any) => {
     const { key } = e.nativeEvent;
 
@@ -253,8 +245,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
       }, 0);
     }
   }, [value, selection, showAutocomplete, autocompleteSuggestions, selectedSuggestion]);
-
-  // Обновление позиции курсора
+ 
   const handleSelectionChange = useCallback((event: any) => {
     const { selection } = event.nativeEvent;
     setSelection(selection);
@@ -266,8 +257,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 
     setCursorPosition({ line, column });
   }, [value]);
-
-  // Синхронизация скролла
+ 
   const handleScroll = useCallback((event: NativeSyntheticEvent<TextInputScrollEventData>) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     setScrollY(offsetY);
@@ -276,8 +266,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
       animated: false,
     });
   }, []);
-
-  // Функция для раскрашивания кода
+ 
   const renderHighlightedCode = useCallback(() => {
     if (!value) {
       return (
@@ -422,8 +411,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
       );
     });
   }, [value, language, cursorPosition, cursorVisible, isFocused]);
-
-  // Базовые пропсы для TextInput (без ref)
+ 
   const textInputProps: ExtendedTextInputProps = {
     style: styles.hiddenInput,
     value,
@@ -449,8 +437,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     textContentType: "none",
     importantForAutofill: "no",
   };
-
-  // Добавляем Android-специфичный пропс только для Android
+ 
   if (Platform.OS === 'android') {
     textInputProps.includeFontPadding = false;
   }
@@ -681,14 +668,14 @@ const styles = StyleSheet.create({
     
  
     color: 'transparent',
-    // Прозрачный фон
+    
     backgroundColor: 'transparent',
     opacity: 0,
     
-    // Поверх подсветки
+ 
     zIndex: 2,
     
-    // Убираем все эффекты
+ 
     textShadowColor: 'transparent',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 0,

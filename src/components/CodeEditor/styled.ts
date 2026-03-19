@@ -1,4 +1,4 @@
-// components/CodeEditor/styles.ts
+ 
 import { Platform,StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
@@ -24,7 +24,7 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#1e1e1e",
   },
-  // Стили для простого редактора (запасной вариант)
+   
   simpleContainer: {
     width: "100%",
     backgroundColor: "#1e1e1e",
@@ -92,7 +92,7 @@ export const styles = StyleSheet.create({
     borderLeftColor: "#fff",
     borderRightColor: "transparent",
   },
-  // Стили для модального редактора на весь экран
+  
   modalContainer: {
     flex: 1,
     backgroundColor: "#1e1e1e",
@@ -254,6 +254,6 @@ export const styles = StyleSheet.create({
   highlightContainer: {
     flex: 1,
     backgroundColor: '#1e1e1e',
-    paddingTop: 44, // Увеличено для topBar
+    paddingTop: 44, 
   },
 });

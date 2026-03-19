@@ -39,12 +39,10 @@ import { CodeService } from "@/http/codeService";
 import { LessonDetailsService } from "@/http/lessonDetails";
 import LessonResultService from "@/http/lessonResult";
 
-// Функция для сортировки блоков
 const sortBlocks = (blocks: any[]) => {
   return [...blocks].sort((a, b) => (a.order || 0) - (b.order || 0));
 };
 
-// Функция для парсинга аргументов
 const parseArguments = (input: string): any[] => {
   if (!input.trim()) return [];
 
@@ -53,7 +51,7 @@ const parseArguments = (input: string): any[] => {
       return JSON.parse(input);
     }
   } catch {
-    // Не JSON, продолжаем
+    
   }
 
   const args: any[] = [];
@@ -115,7 +113,7 @@ const parseValue = (value: string): any => {
   try {
     return JSON.parse(value);
   } catch {
-    // Не JSON
+   
   }
 
   if (/^-?\d+(\.\d+)?$/.test(value)) {
@@ -164,8 +162,7 @@ const formatArgumentsForCode = (args: any[]): string => {
     })
     .join(", ");
 };
-
-// Функция для преобразования аргументов тест-кейса в строку для JavaScript/Python
+ 
 const formatArgsForDynamicLang = (
   testCaseArgs: TestCaseArgument[] | undefined,
   argumentScheme: ArgumentSchema[],
@@ -223,7 +220,7 @@ const formatArgsForDynamicLang = (
             return `[${formatted.join(", ")}]`;
           }
         } catch {
-          // Not valid JSON
+     
         }
       }
       return arg.value;
@@ -244,7 +241,7 @@ const formatArgsForDynamicLang = (
             return `[${formatted.join(", ")}]`;
           }
         } catch {
-          // Not valid JSON
+      
         }
       }
       return arg.value;
@@ -255,8 +252,7 @@ const formatArgsForDynamicLang = (
   
   return args.join(", ");
 };
-
-// Функция для преобразования аргументов тест-кейса в строку для Java/C#
+ 
 const formatArgsForJavaOrCSharp = (
   testCaseArgs: TestCaseArgument[] | undefined,
   argumentScheme: ArgumentSchema[],
@@ -332,7 +328,7 @@ const formatArgsForJavaOrCSharp = (
             return `new ${typeToUse}[] { ${formatted.join(", ")} }`;
           }
         } catch {
-          // Not valid JSON
+        
         }
       }
       return `new ${typeToUse}[0]`;
@@ -352,7 +348,7 @@ const formatArgsForJavaOrCSharp = (
             return `new ${arrayElementType === "string" ? "String" : arrayElementType}[] { ${formatted.join(", ")} }`;
           }
         } catch {
-          // Not valid JSON
+       
         }
       }
       return arg.value;
@@ -363,31 +359,27 @@ const formatArgsForJavaOrCSharp = (
   
   return args.join(", ");
 };
-
-// Функция для получения входных данных для отображения
+ 
 const getDisplayInput = (
   testCase: { input?: string; args?: TestCaseArgument[] } | undefined,
   argumentScheme: ArgumentSchema[] | undefined,
   language: CodeLanguage | undefined
 ): string => {
   if (!testCase) return "";
-  
-  // Если есть аргументы в новом формате - используем их
+   
   if (testCase.args && argumentScheme && argumentScheme.length > 0) {
     const lang = language || "javascript";
-    // Для Java и C# используем соответствующую функцию форматирования
+   
     if (lang === "java" || lang === "csharp") {
       return formatArgsForJavaOrCSharp(testCase.args, argumentScheme, lang);
     }
-    // Для JS и Python используем другую функцию
+    
     return formatArgsForDynamicLang(testCase.args, argumentScheme, lang);
   }
   
-  // Иначе используем старый формат
   return testCase.input || "";
 };
-
-// Функция для генерации классов объектов для C#/Java
+ 
 const generateObjectClasses = (args: ArgumentSchema[], language: CodeLanguage): string => {
   const objectArgs = args.filter((a) => a.type === "object" && a.objectFields);
   
@@ -473,7 +465,6 @@ ${gettersSetters}
     .join("\n\n");
 };
 
-// Вспомогательные функции для получения типов
 const getCSharpType = (type: string): string => {
   const typeMap: Record<string, string> = {
     int: "int",
@@ -511,8 +502,7 @@ const getJavaType = (type: string): string => {
   };
   return typeMap[type] || "Object";
 };
-
-// Функция для отображения описаний классов объектов (как в EditLesson)
+ 
 const generateObjectClassesForPreview = (args: ArgumentSchema[], language: CodeLanguage): string => {
   const objectArgs = args.filter((a) => a.type === "object" && a.objectFields);
   if (objectArgs.length === 0) return "";
@@ -584,8 +574,7 @@ ${gettersSetters}
     })
     .join("\n\n");
 };
-
-// Функция для получения описания типа аргумента
+ 
 const getArgumentTypeDescription = (arg: ArgumentSchema): string => {
   if (arg.type === "object" && arg.objectFields) {
     const className = arg.className || arg.name.charAt(0).toUpperCase() + arg.name.slice(1);
@@ -606,8 +595,7 @@ const getArgumentTypeDescription = (arg: ArgumentSchema): string => {
   }
   return arg.type || "unknown";
 };
-
-// Функция для отображения схемы аргументов в читаемом виде
+ 
 const renderArgumentScheme = (args: ArgumentSchema[], language: CodeLanguage): string => {
   if (!args || args.length === 0) return "";
   
@@ -616,8 +604,7 @@ const renderArgumentScheme = (args: ArgumentSchema[], language: CodeLanguage): s
     return `${idx + 1}. ${arg.name}: ${typeDesc}`;
   }).join("\n");
 };
-
-// Функция для удаления main метода из кода (нужно для отображения)
+ 
 const stripMainMethod = (code: string, language: CodeLanguage): string => {
   if (language === "java") {
     return code
@@ -632,8 +619,7 @@ const stripMainMethod = (code: string, language: CodeLanguage): string => {
   }
   return code;
 };
-
-// Исправленный addJavaMainMethod для Java с поддержкой логов
+ 
 const addJavaMainMethod = (code: string, funcName: string | null, input: string = "5"): string => {
   if (!funcName) return code;
 
@@ -694,8 +680,7 @@ const addJavaMainMethod = (code: string, funcName: string | null, input: string 
     return `${codeWithoutLastBrace}\n${mainMethod}\n}`;
   }
 };
-
-// Функция для извлечения имени функции
+ 
 const extractFunctionName = (code: string, lang: CodeLanguage): string | null => {
   if (!code) return null;
 
@@ -737,8 +722,7 @@ const extractFunctionName = (code: string, lang: CodeLanguage): string | null =>
     return null;
   }
 };
- 
-// Функция для создания тестового набора Java
+  
 const buildJavaTestSuite = (
   userCode: string,
   testCases: { input: string; expectedOutput: string }[],
@@ -749,7 +733,7 @@ const buildJavaTestSuite = (
   const testCasesCode = testCases
     .map((tc, index) => {
       const testNum = index + 1;
-      // Используем напрямую input без парсинса (как в десктопной версии)
+    
       const argsStr = tc.input || "";
 
       return `
@@ -827,8 +811,7 @@ ${testCasesCode}
 }`;
   }
 };
-
-// Функция для создания тестового набора C#
+ 
 const buildCSharpTestSuite = (
   userCode: string,
   testCases: { input: string; expectedOutput: string }[],
@@ -839,7 +822,7 @@ const buildCSharpTestSuite = (
   const testCasesCode = testCases
     .map((tc, index) => {
       const testNum = index + 1;
-      // Используем напрямую input без парсинга (как в десктопной версии)
+     
       const argsStr = tc.input || "";
 
       return `
@@ -915,18 +898,16 @@ ${testCasesCode}
 }`;
   }
 };
-
-// Функция для построения тестового кода
+ 
 const buildTestCode = (
   userCode: string,
   input: string,
   lang: CodeLanguage,
   funcName: string | null,
-  preformattedArgs?: string // Для JS/Python с аргументами из схемы
+  preformattedArgs?: string  
 ): string => {
   if (!funcName) return userCode;
-
-  // Если переданы предварительно отформатированные аргументы - используем их
+ 
   const argsStr = preformattedArgs ?? (() => {
     const args = parseArguments(input);
     return formatArgumentsForCode(args);
@@ -949,7 +930,7 @@ console.log = function(...args) {
   const message = args.map(arg => 
     typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
   ).join(' ');
-  __logs.push('📌 ' + message);
+  __logs.push('' + message);
   __originalConsole.log.apply(console, args);
 };
 
@@ -957,7 +938,7 @@ console.error = function(...args) {
   const message = args.map(arg => 
     typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
   ).join(' ');
-  __logs.push('❌ ' + message);
+  __logs.push('' + message);
   __originalConsole.error.apply(console, args);
 };
 
@@ -965,7 +946,7 @@ console.warn = function(...args) {
   const message = args.map(arg => 
     typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
   ).join(' ');
-  __logs.push('⚠️ ' + message);
+  __logs.push('' + message);
   __originalConsole.warn.apply(console, args);
 };
 
@@ -973,7 +954,7 @@ console.info = function(...args) {
   const message = args.map(arg => 
     typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
   ).join(' ');
-  __logs.push('ℹ️ ' + message);
+  __logs.push('' + message);
   __originalConsole.info.apply(console, args);
 };
 
@@ -1154,8 +1135,7 @@ func main() {
       return userCode;
   }
 };
-
-// Функция для сравнения выводов
+ 
 const compareOutputs = (actual: any, expected: any): boolean => {
   if (actual == null && expected == null) return true;
 
@@ -1175,8 +1155,7 @@ const compareOutputs = (actual: any, expected: any): boolean => {
 
   return String(actual).trim() === String(expected).trim();
 };
-
-// Вспомогательные функции для проверки ограничений
+ 
 const countCodeLines = (code: string): number => {
   return code.split("\n").filter(line => line.trim().length > 0).length;
 };
@@ -1221,8 +1200,7 @@ const calculateComplexity = (code: string): number => {
   
   return complexity;
 };
-
-// Функция проверки ограничений
+ 
 const checkConstraints = (
   code: string,
   constraints?: { type: CodeConstraintType; value: number | string[] | boolean }[]
@@ -1251,7 +1229,7 @@ const checkConstraints = (
         );
         results.push({
           type: "forbiddenTokens",
-          name: "🚫 Запрещённые слова",
+          name: "Запрещённые слова",
           passed,
           expected: forbidden.filter((t) => t.trim()).join(", ") || "нет",
           actual: passed ? "не используются" : "используются",
@@ -1263,7 +1241,7 @@ const checkConstraints = (
         const passed = !hasComments(code);
         results.push({
           type: "noComments",
-          name: "💬 Без комментариев",
+          name: "Без комментариев",
           passed,
           expected: "без комментариев",
           actual: passed ? "нет комментариев" : "есть комментарии",
@@ -1275,7 +1253,7 @@ const checkConstraints = (
         const passed = !hasConsoleLog(code);
         results.push({
           type: "noConsoleLog",
-          name: "📢 Без отладочного вывода",
+          name: "Без отладочного вывода",
           passed,
           expected: "без console.log/print",
           actual: passed ? "нет" : "используется",
@@ -1288,7 +1266,7 @@ const checkConstraints = (
         const actualComplexity = calculateComplexity(code);
         results.push({
           type: "maxComplexity",
-          name: "🔄 Цикломатическая сложность",
+          name: "Цикломатическая сложность",
           passed: actualComplexity <= maxComplexity,
           expected: `≤ ${maxComplexity}`,
           actual: `${actualComplexity}`,
@@ -1303,7 +1281,7 @@ const checkConstraints = (
 
         results.push({
           type: "memoryLimit",
-          name: "💾 Использование памяти",
+          name: "Использование памяти",
           passed: estimatedMemory <= memoryLimit,
           expected: `≤ ${memoryLimit} МБ`,
           actual: `~${estimatedMemory} МБ`,
@@ -1316,7 +1294,7 @@ const checkConstraints = (
         const passed = hasRequiredKeywords(code, keywords);
         results.push({
           type: "requiredKeywords",
-          name: "🔑 Обязательные ключевые слова",
+          name: "Обязательные ключевые слова",
           passed,
           expected: keywords.join(", "),
           actual: passed ? "все присутствуют" : "не все присутствуют",
@@ -1327,7 +1305,7 @@ const checkConstraints = (
       case "maxTimeMs": {
         results.push({
           type: "maxTimeMs",
-          name: "⏱️ Время выполнения",
+          name: "Время выполнения",
           passed: true,
           expected: `≤ ${constraint.value} мс`,
           actual: "проверяется на сервере",
@@ -1340,12 +1318,11 @@ const checkConstraints = (
   return results;
 };
 
-// Компонент для текстового блока
+
 const TextBlockView = ({ block }: { block: TextBlock }) => {
   return <Text style={styles.textBlock}>{block.content}</Text>;
 };
 
-// Компонент для блока с примером кода
 const CodeExampleBlockView = ({ block }: { block: CodeExampleBlock }) => {
   return (
     <View style={styles.codeExampleBlock}>
@@ -1363,7 +1340,6 @@ const CodeExampleBlockView = ({ block }: { block: CodeExampleBlock }) => {
   );
 };
 
-// Компонент для таблицы
 const TableBlockView = ({ block }: { block: TableBlock }) => {
   return (
     <View style={styles.tableWrapper}>
@@ -1380,7 +1356,6 @@ const TableBlockView = ({ block }: { block: TableBlock }) => {
   );
 };
 
-// Компонент для изображения
 const ImageBlockView = ({ block }: { block: ImageBlock }) => {
   if (!block.url) return null;
 
@@ -1409,7 +1384,7 @@ const ImageBlockView = ({ block }: { block: ImageBlock }) => {
         />
       ) : (
         <View style={styles.imageError}>
-          <Text style={styles.imageErrorText}>❌ Не удалось загрузить изображение</Text>
+          <Text style={styles.imageErrorText}>Не удалось загрузить изображение</Text>
           <Text style={styles.imageUrl}>{block.url}</Text>
         </View>
       )}
@@ -1417,7 +1392,6 @@ const ImageBlockView = ({ block }: { block: ImageBlock }) => {
   );
 };
 
-// Компонент для отображения описания классов объектов (для Java/C#)
 const ObjectDescriptions = ({ argumentScheme, language }: { argumentScheme?: ArgumentSchema[]; language?: CodeLanguage }) => {
   if (!argumentScheme || argumentScheme.length === 0) return null;
   if (language !== "java" && language !== "csharp") return null;
@@ -1437,7 +1411,6 @@ const ObjectDescriptions = ({ argumentScheme, language }: { argumentScheme?: Arg
   );
 };
 
-// Компонент для отображения ограничений до запуска проверки
 const ConstraintsInfo = ({ constraints }: { constraints?: CodeTaskBlock['constraints'] }) => {
   const [expanded, setExpanded] = useState(false);
 
@@ -1446,21 +1419,21 @@ const ConstraintsInfo = ({ constraints }: { constraints?: CodeTaskBlock['constra
   const getConstraintDescription = (constraint: { type: CodeConstraintType; value: number | string[] | boolean }) => {
     switch (constraint.type) {
       case "maxLines":
-        return `📏 Максимум строк кода: ${constraint.value}`;
+        return `Максимум строк кода: ${constraint.value}`;
       case "forbiddenTokens":
-        return `🚫 Запрещённые слова: ${(constraint.value as string[]).join(", ")}`;
+        return `Запрещённые слова: ${(constraint.value as string[]).join(", ")}`;
       case "noComments":
-        return `💬 Без комментариев`;
+        return `Без комментариев`;
       case "noConsoleLog":
-        return `📢 Без отладочного вывода (console.log/print)`;
+        return `Без отладочного вывода (console.log/print)`;
       case "maxComplexity":
-        return `🔄 Максимальная сложность: ${constraint.value}`;
+        return `Максимальная сложность: ${constraint.value}`;
       case "memoryLimit":
-        return `💾 Лимит памяти: ${constraint.value} МБ`;
+        return `Лимит памяти: ${constraint.value} МБ`;
       case "requiredKeywords":
-        return `🔑 Обязательные ключевые слова: ${(constraint.value as string[]).join(", ")}`;
+        return `Обязательные ключевые слова: ${(constraint.value as string[]).join(", ")}`;
       case "maxTimeMs":
-        return `⏱️ Максимальное время: ${constraint.value} мс`;
+        return `Максимальное время: ${constraint.value} мс`;
       default:
         return `${constraint.type}: ${constraint.value}`;
     }
@@ -1472,7 +1445,7 @@ const ConstraintsInfo = ({ constraints }: { constraints?: CodeTaskBlock['constra
         style={styles.constraintsHeader} 
         onPress={() => setExpanded(!expanded)}
       >
-        <Text style={styles.constraintsTitle}>🎯 Ограничения ({constraints.length})</Text>
+        <Text style={styles.constraintsTitle}>Ограничения ({constraints.length})</Text>
         <Text style={styles.constraintsToggle}>{expanded ? "▼ Скрыть" : "▶ Показать"}</Text>
       </TouchableOpacity>
       
@@ -1489,7 +1462,6 @@ const ConstraintsInfo = ({ constraints }: { constraints?: CodeTaskBlock['constra
   );
 };
 
-// Компонент для задачи с кодом
 const CodeTaskBlockView = ({
   block,
   slideId,
@@ -1523,7 +1495,7 @@ const CodeTaskBlockView = ({
 
       {block.argumentScheme && block.argumentScheme.length > 0 && (
         <View style={styles.argumentSchemeInfo}>
-          <Text style={styles.argumentSchemeTitle}>📋 Аргументы функции:</Text>
+          <Text style={styles.argumentSchemeTitle}>Аргументы функции:</Text>
           <Text style={styles.argumentSchemeText}>
             {renderArgumentScheme(block.argumentScheme, block.language)}
           </Text>
@@ -1587,7 +1559,7 @@ const CodeTaskBlockView = ({
               <View style={styles.testCaseHeader}>
                 <Text style={styles.testCaseTitle}>Тест #{index + 1}</Text>
                 <Text style={result.passed ? styles.passedText : styles.failedText}>
-                  {result.passed ? "✅ Пройден" : "❌ Провален"}
+                  {result.passed ? "Пройден" : "Провален"}
                 </Text>
               </View>
               <Text>Вход: {result.input}</Text>
@@ -1601,7 +1573,7 @@ const CodeTaskBlockView = ({
       {constraintResults && constraintResults.length > 0 && (
         <View style={styles.constraintResults}>
           <Text style={styles.resultsTitle}>
-            🎯 Проверка ограничений
+            Проверка ограничений
           </Text>
           <Text style={styles.constraintSummary}>
             Выполнено: {constraintResults.filter(c => c.passed).length}/{constraintResults.length}
@@ -1616,7 +1588,7 @@ const CodeTaskBlockView = ({
             >
               <View style={styles.constraintHeader}>
                 <Text style={styles.constraintName}>{constraint.name}</Text>
-                <Text>{constraint.passed ? "✅" : "❌"}</Text>
+                <Text>{constraint.passed ? "Огрничение пройдено" : "Огрничение не пройдено"}</Text>
               </View>
               <Text>Ожидалось: {constraint.expected}</Text>
               <Text>Получено: {constraint.actual}</Text>
@@ -1633,8 +1605,7 @@ const CodeTaskBlockView = ({
     </View>
   );
 };
-
-// Модальное окно для источников
+ 
 const SourcesModal = ({ visible, onClose, sources }: {
   visible: boolean;
   onClose: () => void;
@@ -1674,7 +1645,7 @@ const SourcesModal = ({ visible, onClose, sources }: {
                     onPress={() => handleOpenUrl(source.url)}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.sourceUrl}>🔗 {source.url}</Text>
+                    <Text style={styles.sourceUrl}>{source.url}</Text>
                   </TouchableOpacity>
                   {source.note && <Text style={styles.sourceNote}>{source.note}</Text>}
                 </View>
@@ -1686,8 +1657,7 @@ const SourcesModal = ({ visible, onClose, sources }: {
     </Modal>
   );
 };
-
-// Модальное окно результатов с анимацией звезд
+ 
 const ResultsModal = ({
   visible,
   onClose,
@@ -1723,8 +1693,7 @@ const ResultsModal = ({
   const [stars, setStars] = useState(0);
   const [showStars, setShowStars] = useState(false);
   const [saveError, setSaveError] = useState(false);
-
-  // Анимации для звезд
+ 
   const starAnimations = [
     useRef(new Animated.Value(-50)).current,
     useRef(new Animated.Value(-50)).current,
@@ -1745,7 +1714,7 @@ const ResultsModal = ({
 
   useEffect(() => {
     if (visible) {
-      // Сбрасываем анимации
+     
       starAnimations.forEach(anim => anim.setValue(-50));
       starRotations.forEach(anim => anim.setValue(0));
       starOpacities.forEach(anim => anim.setValue(0));
@@ -1754,12 +1723,12 @@ const ResultsModal = ({
       setSaveError(false);
       setStars(earnedStars);
 
-      // Запускаем анимацию звезд
+     
       const animateStars = async () => {
         setShowStars(true);
 
         for (let i = 0; i < earnedStars; i++) {
-          // Анимация падения
+        
           Animated.parallel([
             Animated.timing(starAnimations[i], {
               toValue: 0,
@@ -1793,8 +1762,7 @@ const ResultsModal = ({
               useNativeDriver: true,
             })
           ]).start();
-
-          // Ждем окончания анимации текущей звезды
+ 
           await new Promise(resolve => setTimeout(resolve, 800));
         }
       };
@@ -1865,7 +1833,7 @@ const ResultsModal = ({
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Ограничения:</Text>
               <Text style={styles.summaryValue}>
-                {constraintsPassed ? "✅" : "❌"}
+                {constraintsPassed ? "Огрничение не пройдено" : "Огрничение пройдено"}
               </Text>
             </View>
           </View>
@@ -1897,7 +1865,7 @@ const ResultsModal = ({
                     Тесты: {result.testCasesPassed}/{result.testCasesTotal}
                   </Text>
                   <Text>
-                    Ограничения: {result.constraintsPassed ? "✅" : "❌"}
+                    Ограничения: {result.constraintsPassed ? "Огрничение пройдено" : "Огрничение не пройдено"}
                   </Text>
                 </View>
               </View>

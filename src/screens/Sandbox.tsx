@@ -17,9 +17,9 @@ export default function SandboxScreen() {
       <View style={styles.containerLight}>
         <Header title="Sandbox" />
 
-        {/* Content */}
+      
         <View style={styles.content}>
-          {/* Sandbox content goes here */}
+       
         </View>
 
         <Footer activeTab={activeTab} />

@@ -1,4 +1,4 @@
-// http/codeService.ts
+ 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import $api from "./api";
@@ -12,7 +12,7 @@ export interface ExecuteCodeRequest {
 
 export interface ExecuteCodeResponse {
   output: string;
-  /** Compile or runtime error from server (stderr). */
+  
   error?: string;
 }
 

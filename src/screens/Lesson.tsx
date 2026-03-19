@@ -6,11 +6,9 @@ import Footer from "../components/Footer";
 import Header from "../components/Header";
 
 import { styles } from "./styles";
-
-import CourseInfo from "@/components/CourseInfo";
+ 
 import Lesson from "@/components/Lesson";
-import Map from "@/components/Map";
-
+ 
 type CourseScreenRouteParams = {
     id: string;
 

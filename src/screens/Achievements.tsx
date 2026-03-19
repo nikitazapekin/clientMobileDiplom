@@ -38,17 +38,16 @@ export default function AchievementsScreen() {
 
       console.log("Loading achievements for auditoryId:", auditoryId);
 
-      // Сначала проверяем и начисляем достижения
+   
       try {
         console.log("Checking and awarding achievements...");
         const awarded = await AchievementsService.checkAndAwardAchievements(auditoryId);
         console.log("Awarded achievements:", awarded);
       } catch (awardError: any) {
         console.error("Error awarding achievements:", awardError?.response?.data || awardError?.message);
-        // Не прерываем загрузку, если ошибка при начислении
+      
       }
-
-      // Затем загружаем актуальные достижения и прогресс
+ 
       console.log("Fetching achievements and progress...");
       const [achievementsData, progressData] = await Promise.all([
         AchievementsService.getAchievementsByAuditoryId(auditoryId),
@@ -69,7 +68,7 @@ export default function AchievementsScreen() {
     }
   };
 
-  // Пересчитываем достижения при каждом фокусе экрана
+ 
   useFocusEffect(
     React.useCallback(() => {
       loadAchievements();

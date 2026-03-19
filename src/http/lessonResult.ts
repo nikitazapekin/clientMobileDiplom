@@ -113,11 +113,7 @@ export default class LessonResultService {
       throw new Error(error.response?.data?.message || "Failed to fetch lesson results");
     }
   }
-
-  /**
-   * Получение прогресса студента
-   * GET /profile/student-results/client/:clientId/progress
-   */
+ 
   static async getStudentProgress(clientId: string): Promise<StudentProgressResponse> {
     try {
       const token = await this.getToken();
@@ -156,11 +152,7 @@ export default class LessonResultService {
       throw new Error(error.response?.data?.message || "Failed to update lesson result");
     }
   }
-
-  /**
-   * Удаление результата по ID
-   * DELETE /profile/student-results/:id
-   */
+ 
   static async deleteLessonResult(id: string): Promise<{ success: boolean }> {
     try {
       const token = await this.getToken();
@@ -192,11 +184,7 @@ export default class LessonResultService {
       throw new Error(error.response?.data?.message || "Failed to delete all student results");
     }
   }
-
-  /**
-   * Получение среднего количества звезд студента
-   * Вспомогательный метод
-   */
+ 
   static async getAverageStars(clientId: string): Promise<number> {
     try {
       const results = await this.getStudentResults(clientId);
@@ -209,11 +197,7 @@ export default class LessonResultService {
       throw new Error("Failed to calculate average stars");
     }
   }
-
-  /**
-   * Получение последних результатов студента
-   * Вспомогательный метод
-   */
+ 
   static async getLatestStudentResults(clientId: string, limit: number = 5): Promise<LessonResultResponse[]> {
     try {
       const results = await this.getStudentResults(clientId);
@@ -225,11 +209,7 @@ export default class LessonResultService {
       throw new Error("Failed to fetch latest results");
     }
   }
-
-  /**
-   * Проверка, прошел ли студент урок
-   * Вспомогательный метод
-   */
+ 
   static async hasCompletedLesson(clientId: string, lessonId: string): Promise<boolean> {
     try {
       const results = await this.getStudentResults(clientId);
@@ -239,13 +219,7 @@ export default class LessonResultService {
       throw new Error("Failed to check lesson completion");
     }
   }
-
-  /**
-   * Проверка, прошел ли студент урок с хотя бы 1 звездой
-   * @param clientId - ID пользователя
-   * @param lessonId - ID урока
-   * @returns true, если урок пройден с хотя бы 1 звездой
-   */
+ 
   static async hasCompletedLessonWithStars(clientId: string, lessonId: string): Promise<boolean> {
     try {
       const token = await this.getToken();
@@ -267,11 +241,7 @@ export default class LessonResultService {
       return false;
     }
   }
-
-  /**
-   * Получение статистики по урокам для студента
-   * Вспомогательный метод
-   */
+ 
   static async getLessonStats(clientId: string): Promise<{
     totalLessons: number;
     completedLessons: number;

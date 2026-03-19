@@ -4,13 +4,13 @@ export enum AchievementType {
 }
 
 export enum AchievementTier {
-  // Student Results achievements (based on countOfStars)
+ 
   NOVICE = 'novice',
   ADVANCED = 'advanced',
   EXPERT = 'expert',
   MASTER = 'master',
 
-  // Solved Tasks achievements (based on count of solved tasks)
+  
   BEGINNER = 'beginner',
   INTERMEDIATE = 'intermediate',
   PROFESSIONAL = 'professional',
@@ -25,9 +25,9 @@ export interface Achievement {
   title: string;
   description: string;
   image: string;
-  earnedAt: string; // ISO date string
-  createdAt: string; // ISO date string
-  updatedAt: string; // ISO date string
+  earnedAt: string; 
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AchievementProgress {
