@@ -10,11 +10,11 @@ export type RootStackParamList = {
   [ROUTES.STACK.REGISTER]: undefined;
   [ROUTES.STACK.MAIN]: undefined;
 
-  [ROUTES.SCREENS.COURSES]: undefined;
-  [ROUTES.SCREENS.ACHIEVEMENTS]: undefined;
-  [ROUTES.SCREENS.CHATS]: undefined;
-  [ROUTES.SCREENS.SANDBOX]: undefined;
-  [ROUTES.SCREENS.PROFILE]: undefined;
+  [ROUTES.STACK.COURSES]: undefined;
+  [ROUTES.STACK.ACHIEVEMENTS]: undefined;
+  [ROUTES.STACK.CHATS]: undefined;
+  [ROUTES.STACK.SANDBOX]: undefined;
+  [ROUTES.STACK.PROFILE]: undefined;
 
   [ROUTES.STACK.COURSE]: { id: string };
 
@@ -26,14 +26,17 @@ export type RootStackParamList = {
 
   [ROUTES.STACK.FRIENDS]: undefined;
   [ROUTES.STACK.FRIENDS_PROFILE]: { auditoryId: string };
+
+  [ROUTES.STACK.CHAT]: { userId: string };
 };
 
 export type MainTabParamList = {
-  [ROUTES.SCREENS.COURSES]: undefined;
-  [ROUTES.SCREENS.ACHIEVEMENTS]: undefined;
-  [ROUTES.SCREENS.CHATS]: undefined;
-  [ROUTES.SCREENS.SANDBOX]: undefined;
-  [ROUTES.SCREENS.PROFILE]: undefined;
+  [ROUTES.STACK.COURSES]: undefined;
+  [ROUTES.STACK.ACHIEVEMENTS]: undefined;
+  [ROUTES.STACK.CHATS]: undefined;
+  [ROUTES.STACK.SANDBOX]: undefined;
+  [ROUTES.STACK.PROFILE]: undefined;
+
   [ROUTES.STACK.LESSON]: { id: string };
 };
 

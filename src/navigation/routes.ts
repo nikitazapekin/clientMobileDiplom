@@ -2,16 +2,16 @@ export const ROUTES = {
   STACK: {
     MAIN: "Main",
     AUTH: "Auth",
-    PROFILE: "Profile",
     REGISTER: "Register",
     WELCOME: "Welcome",
     COURSES: "Courses",
     ACHIEVEMENTS: "Achievements",
     CHATS: "Chats",
+    CHAT: "Chat",
     SANDBOX: "Sandbox",
+    PROFILE: "Profile",
     COURSE: "Course",
     MAP: "Map",
-
     LESSON: "Lesson",
     CODING_TASKS: "CodingTasks",
     CODING_SOLVE: "CodingTaskSolve",

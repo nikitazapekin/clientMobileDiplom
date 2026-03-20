@@ -67,7 +67,7 @@ const CircularProgress = ({
   return (
     <View style={styles.circularProgressContainer}>
       <Svg width={CIRCLE_SIZE} height={CIRCLE_SIZE} viewBox={`0 0 ${CIRCLE_SIZE} ${CIRCLE_SIZE}`}>
-        {/* Фоновый круг */}
+     
         <Circle
           cx={center}
           cy={center}
@@ -449,8 +449,13 @@ const FriendsProfileScreen = () => {
   };
 
   const handleSendMessage = () => {
-    Alert.alert('Message', 'Chat feature coming soon!');
-  
+    navigation.navigate(ROUTES.STACK.CHAT as any, { 
+      userId: profile?.clientId,
+      participantInfo: {
+        firstName: profile?.firstName || '',
+        lastName: profile?.lastName || '',
+      }
+    });
   };
 
   const handleRemoveFriend = () => {

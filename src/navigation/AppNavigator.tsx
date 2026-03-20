@@ -9,6 +9,7 @@ import { ROUTES } from "@/navigation/routes";
 import AchievementsScreen from "@/screens/Achievements";
 import AuthScreen from "@/screens/AuthScreen";
 import ChatsScreen from "@/screens/Chats";
+import ChatScreen from "@/screens/Chat";
 import CourseScreen from "@/screens/Course";
 import CoursesScreen from "@/screens/Courses";
 import LessonScreen from "@/screens/Lesson";
@@ -67,11 +68,13 @@ export default function AppNavigator() {
 
         <Stack.Screen name={ROUTES.STACK.PROFILE} component={ProfileScreen} />
 
+        <Stack.Screen name={ROUTES.STACK.CHATS} component={ChatsScreen} />
 
         <Stack.Screen name={ROUTES.STACK.SANDBOX} component={CodingTasksScreen} />
 
         <Stack.Screen name={ROUTES.STACK.FRIENDS} component={FriendsScreen} />
         <Stack.Screen name={ROUTES.STACK.FRIENDS_PROFILE} component={FriendsProfileScreen} />
+        <Stack.Screen name={ROUTES.STACK.CHAT} component={ChatScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
