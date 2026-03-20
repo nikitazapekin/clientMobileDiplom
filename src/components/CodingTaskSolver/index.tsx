@@ -23,6 +23,41 @@ interface Props {
   id: string;
 }
 
+const getConstraintDisplay = (constraint: { type: string; value: any }): string => {
+  const typeMap: Record<string, string> = {
+    maxTimeMs: "Время",
+    maxLines: "Макс. строк",
+    forbiddenTokens: "Запрещено",
+    noComments: "Без комментариев",
+    noConsoleLog: "Без console.log",
+    maxComplexity: "Макс. сложность",
+    memoryLimit: "Память",
+    requiredKeywords: "Обязательно",
+  };
+
+  const typeLabel = typeMap[constraint.type] || constraint.type;
+
+  switch (constraint.type) {
+    case "maxTimeMs":
+      return `${typeLabel}: ${constraint.value}мс`;
+    case "maxLines":
+      return `${typeLabel}: ${constraint.value}`;
+    case "forbiddenTokens":
+      return `${typeLabel}: ${(constraint.value as string[]).join(", ")}`;
+    case "noComments":
+    case "noConsoleLog":
+      return typeLabel;
+    case "maxComplexity":
+      return `${typeLabel}: ${constraint.value}`;
+    case "memoryLimit":
+      return `${typeLabel}: ${constraint.value} МБ`;
+    case "requiredKeywords":
+      return `${typeLabel}: ${(constraint.value as string[]).join(", ")}`;
+    default:
+      return `${typeLabel}: ${constraint.value}`;
+  }
+};
+
 const DIFF_COLORS: Record<string, string> = {
   easy: "#4caf50",
   medium: "#ff9800",
@@ -147,14 +182,7 @@ const CodingTaskSolver = ({ id }: Props) => {
           <Text style={st.constraintsTitle}>Ограничения</Text>
           {task.constraints.map((c, i) => (
             <Text key={i} style={st.constraintItem}>
-              {c.type === "maxTimeMs" && `Время: ${c.value}мс`}
-              {c.type === "maxLines" && `Макс. строк: ${c.value}`}
-              {c.type === "forbiddenTokens" && `Запрещено: ${(c.value as string[]).join(", ")}`}
-              {c.type === "noComments" && "Без комментариев"}
-              {c.type === "noConsoleLog" && "Без console.log"}
-              {c.type === "maxComplexity" && `Макс. сложность: ${c.value}`}
-              {c.type === "memoryLimit" && `Память: ${c.value} МБ`}
-              {c.type === "requiredKeywords" && `Обязательно: ${(c.value as string[]).join(", ")}`}
+              {getConstraintDisplay(c)}
             </Text>
           ))}
         </View>

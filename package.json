@@ -50,7 +50,7 @@
     "react-native-confetti-cannon": "^1.5.2",
     "react-native-default-preference": "^1.4.4",
     "react-native-fs": "^2.20.0",
-    "react-native-gesture-handler": "~2.28.0",
+    "react-native-gesture-handler": "^2.28.0",
     "react-native-image-crop-picker": "^0.51.1",
     "react-native-image-picker": "^8.2.1",
     "react-native-image-resizer": "^1.4.5",
