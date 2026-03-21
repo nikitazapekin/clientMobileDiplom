@@ -450,7 +450,7 @@ const FriendsProfileScreen = () => {
 
   const handleSendMessage = () => {
     navigation.navigate(ROUTES.STACK.CHAT as any, { 
-      userId: profile?.clientId,
+      userId: profile?.auditoryId,
       participantInfo: {
         firstName: profile?.firstName || '',
         lastName: profile?.lastName || '',

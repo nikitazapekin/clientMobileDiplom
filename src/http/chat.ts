@@ -1,5 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { BASE_URL } from './api';
+import api from './api';
 
 export interface Message {
   id: string;
@@ -37,8 +36,6 @@ export interface User {
   fullName: string;
 }
 
-import api from './api';
-
 class ChatService {
   private currentUserId: string | null = null;
   private messageListeners: ((message: Message) => void)[] = [];
@@ -47,7 +44,7 @@ class ChatService {
   async connect(userId: string) {
     this.currentUserId = userId;
     console.log('Chat service initialized for user:', userId);
-    
+
     return Promise.resolve();
   }
 
@@ -55,12 +52,11 @@ class ChatService {
     this.currentUserId = null;
     this.messageListeners = [];
     this.readListeners = [];
-    this.connectionPromise = null;
   }
 
   onNewMessage(callback: (message: Message) => void) {
     this.messageListeners.push(callback);
-    
+
     return () => {
       this.messageListeners = this.messageListeners.filter((l) => l !== callback);
     };
@@ -68,39 +64,41 @@ class ChatService {
 
   onMessagesRead(callback: (data: { senderId: string; receiverId: string }) => void) {
     this.readListeners.push(callback);
-    
+
     return () => {
       this.readListeners = this.readListeners.filter((l) => l !== callback);
     };
   }
 
-  async sendMessage(receiverId: string, content: string): Promise<any> {
+  async sendMessage(receiverId: string, content: string): Promise<Message> {
     try {
       const response = await api.post('/chat/messages', {
         receiverId,
         content,
       });
-      
+
       const message = response.data.data;
-      
+
       this.messageListeners.forEach((listener) => listener(message));
-      
-      return response.data;
+
+      return message;
     } catch (error) {
       console.error('Failed to send message via HTTP:', error);
       throw error;
     }
   }
 
-  joinConversation(userId1: string, userId2: string) {
-    
+  async getConversations(userId: string): Promise<Conversation[]> {
+    const response = await api.get(`/chat/conversations/${userId}`);
+
+    return response.data.data ?? [];
   }
 
-  leaveConversation(userId1: string, userId2: string) {
-    
-  }
+  joinConversation(_userId1: string, _userId2: string) {}
 
-  markAsRead(senderId: string, receiverId: string): Promise<any> {
+  leaveConversation(_userId1: string, _userId2: string) {}
+
+  markAsRead(senderId: string, receiverId: string): Promise<{ success: boolean }> {
     return new Promise((resolve, reject) => {
       this.markMessagesAsRead(senderId, receiverId)
         .then(() => resolve({ success: true }))
@@ -112,7 +110,7 @@ class ChatService {
     const response = await api.get(`/chat/messages/${userId1}/${userId2}`, {
       params: { limit, offset },
     });
-    
+
     return response.data.data;
   }
 
@@ -122,7 +120,7 @@ class ChatService {
 
   async getUnreadCount(): Promise<number> {
     const response = await api.get('/chat/unread-count');
-    
+
     return response.data.data.count;
   }
 
@@ -130,30 +128,46 @@ class ChatService {
     const response = await api.get('/users/search', {
       params: { q: query },
     });
-    
+
     return response.data.data;
   }
 
   async getUserProfile(userId: string): Promise<User> {
-    const response = await api.get(`/profile/client/${userId}/full`);
-    
-    const profile = response.data;
-    return {
-      id: profile.id,
-      clientId: profile.clientId,
-      firstName: profile.firstName,
-      lastName: profile.lastName,
-      middleName: profile.middleName,
-      email: profile.email,
-      fullName: profile.fullName,
-    };
+    try {
+      const response = await api.get(`/users/profile/${userId}`);
+      const profile = response.data.data ?? response.data;
+
+      return {
+        id: profile.id,
+        clientId: profile.clientId,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        middleName: profile.middleName,
+        email: profile.email,
+        fullName: profile.fullName,
+      };
+    } catch {
+      const response = await api.get(`/profile/client/${userId}/full`);
+      const profile = response.data.data ?? response.data;
+
+      return {
+        id: profile.auditoryId ?? profile.id,
+        clientId: profile.clientId,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        middleName: profile.middleName,
+        email: profile.email,
+        fullName:
+          profile.fullName ?? `${profile.firstName ?? ''} ${profile.lastName ?? ''}`.trim(),
+      };
+    }
   }
 
   async getMultipleProfiles(userIds: string[]): Promise<Record<string, { firstName: string; lastName: string; fullName: string }>> {
     const response = await api.get('/users/profiles', {
       params: { ids: userIds.join(',') },
     });
-    
+
     return response.data.data;
   }
 

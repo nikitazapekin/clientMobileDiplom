@@ -1,5 +1,4 @@
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
-import type { RouteProp } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 
 import type { ROUTES } from "./routes";
@@ -27,7 +26,13 @@ export type RootStackParamList = {
   [ROUTES.STACK.FRIENDS]: undefined;
   [ROUTES.STACK.FRIENDS_PROFILE]: { auditoryId: string };
 
-  [ROUTES.STACK.CHAT]: { userId: string };
+  [ROUTES.STACK.CHAT]: {
+    userId: string;
+    participantInfo?: {
+      firstName: string;
+      lastName: string;
+    };
+  };
 };
 
 export type MainTabParamList = {

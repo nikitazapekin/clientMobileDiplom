@@ -1,15 +1,26 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, ScrollView, TouchableOpacity, FlatList, StyleSheet, Keyboard } from "react-native";
-import { useRoute, useNavigation } from "@react-navigation/native";
+import React, { useEffect, useState } from "react";
+import {
+  FlatList,
+  Keyboard,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import { COLORS } from "appStyles";
 
 import type { TabName } from "../components/Footer";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
+import type { Conversation, User } from "../http/chat";
+import chatService from "../http/chat";
+import { ROUTES } from "../navigation/routes";
+import type { RootStackNavigationProp } from "../navigation/types";
 
-import chatService, { Conversation, User } from "../http/chat";
 import { styles as globalStyles } from "./styles";
-import { COLORS } from "appStyles";
 
 const chatStyles = StyleSheet.create({
   searchContainer: {
@@ -105,7 +116,7 @@ const chatStyles = StyleSheet.create({
 
 export default function ChatsScreen() {
   const route = useRoute();
-  const navigation = useNavigation();
+  const navigation = useNavigation<RootStackNavigationProp>();
   const activeTab: TabName = route.name === "Chats" ? "chats" : "chats";
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -116,80 +127,139 @@ export default function ChatsScreen() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadConversations();
-    loadUserId();
+    let isActive = true;
+
+    const initializeChats = async () => {
+      try {
+        const userId = await AsyncStorage.getItem('userId');
+
+        if (!isActive) {
+          return;
+        }
+
+        setCurrentUserId(userId);
+
+        if (!userId) {
+          setLoading(false);
+
+          return;
+        }
+
+        await chatService.connect(userId);
+      } catch (error) {
+        console.error('Failed to load user ID:', error);
+
+        if (isActive) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void initializeChats();
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
-  const loadUserId = async () => {
-    try {
-      const userId = await AsyncStorage.getItem('userId');
-      setCurrentUserId(userId);
-      if (userId) {
-        chatService.connect(userId);
-        
-        const unsubscribe = chatService.onNewMessage(() => {
-          
-        });
+  useEffect(() => {
+    if (!currentUserId) {
+      return;
+    }
 
-        return unsubscribe;
+    let isActive = true;
+
+    const refreshConversations = async () => {
+      try {
+        setLoading(true);
+        const loadedConversations = await chatService.getConversations(currentUserId);
+
+        if (isActive) {
+          setConversations(loadedConversations);
+        }
+      } catch (error) {
+        console.error('Failed to load conversations:', error);
+
+        if (isActive) {
+          setConversations([]);
+        }
+      } finally {
+        if (isActive) {
+          setLoading(false);
+        }
       }
-    } catch (error) {
-      console.error('Failed to load user ID:', error);
-    }
-  };
+    };
 
-  const loadConversations = async () => {
-    try {
-      setLoading(true);
-      setConversations([]);
-    } catch (error) {
-      console.error('Failed to load conversations:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    void refreshConversations();
+
+    const unsubscribeMessage = chatService.onNewMessage((message) => {
+      if (message.senderId === currentUserId || message.receiverId === currentUserId) {
+        void refreshConversations();
+      }
+    });
+
+    const unsubscribeFocus = navigation.addListener('focus', () => {
+      void refreshConversations();
+    });
+
+    return () => {
+      isActive = false;
+      unsubscribeMessage();
+      unsubscribeFocus();
+    };
+  }, [currentUserId, navigation]);
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
-    
-    if (query.trim().length < 2) {
+
+    if (query.trim().length < 1) {
       setSearchResults([]);
       setIsSearching(false);
+
       return;
     }
 
     setIsSearching(true);
-    
+
     try {
       const results = await chatService.searchUsers(query);
-      setSearchResults(results);
+
+      setSearchResults(
+        results.filter((user) => user.id !== currentUserId),
+      );
     } catch (error) {
       console.error('Search failed:', error);
       setSearchResults([]);
     }
   };
 
-  const selectConversation = (userId: string) => {
+  const selectConversation = (
+    userId: string,
+    participantInfo?: { firstName: string; lastName: string },
+  ) => {
     Keyboard.dismiss();
-    (navigation as any).navigate('Chat', { userId });
+    navigation.navigate(ROUTES.STACK.CHAT, { userId, participantInfo });
   };
 
   const selectNewChat = (user: User) => {
-    selectConversation(user.id);
+    selectConversation(user.id, {
+      firstName: user.firstName,
+      lastName: user.lastName,
+    });
   };
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const isToday = date.toDateString() === now.toDateString();
-    
+
     if (isToday) {
       return date.toLocaleTimeString('ru-RU', {
         hour: '2-digit',
         minute: '2-digit',
       });
     }
-    
+
     return date.toLocaleDateString('ru-RU', {
       day: '2-digit',
       month: '2-digit',
@@ -200,25 +270,29 @@ export default function ChatsScreen() {
     if (!conversation.lastMessage) {
       return 'Нет сообщений';
     }
-    
+
     const { content, senderId } = conversation.lastMessage;
     const isOwnMessage = senderId === currentUserId;
-    
+
     return isOwnMessage ? `Вы: ${content}` : content;
   };
 
   const renderConversation = ({ item }: { item: Conversation }) => {
     const participantId = item.participant1Id === currentUserId ? item.participant2Id : item.participant1Id;
-    
+    const participantInfo = {
+      firstName: item.participantFirstName,
+      lastName: item.participantLastName,
+    };
+    const initials =
+      `${item.participantFirstName?.[0] ?? ''}${item.participantLastName?.[0] ?? ''}` || '?';
+
     return (
       <TouchableOpacity
         style={chatStyles.conversationItem}
-        onPress={() => selectConversation(participantId)}
+        onPress={() => selectConversation(participantId, participantInfo)}
       >
         <View style={chatStyles.avatar}>
-          <Text style={chatStyles.avatarText}>
-            {item.participantFirstName[0]}{item.participantLastName[0]}
-          </Text>
+          <Text style={chatStyles.avatarText}>{initials}</Text>
         </View>
         <View style={chatStyles.conversationInfo}>
           <View style={chatStyles.conversationHeader}>
@@ -243,15 +317,15 @@ export default function ChatsScreen() {
   };
 
   const renderUser = ({ item }: { item: User }) => {
+    const initials = `${item.firstName?.[0] ?? ''}${item.lastName?.[0] ?? ''}` || '?';
+
     return (
       <TouchableOpacity
         style={chatStyles.conversationItem}
         onPress={() => selectNewChat(item)}
       >
         <View style={chatStyles.avatar}>
-          <Text style={chatStyles.avatarText}>
-            {item.firstName[0]}{item.lastName[0]}
-          </Text>
+          <Text style={chatStyles.avatarText}>{initials}</Text>
         </View>
         <View style={chatStyles.conversationInfo}>
           <Text style={chatStyles.conversationName}>{item.fullName}</Text>

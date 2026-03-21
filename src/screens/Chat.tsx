@@ -1,11 +1,25 @@
-import React, { useState, useEffect, useRef } from "react";
-import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
-import { useRoute, useNavigation } from "@react-navigation/native";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import type { RouteProp } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import { COLORS } from "appStyles";
 
-import chatService, { Message } from "../http/chat";
+import type { Message } from "../http/chat";
+import chatService from "../http/chat";
+import type { ROUTES } from "../navigation/routes";
+import type { RootStackNavigationProp, RootStackParamList } from "../navigation/types";
+
 import { styles as globalStyles } from "./styles";
-import { COLORS, SIZES } from "appStyles";
 
 const chatStyles = StyleSheet.create({
   header: {
@@ -150,90 +164,109 @@ const chatStyles = StyleSheet.create({
   },
 });
 
+type ChatRouteProp = RouteProp<RootStackParamList, typeof ROUTES.STACK.CHAT>;
+type ChatParticipantInfo =
+  NonNullable<RootStackParamList[typeof ROUTES.STACK.CHAT]["participantInfo"]>;
+
 export default function ChatScreen() {
-  const route = useRoute();
-  const navigation = useNavigation();
-  const { userId: receiverId, participantInfo: initialParticipantInfo } = (route.params as any) || {};
-  
+  const route = useRoute<ChatRouteProp>();
+  const navigation = useNavigation<RootStackNavigationProp>();
+  const { userId: receiverId, participantInfo: initialParticipantInfo } = route.params;
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
-  const [participantInfo, setParticipantInfo] = useState<any>(initialParticipantInfo || null);
+  const [participantInfo, setParticipantInfo] = useState<ChatParticipantInfo | null>(
+    initialParticipantInfo || null,
+  );
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     if (!receiverId) return;
 
-    loadUserId();
-  }, [receiverId]);
+    setParticipantInfo(initialParticipantInfo || null);
+    setMessages([]);
+    void loadUserId();
+  }, [receiverId, initialParticipantInfo]);
 
   useEffect(() => {
-    if (currentUserId && receiverId) {
-      if (!participantInfo) {
-        loadParticipantInfo();
+    if (!currentUserId || !receiverId) {
+      return;
+    }
+
+    let isActive = true;
+
+    const isConversationMessage = (message: Message) =>
+      (message.senderId === currentUserId && message.receiverId === receiverId) ||
+      (message.senderId === receiverId && message.receiverId === currentUserId);
+
+    const syncConversation = async () => {
+      try {
+        setLoading(true);
+
+        const [loadedMessages, loadedParticipantInfo] = await Promise.all([
+          chatService.getConversationMessages(currentUserId, receiverId, 50, 0),
+          initialParticipantInfo
+            ? Promise.resolve(initialParticipantInfo)
+            : chatService.getUserProfile(receiverId),
+        ]);
+
+        if (!isActive) {
+          return;
+        }
+
+        setMessages(loadedMessages);
+        setParticipantInfo(loadedParticipantInfo);
+
+        await chatService.markMessagesAsRead(receiverId, currentUserId);
+      } catch (error) {
+        console.error('Failed to load chat data:', error);
+      } finally {
+        if (isActive) {
+          setLoading(false);
+        }
       }
-      loadMessages();
+    };
 
-      const unsubscribe = chatService.onNewMessage((message) => {
-        if (
-          (message.senderId === currentUserId && message.receiverId === receiverId) ||
-          (message.senderId === receiverId && message.receiverId === currentUserId)
-        ) {
-          setMessages((prev) => [...prev, message]);
+    chatService.joinConversation(currentUserId, receiverId);
+    void syncConversation();
+
+    const unsubscribeMessage = chatService.onNewMessage((message) => {
+      if (!isConversationMessage(message) || !isActive) {
+        return;
+      }
+
+      setMessages((prev) => {
+        if (prev.some((existingMessage) => existingMessage.id === message.id)) {
+          return prev;
         }
+
+        return [...prev, message];
       });
+    });
 
-      chatService.onMessagesRead(({ senderId, receiverId }) => {
-        if (senderId === currentUserId && receiverId === receiverId) {
-          setMessages((prev) =>
-            prev.map((msg) => ({
-              ...msg,
-              read: true,
-            })),
-          );
-        }
-      });
+    const unsubscribeRead = chatService.onMessagesRead(({ senderId, receiverId: readReceiverId }) => {
+      if (!isActive || senderId !== currentUserId || readReceiverId !== receiverId) {
+        return;
+      }
 
-      return () => {
-        unsubscribe();
-      };
-    }
-  }, [receiverId, currentUserId, participantInfo]);
+      setMessages((prev) =>
+        prev.map((msg) => ({
+          ...msg,
+          read: msg.senderId === currentUserId ? true : msg.read,
+        })),
+      );
+    });
 
-  useEffect(() => {
-    if (currentUserId && receiverId) {
-      loadMessages();
-      loadParticipantInfo();
-
-      chatService.joinConversation(currentUserId, receiverId);
-
-      const unsubscribe = chatService.onNewMessage((message) => {
-        if (
-          (message.senderId === currentUserId && message.receiverId === receiverId) ||
-          (message.senderId === receiverId && message.receiverId === currentUserId)
-        ) {
-          setMessages((prev) => [...prev, message]);
-        }
-      });
-
-      chatService.onMessagesRead(({ senderId, receiverId }) => {
-        if (senderId === currentUserId && receiverId === receiverId) {
-          setMessages((prev) =>
-            prev.map((msg) => ({
-              ...msg,
-              read: true,
-            })),
-          );
-        }
-      });
-
-      return () => {
-        unsubscribe();
-        chatService.leaveConversation(currentUserId, receiverId);
-      };
-    }
-  }, [receiverId, currentUserId]);
+    return () => {
+      isActive = false;
+      unsubscribeMessage();
+      unsubscribeRead();
+      chatService.leaveConversation(currentUserId, receiverId);
+    };
+  }, [receiverId, currentUserId, initialParticipantInfo]);
 
   useEffect(() => {
     scrollToBottom();
@@ -242,43 +275,17 @@ export default function ChatScreen() {
   const loadUserId = async () => {
     try {
       const userId = await AsyncStorage.getItem('userId');
+
       setCurrentUserId(userId);
+
       if (userId) {
-        chatService.connect(userId);
+        void chatService.connect(userId);
+      } else {
+        setLoading(false);
       }
     } catch (error) {
       console.error('Failed to load user ID:', error);
-    }
-  };
-
-  const loadMessages = async () => {
-    try {
-      setLoading(true);
-      if (!currentUserId || !receiverId) return;
-
-      const loadedMessages = await chatService.getConversationMessages(
-        currentUserId,
-        receiverId,
-        50,
-        0,
-      );
-
-      setMessages(loadedMessages);
-
-      await chatService.markMessagesAsRead(receiverId, currentUserId);
-    } catch (error) {
-      console.error('Failed to load messages:', error);
-    } finally {
       setLoading(false);
-    }
-  };
-
-  const loadParticipantInfo = async () => {
-    try {
-      const info = await chatService.getUserProfile(receiverId);
-      setParticipantInfo(info);
-    } catch (error) {
-      console.error('Failed to load participant info:', error);
     }
   };
 
@@ -289,19 +296,25 @@ export default function ChatScreen() {
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !currentUserId || !receiverId) return;
+    const content = newMessage.trim();
+
+    if (!content || !currentUserId || !receiverId || sending) return;
 
     try {
-      await chatService.sendMessage(receiverId, newMessage.trim());
+      setSending(true);
+      await chatService.sendMessage(receiverId, content);
       setNewMessage("");
     } catch (error) {
       console.error('Failed to send message:', error);
       alert('Не удалось отправить сообщение');
+    } finally {
+      setSending(false);
     }
   };
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
+
     return date.toLocaleTimeString('ru-RU', {
       hour: '2-digit',
       minute: '2-digit',
@@ -311,18 +324,19 @@ export default function ChatScreen() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const today = new Date();
-    
+
     if (date.toDateString() === today.toDateString()) {
       return 'Сегодня';
     }
-    
+
     const yesterday = new Date(today);
+
     yesterday.setDate(yesterday.getDate() - 1);
-    
+
     if (date.toDateString() === yesterday.toDateString()) {
       return 'Вчера';
     }
-    
+
     return date.toLocaleDateString('ru-RU', {
       day: '2-digit',
       month: '2-digit',
@@ -332,10 +346,10 @@ export default function ChatScreen() {
 
   const renderDateSeparator = (index: number) => {
     if (index === 0) return true;
-    
+
     const current = new Date(messages[index].createdAt);
     const previous = new Date(messages[index - 1].createdAt);
-    
+
     return current.toDateString() !== previous.toDateString();
   };
 
@@ -379,6 +393,14 @@ export default function ChatScreen() {
     );
   };
 
+  const participantInitials =
+    participantInfo
+      ? `${participantInfo.firstName?.[0] ?? ''}${participantInfo.lastName?.[0] ?? ''}` || '?'
+      : '?';
+  const participantName = participantInfo
+    ? `${participantInfo.firstName ?? ''} ${participantInfo.lastName ?? ''}`.trim() || 'Без имени'
+    : 'Загрузка...';
+
   return (
     <KeyboardAvoidingView
       style={globalStyles.containerLight}
@@ -394,17 +416,9 @@ export default function ChatScreen() {
         </TouchableOpacity>
         <View style={chatStyles.participant}>
           <View style={chatStyles.avatar}>
-            <Text style={chatStyles.avatarText}>
-              {participantInfo
-                ? `${participantInfo.firstName[0]}${participantInfo.lastName[0]}`
-                : '?'}
-            </Text>
+            <Text style={chatStyles.avatarText}>{participantInitials}</Text>
           </View>
-          <Text style={chatStyles.participantName}>
-            {participantInfo
-              ? `${participantInfo.firstName} ${participantInfo.lastName}`
-              : 'Загрузка...'}
-          </Text>
+          <Text style={chatStyles.participantName}>{participantName}</Text>
         </View>
       </View>
 
@@ -443,10 +457,10 @@ export default function ChatScreen() {
         <TouchableOpacity
           style={[
             chatStyles.sendButton,
-            !newMessage.trim() ? chatStyles.sendButtonDisabled : null,
+            !newMessage.trim() || sending ? chatStyles.sendButtonDisabled : null,
           ]}
           onPress={handleSendMessage}
-          disabled={!newMessage.trim()}
+          disabled={!newMessage.trim() || sending}
         >
           <Text style={chatStyles.sendButtonText}>Отправить</Text>
         </TouchableOpacity>
