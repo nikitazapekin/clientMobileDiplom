@@ -1,4 +1,7 @@
-import api from './api';
+import type { Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
+
+import api, { BASE_URL } from './api';
 
 export interface Message {
   id: string;
@@ -36,19 +39,82 @@ export interface User {
   fullName: string;
 }
 
+interface SocketMessageResponse {
+  success: boolean;
+  message?: Message;
+  error?: string;
+}
+
+interface SocketStatusResponse {
+  success: boolean;
+  error?: string;
+}
+
 class ChatService {
+  private socket: Socket | null = null;
   private currentUserId: string | null = null;
   private messageListeners: ((message: Message) => void)[] = [];
   private readListeners: ((data: { senderId: string; receiverId: string }) => void)[] = [];
 
-  async connect(userId: string) {
-    this.currentUserId = userId;
-    console.log('Chat service initialized for user:', userId);
+  private readonly handleNewMessage = (message: Message) => {
+    this.messageListeners.forEach((listener) => listener(message));
+  };
 
-    return Promise.resolve();
+  private readonly handleMessagesRead = (data: { senderId: string; receiverId: string }) => {
+    this.readListeners.forEach((listener) => listener(data));
+  };
+
+  private cleanupSocket() {
+    if (!this.socket) {
+      return;
+    }
+
+    this.socket.off('connect');
+    this.socket.off('disconnect');
+    this.socket.off('connect_error');
+    this.socket.off('newMessage', this.handleNewMessage);
+    this.socket.off('messagesRead', this.handleMessagesRead);
+    this.socket.disconnect();
+    this.socket = null;
+  }
+
+  async connect(userId: string) {
+    if (this.currentUserId === userId && this.socket) {
+      if (!this.socket.connected) {
+        this.socket.connect();
+      }
+
+      return;
+    }
+
+    this.cleanupSocket();
+    this.currentUserId = userId;
+
+    this.socket = io(BASE_URL, {
+      query: { userId },
+      transports: ['websocket', 'polling'],
+      withCredentials: true,
+      reconnection: true,
+    });
+
+    this.socket.on('connect', () => {
+      console.log('Connected to chat server');
+    });
+
+    this.socket.on('disconnect', () => {
+      console.log('Disconnected from chat server');
+    });
+
+    this.socket.on('connect_error', (error) => {
+      console.error('Chat socket connection error:', error);
+    });
+
+    this.socket.on('newMessage', this.handleNewMessage);
+    this.socket.on('messagesRead', this.handleMessagesRead);
   }
 
   disconnect() {
+    this.cleanupSocket();
     this.currentUserId = null;
     this.messageListeners = [];
     this.readListeners = [];
@@ -58,7 +124,7 @@ class ChatService {
     this.messageListeners.push(callback);
 
     return () => {
-      this.messageListeners = this.messageListeners.filter((l) => l !== callback);
+      this.messageListeners = this.messageListeners.filter((listener) => listener !== callback);
     };
   }
 
@@ -66,26 +132,28 @@ class ChatService {
     this.readListeners.push(callback);
 
     return () => {
-      this.readListeners = this.readListeners.filter((l) => l !== callback);
+      this.readListeners = this.readListeners.filter((listener) => listener !== callback);
     };
   }
 
   async sendMessage(receiverId: string, content: string): Promise<Message> {
-    try {
-      const response = await api.post('/chat/messages', {
-        receiverId,
-        content,
-      });
-
-      const message = response.data.data;
-
-      this.messageListeners.forEach((listener) => listener(message));
-
-      return message;
-    } catch (error) {
-      console.error('Failed to send message via HTTP:', error);
-      throw error;
+    if (!this.socket || !this.currentUserId) {
+      throw new Error('Not connected to chat server');
     }
+
+    return new Promise((resolve, reject) => {
+      this.socket!.emit(
+        'sendMessage',
+        { receiverId, content, senderId: this.currentUserId },
+        (response: SocketMessageResponse) => {
+          if (response.success && response.message) {
+            resolve(response.message);
+          } else {
+            reject(new Error(response.error || 'Failed to send message'));
+          }
+        },
+      );
+    });
   }
 
   async getConversations(userId: string): Promise<Conversation[]> {
@@ -94,15 +162,39 @@ class ChatService {
     return response.data.data ?? [];
   }
 
-  joinConversation(_userId1: string, _userId2: string) {}
+  joinConversation(userId1: string, userId2: string) {
+    if (!this.socket) {
+      return;
+    }
 
-  leaveConversation(_userId1: string, _userId2: string) {}
+    this.socket.emit('joinConversation', { userId1, userId2 });
+  }
 
-  markAsRead(senderId: string, receiverId: string): Promise<{ success: boolean }> {
+  leaveConversation(userId1: string, userId2: string) {
+    if (!this.socket) {
+      return;
+    }
+
+    this.socket.emit('leaveConversation', { userId1, userId2 });
+  }
+
+  markAsRead(senderId: string, receiverId: string): Promise<SocketStatusResponse> {
+    if (!this.socket) {
+      throw new Error('Not connected to chat server');
+    }
+
     return new Promise((resolve, reject) => {
-      this.markMessagesAsRead(senderId, receiverId)
-        .then(() => resolve({ success: true }))
-        .catch(reject);
+      this.socket!.emit(
+        'markAsRead',
+        { senderId, receiverId },
+        (response: SocketStatusResponse) => {
+          if (response.success) {
+            resolve(response);
+          } else {
+            reject(new Error(response.error || 'Failed to mark as read'));
+          }
+        },
+      );
     });
   }
 
@@ -115,6 +207,12 @@ class ChatService {
   }
 
   async markMessagesAsRead(senderId: string, receiverId: string): Promise<void> {
+    if (this.socket) {
+      await this.markAsRead(senderId, receiverId);
+
+      return;
+    }
+
     await api.post(`/chat/mark-read/${senderId}/${receiverId}`);
   }
 
@@ -172,7 +270,7 @@ class ChatService {
   }
 
   isConnected(): boolean {
-    return true;
+    return this.socket?.connected ?? false;
   }
 }
 

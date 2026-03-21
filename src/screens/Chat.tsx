@@ -238,6 +238,10 @@ export default function ChatScreen() {
         return;
       }
 
+      if (message.receiverId === currentUserId) {
+        void chatService.markMessagesAsRead(message.senderId, currentUserId);
+      }
+
       setMessages((prev) => {
         if (prev.some((existingMessage) => existingMessage.id === message.id)) {
           return prev;
