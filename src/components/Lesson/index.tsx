@@ -260,13 +260,15 @@ const CodeTaskBlockView = ({
       />
 
       <View style={styles.buttonRow}>
+        {/*
         <CustomButton
-          text={isRunning ? "Запуск..." : "Запустить"}
-          handler={onRun}
-          disabled={isRunning}
-          backgroundColor={COLORS.BLACK}
-          maxWidth={120}
+        text={isRunning ? "Запуск..." : "Запустить"}
+        handler={onRun}
+        disabled={isRunning}
+        backgroundColor={COLORS.BLACK}
+        maxWidth={120}
         />
+        */}
         <CustomButton
           text="Проверить"
           handler={onCheck}

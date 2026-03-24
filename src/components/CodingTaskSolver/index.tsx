@@ -1,25 +1,38 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useCallback,useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
   ActivityIndicator,
-  StyleSheet,
-  Modal,
   Alert,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { COLORS, SIZES } from "appStyles";
-import CodeEditor from "@/components/CodeEditor";
+
 import {
+  buildCSharpTestSuite,
+  buildJavaTestSuite,
+  buildTestCode,
+  extractFunctionName,
+  formatArgsForDynamicLang,
+  formatArgsForJavaOrCSharp,
+  generateObjectClasses,
+  getDisplayInput,
+} from "@/code";
+import CodeEditor from "@/components/CodeEditor";
+import type { ArgumentSchema, TestCaseArgument } from "@/components/Lesson/types";
+import { CodeService } from "@/http/codeService";
+import {
+  type CodeLanguage,
   CodeWithTimeService,
   type ExecuteCodeWithTimeResponse,
-  type CodeLanguage,
 } from "@/http/codeWithTimeService";
 import {
-  CodingTasksService,
   type CodeTask,
+  CodingTasksService,
   type SubmitSolutionResult,
   type TaskStatistics,
 } from "@/http/codingTasksService";
@@ -45,19 +58,28 @@ const getConstraintDisplay = (constraint: { type: string; value: any }): string 
   switch (constraint.type) {
     case "maxTimeMs":
       return `${typeLabel}: ${constraint.value}мс`;
+
     case "maxLines":
       return `${typeLabel}: ${constraint.value}`;
+
     case "forbiddenTokens":
       return `${typeLabel}: ${(constraint.value as string[]).join(", ")}`;
+
     case "noComments":
+      return typeLabel;
+
     case "noConsoleLog":
       return typeLabel;
+
     case "maxComplexity":
       return `${typeLabel}: ${constraint.value}`;
+
     case "memoryLimit":
       return `${typeLabel}: ${constraint.value} МБ`;
+
     case "requiredKeywords":
       return `${typeLabel}: ${(constraint.value as string[]).join(", ")}`;
+
     default:
       return `${typeLabel}: ${constraint.value}`;
   }
@@ -181,16 +203,20 @@ const evaluateCodeConstraints = (
       case "maxLines": {
         const maxLines = constraint.value as number;
         const actualLines = countCodeLines(code);
+
         if (actualLines > maxLines) {
           errors.push(`Превышено максимальное количество строк: ${actualLines} > ${maxLines}`);
         }
+
         break;
       }
 
       case "forbiddenTokens": {
         const tokens = constraint.value as string[];
+
         tokens.forEach((token) => {
           const regex = new RegExp(`\\b${escapeRegExp(token)}\\b`, "g");
+
           if (regex.test(code)) {
             errors.push(`Использование запрещенного токена: "${token}"`);
           }
@@ -202,6 +228,7 @@ const evaluateCodeConstraints = (
         if (constraint.value === true && hasComments(code, language)) {
           errors.push("Использование комментариев запрещено");
         }
+
         break;
       }
 
@@ -215,14 +242,17 @@ const evaluateCodeConstraints = (
             errors.push("Вывод в консоль запрещен");
           }
         }
+
         break;
       }
 
       case "requiredKeywords": {
         const keywords = constraint.value as string[];
+
         if (!hasRequiredKeywords(code, keywords)) {
           errors.push(`Отсутствуют обязательные ключевые слова: ${keywords.join(", ")}`);
         }
+
         break;
       }
 
@@ -235,14 +265,17 @@ const evaluateCodeConstraints = (
             `Превышено допустимое время выполнения: ${executionTimeMs}мс > ${constraint.value}мс`
           );
         }
+
         break;
       }
 
       case "maxComplexity": {
         const maxComplexity = constraint.value as number;
+
         if (calculateComplexity(code) > maxComplexity) {
           errors.push("Превышена допустимая сложность кода");
         }
+
         break;
       }
 
@@ -333,6 +366,7 @@ const formatExecutionResponse = (response: ExecuteCodeWithTimeResponse): string 
           .join("\n\n")
       );
     }
+
     if (parsed.results.length) {
       parts.push(
         parsed.results
@@ -347,7 +381,176 @@ const formatExecutionResponse = (response: ExecuteCodeWithTimeResponse): string 
   }
 
   parts.push(`Время выполнения: ${response.executionTimeMs}мс`);
+
   return parts.filter(Boolean).join("\n\n");
+};
+
+type TaskTestCase = CodeTask["testCases"][number] & {
+  args?: TestCaseArgument[];
+};
+
+type CodeTaskWithMetadata = CodeTask & {
+  testCasesByLanguage?: Record<string, TaskTestCase[]>;
+  argumentScheme?: ArgumentSchema[];
+};
+
+const getTaskTestCases = (task: CodeTaskWithMetadata, language: CodeLanguage): TaskTestCase[] =>
+  task.testCasesByLanguage?.[language] || (task.testCases as TaskTestCase[]) || [];
+
+const parseTestOutput = (
+  output: string,
+  testNum: number
+): { logs: string[]; result: string } => {
+  if (!output) return { logs: [], result: "" };
+
+  const lines = output.split(/\r?\n/);
+  let inLogs = false;
+  let inResult = false;
+  const logs: string[] = [];
+  const result: string[] = [];
+
+  for (const line of lines) {
+    if (line.includes(`===LOGS_START_${testNum}===`) || line.includes("===LOGS_START===")) {
+      inLogs = true;
+      continue;
+    }
+
+    if (line.includes(`===LOGS_END_${testNum}===`) || line.includes("===LOGS_END===")) {
+      inLogs = false;
+      continue;
+    }
+
+    if (line.includes(`===RESULT_START_${testNum}===`) || line.includes("===RESULT_START===")) {
+      inResult = true;
+      continue;
+    }
+
+    if (line.includes(`===RESULT_END_${testNum}===`) || line.includes("===RESULT_END===")) {
+      inResult = false;
+      continue;
+    }
+
+    if (inLogs) {
+      logs.push(line);
+    }
+
+    if (inResult) {
+      result.push(line);
+    }
+  }
+
+  return { logs, result: result.join("\n").trim() };
+};
+
+const formatTestLogs = (
+  testCase: TaskTestCase,
+  testIndex: number,
+  language: CodeLanguage,
+  argumentScheme?: ArgumentSchema[]
+): string => {
+  const input = getDisplayInput(testCase, argumentScheme, language);
+
+  return `📋 Логи теста #${testIndex + 1} (вход: ${input}):`;
+};
+
+const collectCheckLogs = async (
+  task: CodeTaskWithMetadata,
+  userCode: string,
+  language: CodeLanguage
+): Promise<string> => {
+  const testCases = getTaskTestCases(task, language);
+
+  if (testCases.length === 0) {
+    return "";
+  }
+
+  const funcName = extractFunctionName(userCode, language);
+
+  if (!funcName) {
+    return "";
+  }
+
+  const parts: string[] = [];
+  const argumentScheme = task.argumentScheme;
+
+  if (language === "java" || language === "csharp") {
+    const formattedTestCases = testCases.map((testCase) => ({
+      input:
+        testCase.args && argumentScheme && argumentScheme.length > 0
+          ? formatArgsForJavaOrCSharp(testCase.args, argumentScheme, language)
+          : testCase.input || "",
+      expectedOutput: testCase.expectedOutput,
+    }));
+
+    const codeWithTests =
+      language === "java"
+        ? buildJavaTestSuite(userCode, formattedTestCases, funcName)
+        : buildCSharpTestSuite(userCode, formattedTestCases, funcName);
+
+    const objectClasses =
+      argumentScheme && argumentScheme.length > 0
+        ? generateObjectClasses(argumentScheme, language)
+        : "";
+
+    const res = await CodeService.executeCode({
+      language,
+      code: objectClasses ? `${codeWithTests}\n\n${objectClasses}` : codeWithTests,
+    });
+
+    if (res.error || !res.output) {
+      return "";
+    }
+
+    testCases.forEach((testCase, index) => {
+      const { logs } = parseTestOutput(res.output, index + 1);
+
+      if (logs.length === 0) {
+        return;
+      }
+
+      parts.push(formatTestLogs(testCase, index, language, argumentScheme));
+      parts.push(logs.join("\n"));
+    });
+
+    return parts.join("\n\n");
+  }
+
+  for (let index = 0; index < testCases.length; index += 1) {
+    const testCase = testCases[index];
+    const preformattedArgs =
+      testCase.args && argumentScheme && argumentScheme.length > 0
+        ? formatArgsForDynamicLang(testCase.args, argumentScheme, language)
+        : undefined;
+
+    const inputToUse = preformattedArgs ?? testCase.input ?? "";
+    const codeToRun = buildTestCode(
+      userCode,
+      inputToUse,
+      language,
+      funcName,
+      preformattedArgs
+    );
+
+    const res = await CodeService.executeCode({
+      language,
+      code: codeToRun,
+    });
+
+    if (res.error || !res.output) {
+      continue;
+    }
+
+    const { logs } = parseTestOutput(res.output, index + 1);
+
+    if (logs.length === 0) {
+      continue;
+    }
+
+    parts.push(formatTestLogs(testCase, index, language, argumentScheme));
+    parts.push(logs.join("\n"));
+  }
+
+  return parts.join("\n\n");
 };
 
 const CodingTaskSolver = ({ id }: Props) => {
@@ -369,8 +572,10 @@ const CodingTaskSolver = ({ id }: Props) => {
   const loadTask = useCallback(async () => {
     try {
       const data = await CodingTasksService.getTask(id);
+
       setTask(data);
       const firstLang = (data.languages?.[0] || "javascript") as CodeLanguage;
+
       setSelectedLang(firstLang);
       setCode(data.startCodes?.[firstLang] || "");
     } catch (e) {
@@ -382,7 +587,7 @@ const CodingTaskSolver = ({ id }: Props) => {
   }, [id]);
 
   useEffect(() => {
-    loadTask();
+    void loadTask();
   }, [loadTask]);
 
   const handleLangChange = (lang: CodeLanguage) => {
@@ -394,10 +599,12 @@ const CodingTaskSolver = ({ id }: Props) => {
 
   const handleRun = async () => {
     if (!task) return;
+
     setRunLoading(true);
     setConsoleOutput("");
     try {
       const res = await CodeWithTimeService.executeCodeWithTime({ language: selectedLang, code });
+
       setConsoleOutput(formatExecutionResponse(res));
     } catch (error: any) {
       setConsoleOutput(`Ошибка выполнения: ${error?.message || "Не удалось выполнить код"}`);
@@ -408,10 +615,25 @@ const CodingTaskSolver = ({ id }: Props) => {
 
   const handleSubmit = async () => {
     if (!task) return;
+
+    const taskWithMetadata = task as CodeTaskWithMetadata;
+
     setSubmitLoading(true);
     setResult(null);
     setUserRank(null);
     setConstraintErrors([]);
+    setConsoleOutput("");
+
+    void collectCheckLogs(taskWithMetadata, code, selectedLang)
+      .then((logs) => {
+        if (logs) {
+          setConsoleOutput(logs);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to collect check logs:", error);
+      });
+
     try {
       const res = await CodingTasksService.submitSolution(task.id, code, selectedLang);
       const { errors } = evaluateCodeConstraints(code, selectedLang, task.constraints, res.executionTimeMs);
@@ -435,6 +657,7 @@ const CodingTaskSolver = ({ id }: Props) => {
             CodingTasksService.getTaskStatistics(task.id),
             CodingTasksService.getUserRank(task.id, selectedLang),
           ]);
+
           setStatistics(stats);
           setUserRank(rank);
         } catch (e) {
@@ -760,7 +983,7 @@ const CodingTaskSolver = ({ id }: Props) => {
                         <Text style={st.langStatTime}>
                           Среднее время: {Math.round(stat.avgExecutionTimeMs)}мс
                         </Text>
-                        
+
                         {/* Гистограмма распределения времени */}
                         {stat.executionTimeDistribution && stat.executionTimeDistribution.length > 0 && (
                           <View style={st.histogramContainer}>
@@ -769,9 +992,9 @@ const CodingTaskSolver = ({ id }: Props) => {
                               {stat.executionTimeDistribution.map((dist, idx) => {
                                 const maxCount = Math.max(...stat.executionTimeDistribution.map(d => d.count));
                                 const barWidth = (dist.count / maxCount) * 100;
-                                const barColor = idx === 0 ? '#4caf50' : 
-                                               idx < stat.executionTimeDistribution.length / 2 ? '#ff9800' : '#f44336';
-                                
+                                const barColor = idx === 0 ? '#4caf50' :
+                                  idx < stat.executionTimeDistribution.length / 2 ? '#ff9800' : '#f44336';
+
                                 return (
                                   <View key={idx} style={st.histogramBar}>
                                     <Text style={st.histogramBarLabel}>{dist.timeRange}</Text>
