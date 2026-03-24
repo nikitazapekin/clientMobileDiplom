@@ -1,9 +1,10 @@
- 
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import type {
   CourseListResponse,
   CourseResponse,
+  CourseStatsResponse,
   CourseStatus,
   CreateCourseRequest,
   UpdateCourseRequest
@@ -68,6 +69,17 @@ export default class CourseService {
     } catch (error: any) {
       console.error("Get course error:", error.response?.data || error.message);
       throw new Error(error.response?.data?.message || "Failed to fetch course");
+    }
+  }
+
+  static async getCourseStats(id: string): Promise<CourseStatsResponse> {
+    try {
+      const response = await $api.get<CourseStatsResponse>(`/courses/${id}/stats`);
+
+      return (response.data as any).data ?? response.data;
+    } catch (error: any) {
+      console.error("Get course stats error:", error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || "Failed to fetch course stats");
     }
   }
 

@@ -1,7 +1,5 @@
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Dimensions,
   Image,
   StyleSheet,
   Text,
@@ -10,11 +8,10 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
-import type { CourseResponse } from '@/http/types/course';
+import CourseService from '@/http/courses';
+import type { CourseResponse, CourseStatsResponse } from '@/http/types/course';
 import { ROUTES } from '@/navigation/routes';
 import type { RootStackNavigationProp } from '@/navigation/types';
-
-const { width } = Dimensions.get('window');
 
 interface CourseProps {
   item: CourseResponse;
@@ -42,6 +39,34 @@ const getValidImageSrc = (logo: string): string | null => {
 const Course: React.FC<CourseProps> = ({ item, onPress }) => {
   const navigation = useNavigation<RootStackNavigationProp>();
   const imageSrc = getValidImageSrc(item.logo);
+  const [stats, setStats] = useState<CourseStatsResponse | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadCourseStats = async () => {
+      try {
+        const courseStats = await CourseService.getCourseStats(item.id);
+
+        if (isActive) {
+          setStats(courseStats);
+        }
+      } catch (error) {
+        console.error('Failed to load course stats:', error);
+
+        if (isActive) {
+          setStats(null);
+        }
+      }
+    };
+
+    setStats(null);
+    void loadCourseStats();
+
+    return () => {
+      isActive = false;
+    };
+  }, [item.id]);
 
   const handlePress = () => {
     if (onPress) {
@@ -80,13 +105,13 @@ const Course: React.FC<CourseProps> = ({ item, onPress }) => {
         <View style={styles.statsContainer}>
           <View style={styles.course__lesson}>
             <Text style={styles.course__count}>
-              <Text style={styles.course__countBold}>Уроков:</Text> 0
+              <Text style={styles.course__countBold}>Уроков:</Text> {stats?.lessonCount ?? '...'}
             </Text>
           </View>
 
           <View style={styles.course__lesson}>
             <Text style={styles.course__count}>
-              <Text style={styles.course__countBold}>Студентов:</Text> 12123
+              <Text style={styles.course__countBold}>Студентов:</Text> {stats?.studentCount ?? '...'}
             </Text>
           </View>
         </View>

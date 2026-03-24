@@ -32,4 +32,9 @@ export interface CourseResponse {
   publishedAt?: string;
 }
 
+export interface CourseStatsResponse {
+  lessonCount: number;
+  studentCount: number;
+}
+
 export type CourseStatus = "draft" | "published" | "archived";

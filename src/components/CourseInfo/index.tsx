@@ -1,16 +1,17 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet,Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Image, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 
 import Button from "../Button";
 
 import Certificate from "@/assets/utils/Certificate.jpg";
 import CourseService from "@/http/courses";
-import type { CourseResponse } from "@/http/types/course";
+import SubscriptionService from "@/http/subscribtion";
+import type { CourseResponse, CourseStatsResponse } from "@/http/types/course";
 import { ROUTES } from "@/navigation/routes";
 import type { RootStackNavigationProp } from "@/navigation/types";
-import SubscriptionService from "@/http/subscribtion"
-import AsyncStorage from "@react-native-async-storage/async-storage";
+
 interface CourseInfoProps {
   id: string;
 
@@ -19,56 +20,54 @@ interface CourseInfoProps {
 const CourseInfo = ({ id,  }: CourseInfoProps) => {
   const navigation = useNavigation<RootStackNavigationProp>();
   const [course, setCourse] = useState<CourseResponse | null>(null);
+  const [courseStats, setCourseStats] = useState<CourseStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-const userId = useRef<string>("")
+  const userId = useRef<string>("");
 
-
-
-
-
-
-    const loadProfile = useCallback(async () => {
+  const loadProfile = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const auditoryId = await AsyncStorage.getItem('userId'); 
+      const auditoryId = await AsyncStorage.getItem('userId');
+
       if(typeof auditoryId == "string") {
 
-        userId.current = auditoryId
+        userId.current = auditoryId;
       }
+
       if (!auditoryId) {
         setError('User not authenticated');
 
         return;
       }
-  
- 
+
     } catch (err: any) {
       setError(err.message || 'Failed to load profile');
-    }  
+    }
   }, []);
-  
 
   useEffect(() => {
-    loadProfile();
+    void loadProfile();
   }, [loadProfile]);
 
-
-
-  useEffect(() => {
-    fetchCourseDetails();
-  }, [id]);
-
-  const fetchCourseDetails = async () => {
+  const fetchCourseDetails = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await CourseService.getCourseById(id);
+      const [courseResponse, statsResponse] = await Promise.all([
+        CourseService.getCourseById(id),
+        CourseService.getCourseStats(id).catch((statsError) => {
+          console.error("Error fetching course stats:", statsError);
 
-      setCourse(response);
+          return null;
+        }),
+      ]);
+
+      setCourse(courseResponse);
+      setCourseStats(statsResponse);
       setError(null);
     } catch (err: any) {
       setError(err.message || "Не удалось загрузить информацию о курсе");
@@ -76,13 +75,15 @@ const userId = useRef<string>("")
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  const handleSubscribe = async ( ) => {
+  useEffect(() => {
+    void fetchCourseDetails();
+  }, [fetchCourseDetails]);
+
+  const handleSubscribe = () => {
     setShowSuccessModal(true);
-    SubscriptionService.subscribeToCourse(userId.current , id)
-
-
+    void SubscriptionService.subscribeToCourse(userId.current, id);
   };
 
   const handleGoToProfile = () => {
@@ -108,7 +109,12 @@ const userId = useRef<string>("")
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>{error || "Курс не найден"}</Text>
-        <TouchableOpacity onPress={fetchCourseDetails} style={styles.retryButton}>
+        <TouchableOpacity
+          onPress={() => {
+            void fetchCourseDetails();
+          }}
+          style={styles.retryButton}
+        >
           <Text style={styles.retryButtonText}>Повторить</Text>
         </TouchableOpacity>
       </View>
@@ -134,8 +140,12 @@ const userId = useRef<string>("")
 
             <Text style={styles.courseDescription}>{course.description}</Text>
 
-            <Text style={styles.courseDetail}>Количество уроков: 0</Text>
-            <Text style={styles.courseDetail}>Количество студентов: 0</Text>
+            <Text style={styles.courseDetail}>
+              Количество уроков: {courseStats?.lessonCount ?? "..."}
+            </Text>
+            <Text style={styles.courseDetail}>
+              Количество студентов: {courseStats?.studentCount ?? "..."}
+            </Text>
 
             <View style={styles.tagsContainer}>
               {course.tags?.map((tag, index) => (
