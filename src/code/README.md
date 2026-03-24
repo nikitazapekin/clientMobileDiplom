@@ -47,7 +47,7 @@
 ## Использование
 
 ```typescript
-// Импорт всех функций
+ 
 import {
   parseArguments,
   formatArgumentsForCode,
@@ -67,8 +67,7 @@ import {
   compareOutputs,
   checkConstraints
 } from "@/code";
-
-// Или импорт отдельных модулей
+ 
 import { parseArguments, formatArgumentsForCode } from "@/code/argumentParser";
 import { checkConstraints } from "@/code/constraintChecker";
 ```

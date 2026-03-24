@@ -38,6 +38,7 @@ export interface SubmitSolutionResult {
   experienceGained: number;
   newLevel: number;
   newExperience: number;
+  executionTimeMs: number;
 }
 
 export interface StudentLevel {
@@ -46,6 +47,51 @@ export interface StudentLevel {
   level: number;
   experience: number;
   solvedTasks: Array<{ id: string; codeTaskId: string; solvedAt: string }>;
+}
+
+export interface CodeTaskSolution {
+  id: string;
+  code: string;
+  language: string;
+  executionTimeMs: number;
+  passed: boolean;
+  testCasesPassed: number;
+  totalTestCases: number;
+  testResults: any[];
+  allPassed: boolean;
+  experienceGained: number;
+  studentLevelId: string;
+  studentName: string;
+  taskId: string;
+  clientId: string;
+  createdAt: string;
+  likedBy?: string[];
+  dislikedBy?: string[];
+  likes?: number;
+  dislikes?: number;
+}
+
+export interface TaskStatistics {
+  totalSolutions: number;
+  passedSolutions: number;
+  averageExecutionTimeMs: number;
+  fastestExecutionTimeMs: number;
+  slowestExecutionTimeMs: number;
+  languageStats: Array<{
+    language: string;
+    count: number;
+    avgExecutionTimeMs: number;
+    executionTimeDistribution: Array<{
+      timeRange: string;
+      count: number;
+    }>;
+  }>;
+}
+
+export interface UserRank {
+  rank: number;
+  executionTimeMs: number;
+  totalParticipants: number;
 }
 
 export class CodingTasksService {
@@ -84,6 +130,52 @@ export class CodingTasksService {
  
   static async getStudentLevelByClientId(clientId: string): Promise<StudentLevel> {
     const response = await $api.get(`/coding-tasks/student-level/${clientId}`);
+    return response.data;
+  }
+
+  static async getTaskSolutions(taskId: string): Promise<CodeTaskSolution[]> {
+    const response = await $api.get(`/coding-tasks/${taskId}/solutions`);
+    return response.data;
+  }
+
+  static async getTaskSolutionsByLanguage(
+    taskId: string,
+    language: string
+  ): Promise<CodeTaskSolution[]> {
+    const response = await $api.get(`/coding-tasks/${taskId}/solutions/language/${language}`);
+    return response.data;
+  }
+
+  static async getTaskStatistics(taskId: string): Promise<TaskStatistics> {
+    const response = await $api.get(`/coding-tasks/${taskId}/statistics`);
+    return response.data;
+  }
+
+  static async getUserSolutions(): Promise<CodeTaskSolution[]> {
+    const response = await $api.get("/coding-tasks/solutions/user");
+    return response.data;
+  }
+
+  static async getExecutionTimeRanking(
+    taskId: string,
+    language: string
+  ): Promise<Array<{ studentName: string; executionTimeMs: number; rank: number }>> {
+    const response = await $api.get(`/coding-tasks/${taskId}/ranking/${language}`);
+    return response.data;
+  }
+
+  static async getUserRank(taskId: string, language: string): Promise<UserRank> {
+    const response = await $api.get(`/coding-tasks/${taskId}/rank/${language}`);
+    return response.data;
+  }
+
+  static async likeSolution(solutionId: string): Promise<CodeTaskSolution> {
+    const response = await $api.post(`/coding-tasks/solutions/${solutionId}/like`);
+    return response.data;
+  }
+
+  static async dislikeSolution(solutionId: string): Promise<CodeTaskSolution> {
+    const response = await $api.post(`/coding-tasks/solutions/${solutionId}/dislike`);
     return response.data;
   }
 }

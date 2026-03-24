@@ -8,15 +8,18 @@ import {
   StyleSheet,
   Modal,
   Alert,
+  Dimensions,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { COLORS, SIZES } from "appStyles";
 import CodeEditor from "@/components/CodeEditor";
-import { CodeService } from "@/http/codeService";
-import type { CodeLanguage } from "@/http/codeService";
+import { CodeWithTimeService } from "@/http/codeWithTimeService";
+import type { CodeLanguage } from "@/http/codeWithTimeService";
 import {
   CodingTasksService,
   type CodeTask,
   type SubmitSolutionResult,
+  type TaskStatistics,
 } from "@/http/codingTasksService";
 
 interface Props {
@@ -80,6 +83,7 @@ const LANG_LABELS: Record<string, string> = {
 };
 
 const CodingTaskSolver = ({ id }: Props) => {
+  const navigation = useNavigation();
   const [task, setTask] = useState<CodeTask | null>(null);
   const [selectedLang, setSelectedLang] = useState<CodeLanguage>("javascript");
   const [code, setCode] = useState("");
@@ -89,6 +93,9 @@ const CodingTaskSolver = ({ id }: Props) => {
   const [consoleOutput, setConsoleOutput] = useState("");
   const [result, setResult] = useState<SubmitSolutionResult | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const [statistics, setStatistics] = useState<TaskStatistics | null>(null);
+  const [showStatistics, setShowStatistics] = useState(false);
+  const [userRank, setUserRank] = useState<{ rank: number; executionTimeMs: number; totalParticipants: number } | null>(null);
 
   const loadTask = useCallback(async () => {
     try {
@@ -121,8 +128,8 @@ const CodingTaskSolver = ({ id }: Props) => {
     setRunLoading(true);
     setConsoleOutput("");
     try {
-      const res = await CodeService.executeCode({ language: selectedLang, code });
-      setConsoleOutput(res.error || res.output || "Нет вывода");
+      const res = await CodeWithTimeService.executeCodeWithTime({ language: selectedLang, code });
+      setConsoleOutput(`${res.error || res.output || "Нет вывода"}\n\nВремя выполнения: ${res.executionTimeMs}мс`);
     } catch {
       setConsoleOutput("Ошибка выполнения");
     } finally {
@@ -134,9 +141,24 @@ const CodingTaskSolver = ({ id }: Props) => {
     if (!task) return;
     setSubmitLoading(true);
     setResult(null);
+    setUserRank(null);
     try {
       const res = await CodingTasksService.submitSolution(task.id, code, selectedLang);
       setResult(res);
+
+      if (res.allPassed) {
+        try {
+          const [stats, rank] = await Promise.all([
+            CodingTasksService.getTaskStatistics(task.id),
+            CodingTasksService.getUserRank(task.id, selectedLang),
+          ]);
+          setStatistics(stats);
+          setUserRank(rank);
+        } catch (e) {
+          console.error("Failed to fetch statistics:", e);
+        }
+      }
+
       setShowResult(true);
     } catch (e: any) {
       Alert.alert("Ошибка", e?.message || "Не удалось отправить решение");
@@ -252,6 +274,18 @@ const CodingTaskSolver = ({ id }: Props) => {
         </View>
       )}
 
+      <TouchableOpacity
+        style={st.solutionsBtn}
+        onPress={() =>
+          navigation.navigate("Solutions" as never, {
+            taskId: task.id,
+            taskTitle: task.title,
+          } as never)
+        }
+      >
+        <Text style={st.solutionsBtnText}>📝 Посмотреть решения других студентов</Text>
+      </TouchableOpacity>
+
       {result && !showResult && (
         <TouchableOpacity onPress={() => setShowResult(true)}>
           <Text style={st.showResultLink}>Показать результаты</Text>
@@ -296,7 +330,35 @@ const CodingTaskSolver = ({ id }: Props) => {
                     <Text style={st.summaryLabel}>Уровень</Text>
                     <Text style={st.summaryValue}>{result.newLevel}</Text>
                   </View>
+                  <View style={st.summaryItem}>
+                    <Text style={st.summaryLabel}>Время</Text>
+                    <Text style={st.summaryValue}>{result.executionTimeMs}мс</Text>
+                  </View>
                 </View>
+
+                {userRank && userRank.totalParticipants > 0 && (
+                  <View style={st.rankSection}>
+                    <Text style={st.rankTitle}>🏆 Ваш рейтинг по скорости</Text>
+                    <View style={st.rankInfo}>
+                      <Text style={st.rankText}>
+                        Место: <Text style={st.rankValue}>{userRank.rank}</Text> из{" "}
+                        {userRank.totalParticipants}
+                      </Text>
+                      <Text style={st.rankText}>
+                        Время: <Text style={st.rankValue}>{userRank.executionTimeMs}мс</Text>
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {statistics && statistics.passedSolutions > 0 && (
+                  <TouchableOpacity
+                    style={st.statisticsBtn}
+                    onPress={() => setShowStatistics(true)}
+                  >
+                    <Text style={st.statisticsBtnText}>📊 Статистика решений</Text>
+                  </TouchableOpacity>
+                )}
 
                 <ScrollView style={st.resultsList}>
                   {result.results.map((r) => (
@@ -325,6 +387,124 @@ const CodingTaskSolver = ({ id }: Props) => {
             <TouchableOpacity
               style={st.modalCloseBtn}
               onPress={() => setShowResult(false)}
+            >
+              <Text style={st.modalCloseBtnText}>Закрыть</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showStatistics} transparent animationType="slide">
+        <View style={st.modalOverlay}>
+          <View style={st.modalContent}>
+            <View style={st.modalHeader}>
+              <Text style={st.modalTitle}>📊 Статистика решений</Text>
+              <TouchableOpacity onPress={() => setShowStatistics(false)}>
+                <Text style={st.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {statistics && (
+              <ScrollView>
+                <View style={st.statSection}>
+                  <Text style={st.statSectionTitle}>Общая статистика</Text>
+                  <View style={st.statRow}>
+                    <Text style={st.statLabel}>Всего решений:</Text>
+                    <Text style={st.statValue}>{statistics.totalSolutions}</Text>
+                  </View>
+                  <View style={st.statRow}>
+                    <Text style={st.statLabel}>Успешных:</Text>
+                    <Text style={[st.statValue, { color: "#4caf50" }]}>
+                      {statistics.passedSolutions}
+                    </Text>
+                  </View>
+                  <View style={st.statRow}>
+                    <Text style={st.statLabel}>Среднее время:</Text>
+                    <Text style={st.statValue}>{Math.round(statistics.averageExecutionTimeMs)}мс</Text>
+                  </View>
+                  <View style={st.statRow}>
+                    <Text style={st.statLabel}>Быстрее всего:</Text>
+                    <Text style={[st.statValue, { color: "#4caf50" }]}>
+                      {statistics.fastestExecutionTimeMs}мс
+                    </Text>
+                  </View>
+                  <View style={st.statRow}>
+                    <Text style={st.statLabel}>Медленнее всего:</Text>
+                    <Text style={[st.statValue, { color: "#f44336" }]}>
+                      {statistics.slowestExecutionTimeMs}мс
+                    </Text>
+                  </View>
+                </View>
+
+                {statistics.languageStats && statistics.languageStats.length > 0 && (
+                  <View style={st.statSection}>
+                    <Text style={st.statSectionTitle}>По языкам программирования</Text>
+                    {statistics.languageStats.map((stat) => (
+                      <View key={stat.language} style={st.langStatCard}>
+                        <View style={st.langStatHeader}>
+                          <Text style={st.langStatLabel}>{stat.language.toUpperCase()}</Text>
+                          <Text style={st.langStatCount}>{stat.count} решений</Text>
+                        </View>
+                        <Text style={st.langStatTime}>
+                          Среднее время: {Math.round(stat.avgExecutionTimeMs)}мс
+                        </Text>
+                        
+                        {/* Гистограмма распределения времени */}
+                        {stat.executionTimeDistribution && stat.executionTimeDistribution.length > 0 && (
+                          <View style={st.histogramContainer}>
+                            <Text style={st.histogramTitle}>Распределение времени:</Text>
+                            <View style={st.histogramBars}>
+                              {stat.executionTimeDistribution.map((dist, idx) => {
+                                const maxCount = Math.max(...stat.executionTimeDistribution.map(d => d.count));
+                                const barWidth = (dist.count / maxCount) * 100;
+                                const barColor = idx === 0 ? '#4caf50' : 
+                                               idx < stat.executionTimeDistribution.length / 2 ? '#ff9800' : '#f44336';
+                                
+                                return (
+                                  <View key={idx} style={st.histogramBar}>
+                                    <Text style={st.histogramBarLabel}>{dist.timeRange}</Text>
+                                    <View style={st.histogramBarTrack}>
+                                      <View
+                                        style={[
+                                          st.histogramBarFill,
+                                          {
+                                            width: `${Math.max(5, barWidth)}%`,
+                                            backgroundColor: barColor,
+                                          },
+                                        ]}
+                                      />
+                                      <Text style={st.histogramBarCount}>{dist.count}</Text>
+                                    </View>
+                                  </View>
+                                );
+                              })}
+                            </View>
+                            <View style={st.histogramLegend}>
+                              <View style={st.legendItem}>
+                                <View style={[st.legendDot, { backgroundColor: '#4caf50' }]} />
+                                <Text style={st.legendText}>Быстрые</Text>
+                              </View>
+                              <View style={st.legendItem}>
+                                <View style={[st.legendDot, { backgroundColor: '#ff9800' }]} />
+                                <Text style={st.legendText}>Средние</Text>
+                              </View>
+                              <View style={st.legendItem}>
+                                <View style={[st.legendDot, { backgroundColor: '#f44336' }]} />
+                                <Text style={st.legendText}>Медленные</Text>
+                              </View>
+                            </View>
+                          </View>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </ScrollView>
+            )}
+
+            <TouchableOpacity
+              style={st.modalCloseBtn}
+              onPress={() => setShowStatistics(false)}
             >
               <Text style={st.modalCloseBtnText}>Закрыть</Text>
             </TouchableOpacity>
@@ -415,6 +595,17 @@ const st = StyleSheet.create({
   consoleTitle: { color: "#aaa", fontSize: 12, marginBottom: 6, fontWeight: "600" },
   consoleText: { color: "#d4d4d4", fontSize: 13, fontFamily: "monospace" },
 
+  solutionsBtn: {
+    backgroundColor: COLORS.WHITE,
+    borderRadius: 10,
+    padding: 14,
+    borderWidth: 2,
+    borderColor: COLORS.ACCENT,
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  solutionsBtnText: { color: COLORS.ACCENT, fontWeight: "600", fontSize: 14 },
+
   showResultLink: {
     color: COLORS.ACCENT,
     textAlign: "center",
@@ -480,6 +671,114 @@ const st = StyleSheet.create({
     alignItems: "center",
   },
   modalCloseBtnText: { color: "#fff", fontWeight: "600", fontSize: 15 },
+
+  rankSection: {
+    backgroundColor: "#fff8e1",
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 12,
+  },
+  rankTitle: { fontSize: 14, fontWeight: "700", color: "#e65100", marginBottom: 8 },
+  rankInfo: { flexDirection: "row", justifyContent: "space-around" },
+  rankText: { fontSize: 13, color: COLORS.GRAY_700 },
+  rankValue: { fontSize: 18, fontWeight: "700", color: "#e65100" },
+
+  statisticsBtn: {
+    backgroundColor: COLORS.ACCENT,
+    borderRadius: 10,
+    padding: 12,
+    alignItems: "center",
+    marginTop: 12,
+  },
+  statisticsBtnText: { color: "#fff", fontWeight: "600", fontSize: 14 },
+
+  statSection: {
+    backgroundColor: COLORS.GRAY_50,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+  },
+  statSectionTitle: { fontSize: 15, fontWeight: "700", color: COLORS.GRAY_800, marginBottom: 8 },
+  statRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  statLabel: { fontSize: 13, color: COLORS.GRAY_600 },
+  statValue: { fontSize: 13, fontWeight: "600", color: COLORS.GRAY_800 },
+
+  langStatCard: {
+    backgroundColor: COLORS.WHITE,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.GRAY_200,
+  },
+  langStatHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  langStatLabel: { fontSize: 12, fontWeight: "700", color: COLORS.GRAY_800 },
+  langStatCount: { fontSize: 11, color: COLORS.GRAY_500 },
+  langStatTime: { fontSize: 11, color: COLORS.GRAY_600, marginBottom: 6 },
+  progressBar: {
+    height: 6,
+    backgroundColor: COLORS.GRAY_200,
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: COLORS.ACCENT,
+    borderRadius: 3,
+  },
+
+  // Гистограммы
+  histogramContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.GRAY_200,
+  },
+  histogramTitle: { fontSize: 11, fontWeight: "600", color: COLORS.GRAY_700, marginBottom: 8 },
+  histogramBars: { gap: 4 },
+  histogramBar: { alignItems: "center" },
+  histogramBarLabel: {
+    fontSize: 9,
+    color: COLORS.GRAY_500,
+    width: 80,
+  },
+  histogramBarTrack: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  histogramBarFill: {
+    height: 16,
+    borderRadius: 2,
+    minWidth: 2,
+  },
+  histogramBarCount: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: COLORS.GRAY_700,
+    minWidth: 16,
+  },
+  histogramLegend: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.GRAY_200,
+  },
+  legendItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { fontSize: 10, color: COLORS.GRAY_600 },
 });
 
 export default CodingTaskSolver;

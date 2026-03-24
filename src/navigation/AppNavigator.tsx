@@ -22,6 +22,7 @@ import CodingTasksScreen from "@/screens/CodingTasks";
 import CodingTaskSolveScreen from "@/screens/CodingTaskSolve";
 import FriendsScreen from "@/screens/Friends";
 import FriendsProfileScreen from "@/screens/FriendsProfile";
+import SolutionsScreen from "@/screens/Solutions";
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -75,6 +76,7 @@ export default function AppNavigator() {
         <Stack.Screen name={ROUTES.STACK.FRIENDS} component={FriendsScreen} />
         <Stack.Screen name={ROUTES.STACK.FRIENDS_PROFILE} component={FriendsProfileScreen} />
         <Stack.Screen name={ROUTES.STACK.CHAT} component={ChatScreen} />
+        <Stack.Screen name={ROUTES.STACK.SOLUTIONS} component={SolutionsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

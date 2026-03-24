@@ -33,6 +33,8 @@ export type RootStackParamList = {
       lastName: string;
     };
   };
+
+  [ROUTES.STACK.SOLUTIONS]: { taskId: string; taskTitle: string };
 };
 
 export type MainTabParamList = {
