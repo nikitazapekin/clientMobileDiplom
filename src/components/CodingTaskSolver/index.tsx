@@ -8,13 +8,15 @@ import {
   StyleSheet,
   Modal,
   Alert,
-  Dimensions,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { COLORS, SIZES } from "appStyles";
 import CodeEditor from "@/components/CodeEditor";
-import { CodeWithTimeService } from "@/http/codeWithTimeService";
-import type { CodeLanguage } from "@/http/codeWithTimeService";
+import {
+  CodeWithTimeService,
+  type ExecuteCodeWithTimeResponse,
+  type CodeLanguage,
+} from "@/http/codeWithTimeService";
 import {
   CodingTasksService,
   type CodeTask,
@@ -82,6 +84,272 @@ const LANG_LABELS: Record<string, string> = {
   cpp: "C++",
 };
 
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const countCodeLines = (code: string): number =>
+  code
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(
+      (line) =>
+        line.length > 0 &&
+        !line.startsWith("//") &&
+        !line.startsWith("/*") &&
+        !line.startsWith("*") &&
+        !line.startsWith("#")
+    ).length;
+
+const hasComments = (code: string, language: CodeLanguage): boolean => {
+  if (language === "python") {
+    return /#.*/.test(code);
+  }
+
+  return /\/\/.*|\/\*[\s\S]*?\*\//.test(code);
+};
+
+const hasConsoleUsage = (code: string, language: CodeLanguage): boolean => {
+  if (language === "javascript") {
+    return /\bconsole\.(log|error|warn|info)\s*\(/.test(code);
+  }
+
+  if (language === "python") {
+    return /\bprint\s*\(/.test(code);
+  }
+
+  if (language === "java") {
+    return /\bSystem\.out\.(print|println)\s*\(/.test(code);
+  }
+
+  if (language === "csharp") {
+    return /\bConsole\.(WriteLine|Write)\s*\(/.test(code);
+  }
+
+  return false;
+};
+
+const calculateComplexity = (code: string): number => {
+  let complexity = 1;
+  const complexityKeywords = [
+    "if ",
+    "else if",
+    "else",
+    "for ",
+    "while ",
+    "do ",
+    "case ",
+    "catch ",
+    "||",
+    "&&",
+    "? :",
+    "??",
+    "switch",
+    "?",
+  ];
+
+  complexityKeywords.forEach((keyword) => {
+    const regex = new RegExp(keyword, "g");
+    const matches = code.match(regex);
+
+    if (matches) {
+      complexity += matches.length;
+    }
+  });
+
+  return complexity;
+};
+
+const hasRequiredKeywords = (code: string, keywords: string[]): boolean =>
+  keywords.every(
+    (keyword) => keyword.trim() && code.toLowerCase().includes(keyword.toLowerCase().trim())
+  );
+
+type ConstraintCheckResult = {
+  passed: boolean;
+  errors: string[];
+};
+
+const evaluateCodeConstraints = (
+  code: string,
+  language: CodeLanguage,
+  constraints: CodeTask["constraints"] = [],
+  executionTimeMs?: number
+): ConstraintCheckResult => {
+  const errors: string[] = [];
+
+  for (const constraint of constraints) {
+    switch (constraint.type) {
+      case "maxLines": {
+        const maxLines = constraint.value as number;
+        const actualLines = countCodeLines(code);
+        if (actualLines > maxLines) {
+          errors.push(`Превышено максимальное количество строк: ${actualLines} > ${maxLines}`);
+        }
+        break;
+      }
+
+      case "forbiddenTokens": {
+        const tokens = constraint.value as string[];
+        tokens.forEach((token) => {
+          const regex = new RegExp(`\\b${escapeRegExp(token)}\\b`, "g");
+          if (regex.test(code)) {
+            errors.push(`Использование запрещенного токена: "${token}"`);
+          }
+        });
+        break;
+      }
+
+      case "noComments": {
+        if (constraint.value === true && hasComments(code, language)) {
+          errors.push("Использование комментариев запрещено");
+        }
+        break;
+      }
+
+      case "noConsoleLog": {
+        if (constraint.value === true && hasConsoleUsage(code, language)) {
+          if (language === "javascript") {
+            errors.push("Использование console.log запрещено");
+          } else if (language === "python") {
+            errors.push("Использование print запрещено");
+          } else {
+            errors.push("Вывод в консоль запрещен");
+          }
+        }
+        break;
+      }
+
+      case "requiredKeywords": {
+        const keywords = constraint.value as string[];
+        if (!hasRequiredKeywords(code, keywords)) {
+          errors.push(`Отсутствуют обязательные ключевые слова: ${keywords.join(", ")}`);
+        }
+        break;
+      }
+
+      case "maxTimeMs": {
+        if (
+          typeof executionTimeMs === "number" &&
+          executionTimeMs > (constraint.value as number)
+        ) {
+          errors.push(
+            `Превышено допустимое время выполнения: ${executionTimeMs}мс > ${constraint.value}мс`
+          );
+        }
+        break;
+      }
+
+      case "maxComplexity": {
+        const maxComplexity = constraint.value as number;
+        if (calculateComplexity(code) > maxComplexity) {
+          errors.push("Превышена допустимая сложность кода");
+        }
+        break;
+      }
+
+      default:
+        break;
+    }
+  }
+
+  return { passed: errors.length === 0, errors };
+};
+
+const parseExecutionMarkers = (output: string) => {
+  const lines = output.split(/\r?\n/);
+  const logs: string[] = [];
+  const results: string[] = [];
+  let inLogs = false;
+  let inResult = false;
+  let currentLogs: string[] = [];
+  let currentResult: string[] = [];
+
+  const pushLogs = () => {
+    if (currentLogs.length) {
+      logs.push(currentLogs.join("\n"));
+      currentLogs = [];
+    }
+  };
+
+  const pushResult = () => {
+    if (currentResult.length) {
+      results.push(currentResult.join("\n").trim());
+      currentResult = [];
+    }
+  };
+
+  for (const line of lines) {
+    if (line.includes("===LOGS_START")) {
+      inLogs = true;
+      currentLogs = [];
+      continue;
+    }
+
+    if (line.includes("===LOGS_END")) {
+      inLogs = false;
+      pushLogs();
+      continue;
+    }
+
+    if (line.includes("===RESULT_START")) {
+      inResult = true;
+      currentResult = [];
+      continue;
+    }
+
+    if (line.includes("===RESULT_END")) {
+      inResult = false;
+      pushResult();
+      continue;
+    }
+
+    if (inLogs) {
+      currentLogs.push(line);
+    } else if (inResult) {
+      currentResult.push(line);
+    }
+  }
+
+  pushLogs();
+  pushResult();
+
+  return { logs, results, hasMarkers: logs.length > 0 || results.length > 0 };
+};
+
+const formatExecutionResponse = (response: ExecuteCodeWithTimeResponse): string => {
+  const parts: string[] = [];
+
+  if (response.error) {
+    parts.push(`Ошибка: ${response.error}`);
+  }
+
+  const output = response.output ?? "";
+  const parsed = parseExecutionMarkers(output);
+
+  if (parsed.hasMarkers) {
+    if (parsed.logs.length) {
+      parts.push(
+        parsed.logs
+          .map((log, idx) => `📋 Логи ${idx + 1}:\n${log}`)
+          .join("\n\n")
+      );
+    }
+    if (parsed.results.length) {
+      parts.push(
+        parsed.results
+          .map((result, idx) => `✅ Результат ${idx + 1}:\n${result}`)
+          .join("\n\n")
+      );
+    }
+  } else if (output.trim()) {
+    parts.push(output.trim());
+  } else if (!response.error) {
+    parts.push("Нет вывода");
+  }
+
+  parts.push(`Время выполнения: ${response.executionTimeMs}мс`);
+  return parts.filter(Boolean).join("\n\n");
+};
+
 const CodingTaskSolver = ({ id }: Props) => {
   const navigation = useNavigation();
   const [task, setTask] = useState<CodeTask | null>(null);
@@ -91,6 +359,7 @@ const CodingTaskSolver = ({ id }: Props) => {
   const [runLoading, setRunLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [consoleOutput, setConsoleOutput] = useState("");
+  const [constraintErrors, setConstraintErrors] = useState<string[]>([]);
   const [result, setResult] = useState<SubmitSolutionResult | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [statistics, setStatistics] = useState<TaskStatistics | null>(null);
@@ -129,9 +398,9 @@ const CodingTaskSolver = ({ id }: Props) => {
     setConsoleOutput("");
     try {
       const res = await CodeWithTimeService.executeCodeWithTime({ language: selectedLang, code });
-      setConsoleOutput(`${res.error || res.output || "Нет вывода"}\n\nВремя выполнения: ${res.executionTimeMs}мс`);
-    } catch {
-      setConsoleOutput("Ошибка выполнения");
+      setConsoleOutput(formatExecutionResponse(res));
+    } catch (error: any) {
+      setConsoleOutput(`Ошибка выполнения: ${error?.message || "Не удалось выполнить код"}`);
     } finally {
       setRunLoading(false);
     }
@@ -142,11 +411,25 @@ const CodingTaskSolver = ({ id }: Props) => {
     setSubmitLoading(true);
     setResult(null);
     setUserRank(null);
+    setConstraintErrors([]);
     try {
       const res = await CodingTasksService.submitSolution(task.id, code, selectedLang);
-      setResult(res);
+      const { errors } = evaluateCodeConstraints(code, selectedLang, task.constraints, res.executionTimeMs);
+      const combinedConstraintErrors = [...(res.constraintErrors || []), ...errors];
+      const constraintsPassed = combinedConstraintErrors.length === 0;
+      const finalAllPassed = res.allPassed && constraintsPassed;
 
-      if (res.allPassed) {
+      const enrichedResult: SubmitSolutionResult = {
+        ...res,
+        allPassed: finalAllPassed,
+        constraintsPassed,
+        constraintErrors: combinedConstraintErrors,
+      };
+
+      setResult(enrichedResult);
+      setConstraintErrors(combinedConstraintErrors);
+
+      if (finalAllPassed) {
         try {
           const [stats, rank] = await Promise.all([
             CodingTasksService.getTaskStatistics(task.id),
@@ -274,6 +557,17 @@ const CodingTaskSolver = ({ id }: Props) => {
         </View>
       )}
 
+      {constraintErrors.length > 0 && (
+        <View style={st.constraintErrorsCard}>
+          <Text style={st.constraintErrorsTitle}>Ограничения</Text>
+          {constraintErrors.map((error, index) => (
+            <Text key={`${error}-${index}`} style={st.constraintErrorText}>
+              {error}
+            </Text>
+          ))}
+        </View>
+      )}
+
       <TouchableOpacity
         style={st.solutionsBtn}
         onPress={() =>
@@ -335,6 +629,24 @@ const CodingTaskSolver = ({ id }: Props) => {
                     <Text style={st.summaryValue}>{result.executionTimeMs}мс</Text>
                   </View>
                 </View>
+
+                {result.constraintErrors && result.constraintErrors.length > 0 && (
+                  <>
+                    {!result.constraintsPassed && (
+                      <Text style={st.constraintFailLabel}>
+                        Ограничения нарушены — задача не засчитывается
+                      </Text>
+                    )}
+                    <View style={st.resultConstraintCard}>
+                      <Text style={st.constraintErrorsTitle}>Ограничения</Text>
+                      {result.constraintErrors.map((error, index) => (
+                        <Text key={`${error}-${index}`} style={st.constraintErrorText}>
+                          {error}
+                        </Text>
+                      ))}
+                    </View>
+                  </>
+                )}
 
                 {userRank && userRank.totalParticipants > 0 && (
                   <View style={st.rankSection}>
@@ -594,6 +906,28 @@ const st = StyleSheet.create({
   },
   consoleTitle: { color: "#aaa", fontSize: 12, marginBottom: 6, fontWeight: "600" },
   consoleText: { color: "#d4d4d4", fontSize: 13, fontFamily: "monospace" },
+  constraintErrorsCard: {
+    backgroundColor: "#fff4f1",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: "#f44336",
+  },
+  constraintErrorsTitle: { fontSize: 12, fontWeight: "600", color: "#c62828", marginBottom: 6 },
+  constraintErrorText: { fontSize: 12, color: "#4b2c20", lineHeight: 18 },
+  constraintFailLabel: {
+    color: "#d32f2f",
+    fontSize: 13,
+    fontWeight: "600",
+    marginVertical: 6,
+  },
+  resultConstraintCard: {
+    backgroundColor: "#fff8eb",
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 6,
+  },
 
   solutionsBtn: {
     backgroundColor: COLORS.WHITE,

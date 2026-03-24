@@ -39,6 +39,8 @@ export interface SubmitSolutionResult {
   newLevel: number;
   newExperience: number;
   executionTimeMs: number;
+  constraintsPassed?: boolean;
+  constraintErrors?: string[];
 }
 
 export interface StudentLevel {
