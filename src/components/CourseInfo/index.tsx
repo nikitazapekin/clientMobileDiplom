@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Image, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
@@ -14,39 +14,49 @@ import type { RootStackNavigationProp } from "@/navigation/types";
 
 interface CourseInfoProps {
   id: string;
-
 }
 
-const CourseInfo = ({ id,  }: CourseInfoProps) => {
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+};
+
+const CourseInfo = ({ id }: CourseInfoProps) => {
   const navigation = useNavigation<RootStackNavigationProp>();
   const [course, setCourse] = useState<CourseResponse | null>(null);
   const [courseStats, setCourseStats] = useState<CourseStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-
-  const userId = useRef<string>("");
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [subscriptionChecking, setSubscriptionChecking] = useState(true);
+  const [actionLoading, setActionLoading] = useState<"subscribe" | "unsubscribe" | null>(null);
+  const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
 
   const loadProfile = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
-
-      const auditoryId = await AsyncStorage.getItem('userId');
-
-      if(typeof auditoryId == "string") {
-
-        userId.current = auditoryId;
-      }
+      const auditoryId = await AsyncStorage.getItem("userId");
 
       if (!auditoryId) {
-        setError('User not authenticated');
+        setUserId(null);
+        setSubscriptionError("Войдите в систему, чтобы управлять подпиской на курс");
+        setSubscriptionChecking(false);
 
         return;
       }
 
-    } catch (err: any) {
-      setError(err.message || 'Failed to load profile');
+      setUserId(auditoryId);
+      setSubscriptionError(null);
+    } catch (err: unknown) {
+      setUserId(null);
+      setSubscriptionError(
+        getErrorMessage(err, "Не удалось загрузить данные пользователя"),
+      );
+      setSubscriptionChecking(false);
     }
   }, []);
 
@@ -69,8 +79,8 @@ const CourseInfo = ({ id,  }: CourseInfoProps) => {
       setCourse(courseResponse);
       setCourseStats(statsResponse);
       setError(null);
-    } catch (err: any) {
-      setError(err.message || "Не удалось загрузить информацию о курсе");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Не удалось загрузить информацию о курсе"));
       console.error("Error fetching course:", err);
     } finally {
       setLoading(false);
@@ -81,9 +91,78 @@ const CourseInfo = ({ id,  }: CourseInfoProps) => {
     void fetchCourseDetails();
   }, [fetchCourseDetails]);
 
-  const handleSubscribe = () => {
-    setShowSuccessModal(true);
-    void SubscriptionService.subscribeToCourse(userId.current, id);
+  const checkSubscription = useCallback(async () => {
+    if (!userId) {
+      setIsSubscribed(false);
+      setSubscriptionChecking(false);
+
+      return false;
+    }
+
+    try {
+      setSubscriptionChecking(true);
+      const subscribed = await SubscriptionService.checkSubscription(userId, id);
+
+      setIsSubscribed(subscribed);
+      setSubscriptionError(null);
+
+      return subscribed;
+    } catch (err: unknown) {
+      setSubscriptionError(
+        getErrorMessage(err, "Не удалось проверить подписку на курс"),
+      );
+
+      return false;
+    } finally {
+      setSubscriptionChecking(false);
+    }
+  }, [id, userId]);
+
+  useEffect(() => {
+    if (!userId) {
+      return;
+    }
+
+    void checkSubscription();
+  }, [checkSubscription, userId]);
+
+  const updateStudentCount = useCallback((delta: number) => {
+    setCourseStats((prevStats) => {
+      if (!prevStats) {
+        return prevStats;
+      }
+
+      return {
+        ...prevStats,
+        studentCount: Math.max(0, prevStats.studentCount + delta),
+      };
+    });
+  }, []);
+
+  const handleSubscribe = async () => {
+    if (!userId) {
+      setSubscriptionError("Не удалось определить пользователя");
+
+      return;
+    }
+
+    try {
+      setActionLoading("subscribe");
+      setSubscriptionError(null);
+
+      await SubscriptionService.subscribeToCourse(userId, id);
+
+      setIsSubscribed(true);
+      setShowSuccessModal(true);
+      updateStudentCount(1);
+    } catch (err: unknown) {
+      setSubscriptionError(
+        getErrorMessage(err, "Не удалось подписаться на курс"),
+      );
+      await checkSubscription();
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const handleGoToProfile = () => {
@@ -94,6 +173,32 @@ const CourseInfo = ({ id,  }: CourseInfoProps) => {
   const handleGoToMap = () => {
     setShowSuccessModal(false);
     navigation.navigate(ROUTES.STACK.MAP, { id, courseName: course?.title });
+  };
+
+  const handleUnsubscribe = async () => {
+    if (!userId) {
+      setSubscriptionError("Не удалось определить пользователя");
+
+      return;
+    }
+
+    try {
+      setActionLoading("unsubscribe");
+      setSubscriptionError(null);
+
+      await SubscriptionService.unsubscribeFromCourse(userId, id);
+
+      setIsSubscribed(false);
+      setShowSuccessModal(false);
+      updateStudentCount(-1);
+    } catch (err: unknown) {
+      setSubscriptionError(
+        getErrorMessage(err, "Не удалось отписаться от курса"),
+      );
+      await checkSubscription();
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   if (loading) {
@@ -162,9 +267,7 @@ const CourseInfo = ({ id,  }: CourseInfoProps) => {
           <Text style={styles.aboutText}>
             {course.description}
             {"\n\n"}
-            Lorem, ipsum dolor sit amet consectetur adipisicing elit. Quia fugit expedita saepe
-            culpa mollitia, quidem minus eligendi provident blanditiis voluptatem? Perspiciatis
-            autem magni deserunt voluptatem assumenda ex et quidem doloribus.
+         
           </Text>
         </View>
 
@@ -180,12 +283,58 @@ const CourseInfo = ({ id,  }: CourseInfoProps) => {
         </View>
 
         <View style={styles.actionsContainer}>
-          <Button
-            text="Добавить в мои курсы"
-            handler={handleSubscribe}
-            color="#fff"
-            backgroundColor="#9F0FA7"
-          />
+          {subscriptionChecking ? (
+            <View style={styles.subscriptionLoadingContainer}>
+              <ActivityIndicator size="small" color="#9F0FA7" />
+              <Text style={styles.subscriptionLoadingText}>Проверяем подписку...</Text>
+            </View>
+          ) : isSubscribed ? (
+            <>
+              <Button
+                text="Перейти на карту"
+                handler={handleGoToMap}
+                color="#fff"
+                backgroundColor="#9F0FA7"
+                disabled={actionLoading !== null}
+              />
+              <TouchableOpacity
+                style={[
+                  styles.secondaryActionButton,
+                  actionLoading !== null && styles.secondaryActionButtonDisabled,
+                ]}
+                onPress={() => {
+                  void handleUnsubscribe();
+                }}
+                disabled={actionLoading !== null}
+              >
+                <Text style={styles.secondaryActionButtonText}>
+                  {actionLoading === "unsubscribe"
+                    ? "Отписываем..."
+                    : "Отписаться от курса"}
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <Button
+              text={
+                actionLoading === "subscribe"
+                  ? "Добавляем..."
+                  : userId
+                    ? "Добавить в мои курсы"
+                    : "Войдите, чтобы подписаться"
+              }
+              handler={() => {
+                void handleSubscribe();
+              }}
+              color="#fff"
+              backgroundColor="#9F0FA7"
+              disabled={actionLoading !== null || !userId}
+            />
+          )}
+
+          {subscriptionError ? (
+            <Text style={styles.actionErrorText}>{subscriptionError}</Text>
+          ) : null}
         </View>
 
         <Modal
@@ -392,6 +541,42 @@ const styles = {
   },
   actionsContainer: {
     marginBottom: 16,
+  },
+  subscriptionLoadingContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  subscriptionLoadingText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#666',
+  },
+  secondaryActionButton: {
+    marginTop: 12,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#9F0FA7',
+    backgroundColor: 'transparent',
+  },
+  secondaryActionButtonDisabled: {
+    opacity: 0.6,
+  },
+  secondaryActionButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#9F0FA7',
+  },
+  actionErrorText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#D4380D',
+    textAlign: 'center',
   },
   metaInfo: {
     backgroundColor: '#fff',

@@ -1,23 +1,53 @@
- 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import $api from "./api";
+import { isAxiosError } from "axios";
+
 import type { CourseResponse } from "./types/course";
+import $api from "./api";
 
 export interface SubscriptionResponse {
   success: boolean;
   message?: string;
 }
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (isAxiosError<{ message?: string }>(error)) {
+    return error.response?.data?.message || error.message || fallback;
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+};
+
+const logSubscriptionError = (label: string, error: unknown) => {
+  if (isAxiosError(error)) {
+    console.error(label, error.response?.data || error.message);
+
+    return;
+  }
+
+  if (error instanceof Error) {
+    console.error(label, error.message);
+
+    return;
+  }
+
+  console.error(label, error);
+};
+
 export default class SubscriptionService {
   private static async getToken(): Promise<string | null> {
     return await AsyncStorage.getItem("accessToken");
   }
- 
-  static async subscribeToCourse(auditoryId: string, courseId: string): Promise<SubscriptionResponse> {
+
+  static async subscribeToCourse(_auditoryId: string, courseId: string): Promise<SubscriptionResponse> {
     try {
       const token = await this.getToken();
-      const response = await $api.post<SubscriptionResponse>(
-        `/profile/client/${auditoryId}/courses/${courseId}/subscribe`,
+
+      await $api.post(
+        `/course-subscriptions/subscribe/${courseId}`,
         {},
         {
           headers: {
@@ -26,18 +56,21 @@ export default class SubscriptionService {
         }
       );
 
-      return response.data;
-    } catch (error: any) {
-      console.error("Subscribe to course error:", error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || "Failed to subscribe to course");
+      return {
+        success: true,
+      };
+    } catch (error: unknown) {
+      logSubscriptionError("Subscribe to course error:", error);
+      throw new Error(getErrorMessage(error, "Failed to subscribe to course"));
     }
   }
- 
-  static async unsubscribeFromCourse(auditoryId: string, courseId: string): Promise<SubscriptionResponse> {
+
+  static async unsubscribeFromCourse(_auditoryId: string, courseId: string): Promise<SubscriptionResponse> {
     try {
       const token = await this.getToken();
-      const response = await $api.delete<SubscriptionResponse>(
-        `/profile/client/${auditoryId}/courses/${courseId}/unsubscribe`,
+
+      await $api.delete(
+        `/course-subscriptions/unsubscribe/${courseId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -45,18 +78,20 @@ export default class SubscriptionService {
         }
       );
 
-      return response.data;
-    } catch (error: any) {
-      console.error("Unsubscribe from course error:", error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || "Failed to unsubscribe from course");
+      return {
+        success: true,
+      };
+    } catch (error: unknown) {
+      logSubscriptionError("Unsubscribe from course error:", error);
+      throw new Error(getErrorMessage(error, "Failed to unsubscribe from course"));
     }
   }
- 
-  static async getStudentCourses(auditoryId: string): Promise<CourseResponse[]> {
+
+  static async getStudentCourses(_auditoryId: string): Promise<CourseResponse[]> {
     try {
       const token = await this.getToken();
       const response = await $api.get<CourseResponse[]>(
-        `/profile/client/${auditoryId}/courses`,
+        `/course-subscriptions/my-courses`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -65,17 +100,17 @@ export default class SubscriptionService {
       );
 
       return response.data;
-    } catch (error: any) {
-      console.error("Get student courses error:", error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || "Failed to fetch student courses");
+    } catch (error: unknown) {
+      logSubscriptionError("Get student courses error:", error);
+      throw new Error(getErrorMessage(error, "Failed to fetch student courses"));
     }
   }
- 
-  static async checkSubscription(auditoryId: string, courseId: string): Promise<boolean> {
+
+  static async checkSubscription(_auditoryId: string, courseId: string): Promise<boolean> {
     try {
       const token = await this.getToken();
       const response = await $api.get<{ subscribed: boolean }>(
-        `/profile/client/${auditoryId}/courses/${courseId}/check`,
+        `/course-subscriptions/check/${courseId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -84,52 +119,42 @@ export default class SubscriptionService {
       );
 
       return response.data.subscribed;
-    } catch (error: any) {
-      console.error("Check subscription error:", error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || "Failed to check subscription");
+    } catch (error: unknown) {
+      logSubscriptionError("Check subscription error:", error);
+      throw new Error(getErrorMessage(error, "Failed to check subscription"));
     }
   }
- 
+
   static async getSubscriptionsCount(auditoryId: string): Promise<number> {
     try {
-      const token = await this.getToken();
-      const response = await $api.get<{ count: number }>(
-        `/profile/client/${auditoryId}/courses/count`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const subscriptions = await this.getStudentCourses(auditoryId);
 
-      return response.data.count;
-    } catch (error: any) {
-      console.error("Get subscriptions count error:", error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || "Failed to get subscriptions count");
+      return subscriptions.length;
+    } catch (error: unknown) {
+      logSubscriptionError("Get subscriptions count error:", error);
+      throw new Error(getErrorMessage(error, "Failed to get subscriptions count"));
     }
   }
- 
+
   static async unsubscribeFromMultipleCourses(auditoryId: string, courseIds: string[]): Promise<SubscriptionResponse> {
     try {
-      const token = await this.getToken();
-      const response = await $api.post<SubscriptionResponse>(
-        `/profile/client/${auditoryId}/courses/unsubscribe-multiple`,
-        { courseIds },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      await Promise.all(
+        courseIds.map((courseId) =>
+          this.unsubscribeFromCourse(auditoryId, courseId),
+        ),
       );
 
-      return response.data;
-    } catch (error: any) {
-      console.error("Bulk unsubscribe error:", error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || "Failed to unsubscribe from multiple courses");
+      return {
+        success: true,
+      };
+    } catch (error: unknown) {
+      logSubscriptionError("Bulk unsubscribe error:", error);
+      throw new Error(
+        getErrorMessage(error, "Failed to unsubscribe from multiple courses"),
+      );
     }
   }
 
-  
   static async getPopularCourses(limit: number = 10): Promise<CourseResponse[]> {
     try {
       const response = await $api.get<CourseResponse[]>(
@@ -137,9 +162,9 @@ export default class SubscriptionService {
       );
 
       return response.data;
-    } catch (error: any) {
-      console.error("Get popular courses error:", error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || "Failed to fetch popular courses");
+    } catch (error: unknown) {
+      logSubscriptionError("Get popular courses error:", error);
+      throw new Error(getErrorMessage(error, "Failed to fetch popular courses"));
     }
   }
 }
