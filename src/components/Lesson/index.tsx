@@ -13,17 +13,18 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "@react-navigation/native";
 import { COLORS } from "appStyles";
 import { useRouter } from "expo-router";
-import { useNavigation } from "@react-navigation/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { styles } from "./styled";
-import type { CodeLanguage, ArgumentSchema, TestCaseArgument, ConstraintResult } from "./types";
+import type { ArgumentSchema, CodeLanguage, ConstraintResult,TestCaseArgument } from "./types";
 import type {
   CodeConstraintType,
   CodeExampleBlock,
   CodeTaskBlock,
+  FillCodeTaskBlock,
   ImageBlock,
   Slide,
   SourceBlock,
@@ -32,31 +33,33 @@ import type {
   TheoryQuestionBlock,
 } from "./types";
 
+import {
+  addJavaMainMethod,
+  buildCSharpTestSuite,
+  buildJavaTestSuite,
+  buildTestCode,
+  checkConstraints,
+  compareOutputs,
+  extractFillTaskInputs,
+  extractFunctionName,
+  formatArgsForDynamicLang,
+  formatArgsForJavaOrCSharp,
+  formatArgumentsForCode,
+  generateObjectClasses,
+  generateObjectClassesForPreview,
+  getArgumentTypeDescription,
+  getDisplayInput,
+  parseArguments,
+  renderArgumentScheme,
+  stripMainMethod,
+  validateFillTaskAnswers
+} from "@/code";
 import CustomButton from "@/components/Button";
 import CodeEditor from "@/components/CodeEditor";
 import { LessonComments } from "@/components/LessonComments";
 import { CodeService } from "@/http/codeService";
 import { LessonDetailsService } from "@/http/lessonDetails";
 import LessonResultService from "@/http/lessonResult";
-import {
-  parseArguments,
-  formatArgumentsForCode,
-  formatArgsForDynamicLang,
-  formatArgsForJavaOrCSharp,
-  getDisplayInput,
-  generateObjectClasses,
-  generateObjectClassesForPreview,
-  getArgumentTypeDescription,
-  renderArgumentScheme,
-  stripMainMethod,
-  addJavaMainMethod,
-  extractFunctionName,
-  buildJavaTestSuite,
-  buildCSharpTestSuite,
-  buildTestCode,
-  compareOutputs,
-  checkConstraints
-} from "@/code";
 
 const sortBlocks = (blocks: any[]) => {
   return [...blocks].sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -137,9 +140,11 @@ const ImageBlockView = ({ block }: { block: ImageBlock }) => {
 
 const ObjectDescriptions = ({ argumentScheme, language }: { argumentScheme?: ArgumentSchema[]; language?: CodeLanguage }) => {
   if (!argumentScheme || argumentScheme.length === 0) return null;
+
   if (language !== "java" && language !== "csharp") return null;
-  
+
   const hasObjects = argumentScheme.some(a => a.type === "object" && a.objectFields);
+
   if (!hasObjects) return null;
 
   return (
@@ -163,20 +168,28 @@ const ConstraintsInfo = ({ constraints }: { constraints?: CodeTaskBlock['constra
     switch (constraint.type) {
       case "maxLines":
         return `Максимум строк кода: ${constraint.value}`;
+
       case "forbiddenTokens":
         return `Запрещённые слова: ${(constraint.value as string[]).join(", ")}`;
+
       case "noComments":
         return `Без комментариев`;
+
       case "noConsoleLog":
         return `Без отладочного вывода (console.log/print)`;
+
       case "maxComplexity":
         return `Максимальная сложность: ${constraint.value}`;
+
       case "memoryLimit":
         return `Лимит памяти: ${constraint.value} МБ`;
+
       case "requiredKeywords":
         return `Обязательные ключевые слова: ${(constraint.value as string[]).join(", ")}`;
+
       case "maxTimeMs":
         return `Максимальное время: ${constraint.value} мс`;
+
       default:
         return `${constraint.type}: ${constraint.value}`;
     }
@@ -184,14 +197,14 @@ const ConstraintsInfo = ({ constraints }: { constraints?: CodeTaskBlock['constra
 
   return (
     <View style={styles.constraintsInfo}>
-      <TouchableOpacity 
-        style={styles.constraintsHeader} 
+      <TouchableOpacity
+        style={styles.constraintsHeader}
         onPress={() => setExpanded(!expanded)}
       >
         <Text style={styles.constraintsTitle}>Ограничения ({constraints.length})</Text>
         <Text style={styles.constraintsToggle}>{expanded ? "▼ Скрыть" : "▶ Показать"}</Text>
       </TouchableOpacity>
-      
+
       {expanded && (
         <View style={styles.constraintsList}>
           {constraints.map((constraint, index) => (
@@ -245,9 +258,9 @@ const CodeTaskBlockView = ({
         </View>
       )}
 
-      <ObjectDescriptions 
-        argumentScheme={block.argumentScheme} 
-        language={block.language} 
+      <ObjectDescriptions
+        argumentScheme={block.argumentScheme}
+        language={block.language}
       />
 
       <ConstraintsInfo constraints={block.constraints} />
@@ -260,15 +273,7 @@ const CodeTaskBlockView = ({
       />
 
       <View style={styles.buttonRow}>
-        {/*
-        <CustomButton
-        text={isRunning ? "Запуск..." : "Запустить"}
-        handler={onRun}
-        disabled={isRunning}
-        backgroundColor={COLORS.BLACK}
-        maxWidth={120}
-        />
-        */}
+
         <CustomButton
           text="Проверить"
           handler={onCheck}
@@ -350,7 +355,85 @@ const CodeTaskBlockView = ({
     </View>
   );
 };
- 
+
+const FillCodeTaskBlockView = ({
+  block,
+  answers,
+  onAnswerChange,
+  onCheck,
+  validationResult,
+  error,
+}: {
+  block: FillCodeTaskBlock;
+  answers: Record<string, string>;
+  onAnswerChange: (inputId: string, value: string) => void;
+  onCheck: () => void;
+  validationResult?: { passed: boolean; matchedCaseIndex: number | null; totalCases: number };
+  error?: string;
+}) => {
+  const inputIds = extractFillTaskInputs(block.templateCode || "");
+
+  return (
+    <View style={styles.fillTaskBlock}>
+      {block.description && <Text style={styles.taskDescription}>{block.description}</Text>}
+
+      <Text style={styles.fillTaskHint}>
+        Изменять код нельзя. Заполните только поля для плейсхолдеров и нажмите "Проверить".
+      </Text>
+
+      <CodeEditor
+        value={block.templateCode || ""}
+        onChange={() => {}}
+        language={block.language || "javascript"}
+        readOnly
+        height={180}
+      />
+
+      <Text style={styles.fillTaskMeta}>
+        Допустимых вариантов: {block.testCases?.length ?? 0}. Достаточно совпасть с одним.
+      </Text>
+
+      <View style={styles.fillTaskInputs}>
+        {inputIds.map((inputId) => (
+          <View key={inputId} style={styles.fillTaskInputRow}>
+            <Text style={styles.fillTaskLabel}>[{inputId}]</Text>
+            <TextInput
+              style={styles.fillTaskInput}
+              value={answers[inputId] ?? ""}
+              onChangeText={(value) => onAnswerChange(inputId, value)}
+              placeholder={`Введите значение для [${inputId}]`}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.buttonRow}>
+        <CustomButton
+          text="Проверить"
+          handler={onCheck}
+          backgroundColor={COLORS.BLACK}
+          maxWidth={120}
+        />
+      </View>
+
+      {validationResult?.passed && (
+        <Text style={styles.fillTaskSuccess}>
+          Верно. Подошёл вариант{" "}
+          {validationResult.matchedCaseIndex !== null ? validationResult.matchedCaseIndex + 1 : 1}.
+        </Text>
+      )}
+
+      {error ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+};
+
 const SourcesModal = ({ visible, onClose, sources }: {
   visible: boolean;
   onClose: () => void;
@@ -360,6 +443,7 @@ const SourcesModal = ({ visible, onClose, sources }: {
     try {
       const { Linking } = await import('react-native');
       const supported = await Linking.canOpenURL(url);
+
       if (supported) {
         await Linking.openURL(url);
       } else {
@@ -402,7 +486,7 @@ const SourcesModal = ({ visible, onClose, sources }: {
     </Modal>
   );
 };
- 
+
 const ResultsModal = ({
   visible,
   onClose,
@@ -438,7 +522,7 @@ const ResultsModal = ({
   const [stars, setStars] = useState(0);
   const [showStars, setShowStars] = useState(false);
   const [saveError, setSaveError] = useState(false);
- 
+
   const starAnimations = [
     useRef(new Animated.Value(-50)).current,
     useRef(new Animated.Value(-50)).current,
@@ -459,7 +543,7 @@ const ResultsModal = ({
 
   useEffect(() => {
     if (visible) {
-     
+
       starAnimations.forEach(anim => anim.setValue(-50));
       starRotations.forEach(anim => anim.setValue(0));
       starOpacities.forEach(anim => anim.setValue(0));
@@ -468,12 +552,11 @@ const ResultsModal = ({
       setSaveError(false);
       setStars(earnedStars);
 
-     
       const animateStars = async () => {
         setShowStars(true);
 
         for (let i = 0; i < earnedStars; i++) {
-        
+
           Animated.parallel([
             Animated.timing(starAnimations[i], {
               toValue: 0,
@@ -507,7 +590,7 @@ const ResultsModal = ({
               useNativeDriver: true,
             })
           ]).start();
- 
+
           await new Promise(resolve => setTimeout(resolve, 800));
         }
       };
@@ -670,6 +753,17 @@ const Lesson = ({ id }: { id: string }) => {
   const [testResults, setTestResults] = useState<{
     [slideId: string]: { input: string; expected: string; actual: string; passed: boolean }[];
   }>({});
+  const [fillTaskAnswers, setFillTaskAnswers] = useState<{
+    [blockId: string]: Record<string, string>;
+  }>({});
+  const [fillTaskErrors, setFillTaskErrors] = useState<{ [blockId: string]: string }>({});
+  const [fillTaskResults, setFillTaskResults] = useState<{
+    [blockId: string]: {
+      passed: boolean;
+      matchedCaseIndex: number | null;
+      totalCases: number;
+    };
+  }>({});
   const [constraintResults, setConstraintResults] = useState<{
     [slideId: string]: {
       type: CodeConstraintType;
@@ -681,7 +775,7 @@ const Lesson = ({ id }: { id: string }) => {
   }>({});
   const [codeRunOutput, setCodeRunOutput] = useState<{ [blockId: string]: string }>({});
   const [codeRunLoading, setCodeRunLoading] = useState<{ [blockId: string]: boolean }>({});
-  
+
   // Состояние для отслеживания ответов на теоретические вопросы
   const [theoryAnswers, setTheoryAnswers] = useState<{
     [slideId: string]: {
@@ -703,6 +797,7 @@ const Lesson = ({ id }: { id: string }) => {
   const getClientId = async () => {
     try {
       const id = await AsyncStorage.getItem("clientId");
+
       setClientId(id);
     } catch (error) {
       console.error("Failed to get clientId:", error);
@@ -750,6 +845,7 @@ const Lesson = ({ id }: { id: string }) => {
         setError("В уроке нет слайдов");
       } else {
         setSlides(allSlides);
+
         // Set lessonDetailsId from the lesson details
         if (data.id) {
           setLessonDetailsId(data.id);
@@ -773,12 +869,15 @@ const Lesson = ({ id }: { id: string }) => {
 
   const saveLessonResult = useCallback(async (stars: number) => {
     const auditoryId = await AsyncStorage.getItem('userId');
+
     console.log("Saving result:", { auditoryId, lessonId: id, stars });
 
     if (!auditoryId || !id) {
       console.log("Cannot save result: missing userId or lessonId");
+
       return false;
     }
+
     try {
       await LessonResultService.createLessonResult({
         clientId: auditoryId,
@@ -787,9 +886,11 @@ const Lesson = ({ id }: { id: string }) => {
         completedAt: new Date().toISOString(),
       });
       console.log(`✅ Lesson result saved with ${stars} stars`);
+
       return true;
     } catch (error) {
       console.error("Failed to save lesson result:", error);
+
       return false;
     }
   }, [id]);
@@ -812,10 +913,12 @@ const Lesson = ({ id }: { id: string }) => {
   const calculateResults = useCallback(async () => {
     const testSlides = slides.filter((s) => s.type === "test");
     const results: any[] = [];
-    
+
     // Счетчики для разных типов заданий
     let totalCodeTasks = 0;
     let passedCodeTasks = 0;
+    let totalFillTasks = 0;
+    let passedFillTasks = 0;
     let totalTheoryQuestions = 0;
     let correctTheoryAnswers = 0;
     let allConstraintsPassed = true;
@@ -825,6 +928,7 @@ const Lesson = ({ id }: { id: string }) => {
       const slideConstraintResult = constraintResults[slide.id];
 
       const codeTasks = slide.blocks.filter((b) => b.type === "codeTask") as CodeTaskBlock[];
+      const fillCodeTasks = slide.blocks.filter((b) => b.type === "fillCodeTask") as FillCodeTaskBlock[];
       const theoryQuestions = slide.blocks.filter(
         (b) => b.type === "theoryQuestion"
       ) as TheoryQuestionBlock[];
@@ -836,28 +940,42 @@ const Lesson = ({ id }: { id: string }) => {
 
       if (codeTasks.length > 0) {
         totalCodeTasks += codeTasks.length;
-        
+
         if (slideTestResult) {
           slideTestCasesPassed = slideTestResult.filter(r => r.passed).length || 0;
           slideTestCasesTotal = slideTestResult.length || 0;
-          
+
           // Код-задача считается пройденной, если все тест-кейсы пройдены
           slideCodePassed = slideTestCasesPassed === slideTestCasesTotal && slideTestCasesTotal > 0;
-          
+
           if (slideCodePassed) {
             passedCodeTasks++;
           }
         }
       }
-      
+
+      let slideFillPassed = true;
+
+      if (fillCodeTasks.length > 0) {
+        totalFillTasks += fillCodeTasks.length;
+
+        const currentPassedFillTasks = fillCodeTasks.filter((task) => fillTaskResults[task.id]?.passed);
+
+        passedFillTasks += currentPassedFillTasks.length;
+        slideFillPassed = currentPassedFillTasks.length === fillCodeTasks.length;
+        slideTestCasesPassed += currentPassedFillTasks.length;
+        slideTestCasesTotal += fillCodeTasks.length;
+      }
+
       // Проверяем теоретические вопросы
       if (theoryQuestions.length > 0) {
         totalTheoryQuestions += theoryQuestions.length;
-        
+
         const slideTheoryAnswers = theoryAnswers[slide.id] || {};
-        
+
         theoryQuestions.forEach((question) => {
           const answer = slideTheoryAnswers[question.id];
+
           if (answer?.isCorrect) {
             correctTheoryAnswers++;
           }
@@ -867,14 +985,16 @@ const Lesson = ({ id }: { id: string }) => {
       // Проверяем ограничения
       if (slideConstraintResult) {
         const slideConstraintsPassed = slideConstraintResult.every(c => c.passed);
+
         allConstraintsPassed = allConstraintsPassed && slideConstraintsPassed;
       }
 
       results.push({
         slideId: slide.id,
         title: slide.title,
-        passed: (codeTasks.length === 0 || slideCodePassed) && 
-                (theoryQuestions.length === 0 || (theoryQuestions.length > 0 && 
+        passed: (codeTasks.length === 0 || slideCodePassed) &&
+                (fillCodeTasks.length === 0 || slideFillPassed) &&
+                (theoryQuestions.length === 0 || (theoryQuestions.length > 0 &&
                  theoryQuestions.every(q => theoryAnswers[slide.id]?.[q.id]?.isCorrect))),
         testCasesPassed: slideTestCasesPassed,
         testCasesTotal: slideTestCasesTotal,
@@ -883,18 +1003,20 @@ const Lesson = ({ id }: { id: string }) => {
     });
 
     // Расчет процента выполнения
-    const totalTasks = totalCodeTasks + totalTheoryQuestions;
-    const completedTasks = passedCodeTasks + correctTheoryAnswers;
+    const totalTasks = totalCodeTasks + totalFillTasks + totalTheoryQuestions;
+    const completedTasks = passedCodeTasks + passedFillTasks + correctTheoryAnswers;
     const completionPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
-    // Проверяем, все ли кодовые задачи решены правильно (все тест-кейсы пройдены)
-    const allCodeTasksPassed = totalCodeTasks === 0 || passedCodeTasks === totalCodeTasks;
+    // Проверяем, все ли практические задачи решены правильно
+    const totalPracticeTasks = totalCodeTasks + totalFillTasks;
+    const passedPracticeTasks = passedCodeTasks + passedFillTasks;
+    const allPracticeTasksPassed = totalPracticeTasks === 0 || passedPracticeTasks === totalPracticeTasks;
 
     let stars = 0;
 
     // НОВАЯ ЛОГИКА РАСЧЕТА ЗВЕЗД:
     // 0 звезд - все неправильно ИЛИ кодовые задачи решены не полностью (не все тест-кейсы пройдены)
-    if (!allCodeTasksPassed) {
+    if (!allPracticeTasksPassed) {
       stars = 0;
     }
     // 1 звезда - теоретических вопросов и задач решено меньше 50% (при условии, что все кодовые задачи решены правильно)
@@ -917,12 +1039,14 @@ const Lesson = ({ id }: { id: string }) => {
     console.log("📊 Results calculation:", {
       totalCodeTasks,
       passedCodeTasks,
+      totalFillTasks,
+      passedFillTasks,
       totalTheoryQuestions,
       correctTheoryAnswers,
       totalTasks,
       completedTasks,
       completionPercentage,
-      allCodeTasksPassed,
+      allPracticeTasksPassed,
       allConstraintsPassed,
       stars
     });
@@ -931,8 +1055,11 @@ const Lesson = ({ id }: { id: string }) => {
       results,
       totalTasks,
       completedTasks,
-      totalTestCases: Object.values(testResults).reduce((acc, curr) => acc + curr.length, 0),
-      passedTestCases: Object.values(testResults).reduce((acc, curr) => acc + curr.filter(r => r.passed).length, 0),
+      totalTestCases:
+        Object.values(testResults).reduce((acc, curr) => acc + curr.length, 0) + totalFillTasks,
+      passedTestCases:
+        Object.values(testResults).reduce((acc, curr) => acc + curr.filter(r => r.passed).length, 0) +
+        passedFillTasks,
       constraintsPassed: allConstraintsPassed,
       stars,
     });
@@ -941,12 +1068,13 @@ const Lesson = ({ id }: { id: string }) => {
     await saveLessonResult(stars);
 
     setResultsModalVisible(true);
-  }, [slides, testResults, constraintResults, theoryAnswers, saveLessonResult]);
+  }, [slides, testResults, constraintResults, theoryAnswers, fillTaskResults, saveLessonResult]);
 
   const retrySaveResult = useCallback(async () => {
     const auditoryId = await AsyncStorage.getItem('userId');
+
     if (!auditoryId || !id || lessonResults.stars === undefined) return;
-    
+
     try {
       await LessonResultService.createLessonResult({
         clientId: auditoryId,
@@ -989,6 +1117,7 @@ const Lesson = ({ id }: { id: string }) => {
       // Для Java добавляем main метод с тестовым вводом (как в превью EditLesson)
       if (language === "java") {
         const funcName = extractFunctionName(code, language);
+
         if (funcName) {
           codeToRun = addJavaMainMethod(code, funcName, "5");
         }
@@ -1089,23 +1218,24 @@ const Lesson = ({ id }: { id: string }) => {
       const results: any[] = [];
       let allLogs: string[] = [];
 
-    // Специальная обработка для Java
-    if (block.language === "java") {
+      // Специальная обработка для Java
+      if (block.language === "java") {
       // Форматируем тест-кейсы с учетом схемы аргументов
-      const formattedTestCases = (block.testCases ?? []).map(tc => {
-        const argsInput = formatArgsForJavaOrCSharp(tc.args, block.argumentScheme ?? [], "java");
-        return {
-          input: argsInput || tc.input || "",
-          expectedOutput: tc.expectedOutput
-        };
-      });
-      
-      const codeWithTests = buildJavaTestSuite(userCode, formattedTestCases, funcName);
-      // Добавляем определения классов для объектов в аргументах
-      const objectClasses = generateObjectClasses(block.argumentScheme ?? [], "java");
-      const codeToRun = objectClasses 
-        ? `${codeWithTests}\n\n${objectClasses}` 
-        : codeWithTests;
+        const formattedTestCases = (block.testCases ?? []).map(tc => {
+          const argsInput = formatArgsForJavaOrCSharp(tc.args, block.argumentScheme ?? [], "java");
+
+          return {
+            input: argsInput || tc.input || "",
+            expectedOutput: tc.expectedOutput
+          };
+        });
+
+        const codeWithTests = buildJavaTestSuite(userCode, formattedTestCases, funcName);
+        // Добавляем определения классов для объектов в аргументах
+        const objectClasses = generateObjectClasses(block.argumentScheme ?? [], "java");
+        const codeToRun = objectClasses
+          ? `${codeWithTests}\n\n${objectClasses}`
+          : codeWithTests;
 
         const res = await CodeService.executeCode({
           language: "java",
@@ -1206,17 +1336,18 @@ const Lesson = ({ id }: { id: string }) => {
         // Форматируем тест-кейсы с учетом схемы аргументов
         const formattedTestCases = (block.testCases ?? []).map(tc => {
           const argsInput = formatArgsForJavaOrCSharp(tc.args, block.argumentScheme ?? [], "csharp");
+
           return {
             input: argsInput || tc.input || "",
             expectedOutput: tc.expectedOutput
           };
         });
-        
+
         const codeWithTests = buildCSharpTestSuite(userCode, formattedTestCases, funcName);
         // Добавляем определения классов для объектов в аргументах
         const objectClasses = generateObjectClasses(block.argumentScheme ?? [], "csharp");
-        const codeToRun = objectClasses 
-          ? `${codeWithTests}\n\n${objectClasses}` 
+        const codeToRun = objectClasses
+          ? `${codeWithTests}\n\n${objectClasses}`
           : codeWithTests;
 
         const res = await CodeService.executeCode({
@@ -1316,18 +1447,19 @@ const Lesson = ({ id }: { id: string }) => {
       // Для JavaScript и Python используем схему аргументов
       else if (block.language === "javascript" || block.language === "python") {
         const lang = block.language;
-        
+
         for (let i = 0; i < block.testCases.length; i++) {
           const tc = block.testCases[i];
-          
+
           // Форматируем аргументы с использованием схемы
           const argsInput = formatArgsForDynamicLang(tc.args, block.argumentScheme ?? [], lang);
-          
+
           // Если есть аргументы в схеме, используем их, иначе используем старый input
           const inputToUse = (block.argumentScheme?.length ?? 0) > 0 ? argsInput : (tc.input || "");
-          
+
           if (!inputToUse || !tc.expectedOutput) {
             setTestErrors(prev => ({ ...prev, [slideId]: "Заполните все тест-кейсы (входные данные и ожидаемый вывод)" }));
+
             return;
           }
 
@@ -1347,6 +1479,7 @@ const Lesson = ({ id }: { id: string }) => {
 
           if (res.error) {
             setTestErrors(prev => ({ ...prev, [slideId]: `Ошибка выполнения: ${res.error}` }));
+
             return;
           }
 
@@ -1366,22 +1499,28 @@ const Lesson = ({ id }: { id: string }) => {
               currentLogs = [];
               continue;
             }
+
             if (line.includes("===LOGS_END===")) {
               inLogs = false;
+
               if (currentLogs.length > 0) {
                 testLogs.push(`📋 Логи теста #${testNum} (вход: ${getDisplayInput(tc, block.argumentScheme, block.language)}):`);
                 testLogs.push(currentLogs.join("\n"));
                 testLogs.push("");
               }
+
               continue;
             }
+
             if (line.includes("===RESULT_START===")) {
               inResult = true;
               currentResult = [];
               continue;
             }
+
             if (line.includes("===RESULT_END===")) {
               inResult = false;
+
               if (currentResult.length > 0) {
                 const actual = currentResult.join("\n").trim();
                 const expected = tc.expectedOutput.trim();
@@ -1410,6 +1549,7 @@ const Lesson = ({ id }: { id: string }) => {
                   passed,
                 });
               }
+
               continue;
             }
 
@@ -1536,6 +1676,7 @@ const Lesson = ({ id }: { id: string }) => {
 
       // Проверяем ограничения
       const constraintCheckResults = checkConstraints(userCode, block.constraints);
+
       setConstraintResults(prev => ({ ...prev, [slideId]: constraintCheckResults }));
 
       const allPassed = results.every((r: any) => r.passed);
@@ -1546,15 +1687,16 @@ const Lesson = ({ id }: { id: string }) => {
       } else {
         const failedCount = results.filter((r: any) => !r.passed).length;
         const failedConstraints = constraintCheckResults.filter((c) => !c.passed);
-        
+
         let errorMessage = "";
-        
+
         if (failedCount > 0) {
           errorMessage += `❌ Провалено тестов: ${failedCount} из ${results.length}`;
         }
-        
+
         if (failedConstraints.length > 0) {
           if (errorMessage) errorMessage += "\n\n";
+
           errorMessage += `❌ Не пройдены ограничения:\n`;
           errorMessage += failedConstraints.map(c => `- ${c.name}: ${c.actual}`).join("\n");
         }
@@ -1575,6 +1717,66 @@ const Lesson = ({ id }: { id: string }) => {
     }
   }, [testAnswers]);
 
+  const checkFillTask = useCallback((block: FillCodeTaskBlock) => {
+    const inputIds = extractFillTaskInputs(block.templateCode || "");
+    const answers = fillTaskAnswers[block.id] || {};
+
+    setFillTaskErrors(prev => ({ ...prev, [block.id]: "" }));
+
+    if (inputIds.length === 0) {
+      setFillTaskResults(prev => ({
+        ...prev,
+        [block.id]: { passed: false, matchedCaseIndex: null, totalCases: 0 }
+      }));
+      setFillTaskErrors(prev => ({
+        ...prev,
+        [block.id]: "В задаче не найдено ни одного плейсхолдера вида [input]."
+      }));
+
+      return;
+    }
+
+    if (!block.testCases || block.testCases.length === 0) {
+      setFillTaskResults(prev => ({
+        ...prev,
+        [block.id]: { passed: false, matchedCaseIndex: null, totalCases: 0 }
+      }));
+      setFillTaskErrors(prev => ({
+        ...prev,
+        [block.id]: "Для этой задачи не настроены варианты проверки."
+      }));
+
+      return;
+    }
+
+    if (inputIds.some((inputId) => (answers[inputId] ?? "").trim() === "")) {
+      setFillTaskResults(prev => ({
+        ...prev,
+        [block.id]: { passed: false, matchedCaseIndex: null, totalCases: block.testCases.length }
+      }));
+      setFillTaskErrors(prev => ({
+        ...prev,
+        [block.id]: "Заполните все поля ввода."
+      }));
+
+      return;
+    }
+
+    const result = validateFillTaskAnswers(block.testCases, answers, inputIds);
+
+    setFillTaskResults(prev => ({
+      ...prev,
+      [block.id]: result
+    }));
+
+    if (!result.passed) {
+      setFillTaskErrors(prev => ({
+        ...prev,
+        [block.id]: `Решение не совпало ни с одним из ${result.totalCases} допустимых вариантов.`
+      }));
+    }
+  }, [fillTaskAnswers]);
+
   // Компонент для теоретического вопроса с передачей ответа наверх
   const TheoryQuestionBlockViewWithHandler = ({ block, slideId }: { block: TheoryQuestionBlock; slideId: string }) => {
     const [selected, setSelected] = useState<number | undefined>(
@@ -1584,10 +1786,11 @@ const Lesson = ({ id }: { id: string }) => {
 
     const handleSubmit = () => {
       if (selected === undefined) return;
-      
+
       const isCorrect = selected === block.correctIndex;
+
       setShowResult(true);
-      
+
       // Передаем ответ в родительский компонент
       handleTheoryAnswer(slideId, block.id, selected, isCorrect);
     };
@@ -1753,6 +1956,7 @@ const Lesson = ({ id }: { id: string }) => {
                   onCodeChange={(code) => setTestAnswers(prev => ({ ...prev, [currentSlide.id]: code }))}
                   onRun={() => {
                     const code = testAnswers[currentSlide.id] || block.startCode || "";
+
                     runCode(block.id, block.language || "javascript", code);
                   }}
                   onCheck={() => checkCodeTask(block, currentSlide.id)}
@@ -1761,6 +1965,37 @@ const Lesson = ({ id }: { id: string }) => {
                   testResults={testResults[currentSlide.id]}
                   constraintResults={constraintResults[currentSlide.id]}
                   testError={testErrors[currentSlide.id]}
+                />
+              );
+
+            case "fillCodeTask":
+              return (
+                <FillCodeTaskBlockView
+                  key={block.id}
+                  block={block}
+                  answers={fillTaskAnswers[block.id] || {}}
+                  onAnswerChange={(inputId, value) =>
+                  {
+                    setFillTaskAnswers(prev => ({
+                      ...prev,
+                      [block.id]: {
+                        ...(prev[block.id] || {}),
+                        [inputId]: value
+                      }
+                    }));
+                    setFillTaskErrors(prev => ({ ...prev, [block.id]: "" }));
+                    setFillTaskResults(prev => {
+                      const next = { ...prev };
+
+                      delete next[block.id];
+
+                      return next;
+                    });
+                  }
+                  }
+                  onCheck={() => checkFillTask(block)}
+                  validationResult={fillTaskResults[block.id]}
+                  error={fillTaskErrors[block.id]}
                 />
               );
 

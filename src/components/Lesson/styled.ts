@@ -1,4 +1,4 @@
- 
+
 import { StyleSheet } from "react-native";
 import { COLORS } from "appStyles";
 
@@ -15,7 +15,7 @@ export const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-   
+
   },
   header: {
     padding: 20,
@@ -51,7 +51,7 @@ export const styles = StyleSheet.create({
   },
   progress: {
     fontSize: 14,
-    
+
     textAlign: "right",
   },
   content: {
@@ -112,11 +112,57 @@ export const styles = StyleSheet.create({
   codeTaskBlock: {
     marginBottom: 20,
   },
+  fillTaskBlock: {
+    marginBottom: 20,
+  },
   taskDescription: {
     fontSize: 16,
     lineHeight: 24,
     color: COLORS.BLACK,
     marginBottom: 10,
+  },
+  fillTaskHint: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: COLORS.BLACK,
+    backgroundColor: "#F8EAF9",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
+  },
+  fillTaskMeta: {
+    fontSize: 14,
+    color: COLORS.BLACK,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  fillTaskInputs: {
+    marginTop: 10,
+    gap: 12,
+  },
+  fillTaskInputRow: {
+    gap: 6,
+  },
+  fillTaskLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.BLACK,
+  },
+  fillTaskInput: {
+    borderWidth: 1,
+    borderColor: COLORS.GRAY_LIGHT,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: COLORS.BLACK,
+    backgroundColor: COLORS.WHITE,
+  },
+  fillTaskSuccess: {
+    marginTop: 10,
+    color: "#1D7C35",
+    fontSize: 16,
+    fontWeight: "600",
   },
   buttonRow: {
     flexDirection: "row",
@@ -139,7 +185,7 @@ export const styles = StyleSheet.create({
   },
   passedTest: {
     backgroundColor: "#E8F5E9",
-  
+
   },
   failedTest: {
     backgroundColor: "#FFEBEE",
@@ -160,7 +206,7 @@ export const styles = StyleSheet.create({
   },
   passedConstraint: {
     backgroundColor: "#E8F5E9",
-  
+
   },
   failedConstraint: {
     backgroundColor: "#FFEBEE",
@@ -218,7 +264,7 @@ export const styles = StyleSheet.create({
     borderRadius: 8,
   },
   selectedOption: {
- 
+
     backgroundColor: "#F3E5F5",
   },
   optionRadio: {
@@ -226,7 +272,7 @@ export const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
- 
+
     marginRight: 10,
     justifyContent: "center",
     alignItems: "center",
@@ -235,7 +281,7 @@ export const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-     
+
   },
   optionText: {
     fontSize: 16,
@@ -244,7 +290,7 @@ export const styles = StyleSheet.create({
   },
   correctText: {
     marginTop: 10,
-    
+
     fontSize: 16,
     fontWeight: "600",
   },
@@ -283,14 +329,14 @@ export const styles = StyleSheet.create({
   },
   modalCloseText: {
     fontSize: 20,
-    
+
   },
   modalBody: {
     maxHeight: 300,
   },
   noSourcesText: {
     fontSize: 16,
- 
+
     textAlign: "center",
     padding: 20,
   },
@@ -309,7 +355,7 @@ export const styles = StyleSheet.create({
   },
   sourceNote: {
     fontSize: 14,
-  
+
   },
   unknownBlock: {
     padding: 10,
@@ -318,8 +364,6 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
     alignItems: 'center',
   },
-
- 
 
   image: {
     width: '100%',
@@ -359,7 +403,6 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
 
- 
   starsContainer: {
     position: 'relative',
     height: 100,
@@ -647,7 +690,7 @@ export const styles = StyleSheet.create({
     color: COLORS.BLACK,
     fontWeight: '600',
   },
- 
+
   argumentSchemeInfo: {
     marginBottom: 10,
     padding: 10,
@@ -667,7 +710,7 @@ export const styles = StyleSheet.create({
     color: '#333',
     fontFamily: 'monospace',
   },
- 
+
   objectDescriptions: {
     marginBottom: 10,
     padding: 10,
@@ -693,7 +736,7 @@ export const styles = StyleSheet.create({
     fontFamily: 'monospace',
     color: '#333',
   },
- 
+
   constraintsInfo: {
     marginBottom: 10,
     padding: 10,

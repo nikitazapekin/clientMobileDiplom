@@ -1,4 +1,4 @@
- 
+
 export type SlideType = "lesson" | "test";
 
 export interface Slide {
@@ -10,6 +10,7 @@ export interface Slide {
 }
 
 export type CodeLanguage = "javascript" | "python" | "csharp" | "golang" | "java";
+export type FillCodeLanguage = "javascript" | "python" | "csharp" | "java";
 
 export type CodeConstraintType =
   | "maxTimeMs"
@@ -92,6 +93,24 @@ export interface CodeTaskBlock extends BaseBlock {
   returnType?: ArgumentType;
 }
 
+export interface FillCodeTaskCaseValue {
+  inputId: string;
+  value: string;
+}
+
+export interface FillCodeTaskCase {
+  id: string;
+  values: FillCodeTaskCaseValue[];
+}
+
+export interface FillCodeTaskBlock extends BaseBlock {
+  type: "fillCodeTask";
+  description?: string;
+  language: FillCodeLanguage;
+  templateCode: string;
+  testCases: FillCodeTaskCase[];
+}
+
 export interface TheoryQuestionBlock extends BaseBlock {
   type: "theoryQuestion";
   text?: string;
@@ -108,6 +127,7 @@ export type SlideBlock =
   | TableBlock
   | ImageBlock
   | CodeTaskBlock
+  | FillCodeTaskBlock
   | TheoryQuestionBlock;
 
 export interface ConstraintResult {
