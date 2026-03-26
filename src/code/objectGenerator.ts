@@ -125,12 +125,21 @@ ${gettersSetters}
 
 export const generateObjectClassesForPreview = (args: ArgumentSchema[], language: CodeLanguage): string => {
   const objectArgs = args.filter((a) => a.type === "object" && a.objectFields);
-  if (objectArgs.length === 0) return "";
+  const arrayObjectArgs = args.filter(
+    (a) => (a.type === "array" || a.type === "list") &&
+           a.arrayElementType === "object" &&
+           a.arrayElementObjectFields
+  );
+  const allClasses = [...objectArgs, ...arrayObjectArgs];
 
-  return objectArgs
+  if (allClasses.length === 0) return "";
+
+  return allClasses
     .map((arg) => {
-      const className = arg.className || arg.name.charAt(0).toUpperCase() + arg.name.slice(1);
-      const objectFields = arg.objectFields ?? [];
+      const className = arg.objectFields
+        ? (arg.className || arg.name.charAt(0).toUpperCase() + arg.name.slice(1))
+        : (arg.arrayElementClassName || arg.name.charAt(0).toUpperCase() + arg.name.slice(1));
+      const objectFields = arg.objectFields ?? arg.arrayElementObjectFields ?? [];
 
       if (language === "java") {
         const fields = objectFields

@@ -1,9 +1,10 @@
 import type { CodeLanguage } from "@/components/Lesson/types";
 import { parseArguments, formatArgumentsForCode } from "./argumentParser";
+import { JAVA_SERIALIZATION_HELPERS } from "./resultSerialization";
 
 export const buildJavaTestSuite = (
   userCode: string,
-  testCases: { input: string; expectedOutput: string }[],
+  testCases: { input: string; expectedOutput: unknown }[],
   funcName: string | null
 ): string => {
   if (!funcName) return userCode;
@@ -38,32 +39,14 @@ export const buildJavaTestSuite = (
                 }
                 
                 System.out.println("===RESULT_START_" + ${testNum} + "===");
-                if (result == null) {
-                    System.out.print("null");
-                } else if (result instanceof String) {
-                    System.out.print("\\"");
-                    System.out.print(result);
-                    System.out.print("\\"");
-                } else if (result.getClass().isArray()) {
-                    if (result instanceof int[]) {
-                        System.out.print(java.util.Arrays.toString((int[])result));
-                    } else if (result instanceof Integer[]) {
-                        System.out.print(java.util.Arrays.toString((Integer[])result));
-                    } else if (result instanceof String[]) {
-                        System.out.print(java.util.Arrays.toString((String[])result));
-                    } else {
-                        System.out.print(java.util.Arrays.toString((Object[])result));
-                    }
-                } else {
-                    System.out.print(result);
-                }
+                System.out.print(__codexSerializeResult(result));
                 System.out.println();
                 System.out.println("===RESULT_END_" + ${testNum} + "===");
                 
             } catch (Exception e) {
                 System.setOut(originalOut);
                 System.out.println("===RESULT_START_" + ${testNum} + "===");
-                System.out.print("ERROR: " + e.getMessage());
+                System.out.print(__codexSerializeError(e));
                 System.out.println();
                 System.out.println("===RESULT_END_" + ${testNum} + "===");
             }
@@ -74,7 +57,9 @@ export const buildJavaTestSuite = (
   if (userCode.includes("public static void main")) {
     return userCode.replace(
       /public\s+static\s+void\s+main\(String\[\]\s*args\)\s*\{[\s\S]*?\}/,
-      `public static void main(String[] args) {
+      `${JAVA_SERIALIZATION_HELPERS}
+
+    public static void main(String[] args) {
 ${testCasesCode}
     }`
     );
@@ -82,6 +67,8 @@ ${testCasesCode}
     const codeWithoutLastBrace = userCode.trim().replace(/\}\s*$/, "");
 
     return `${codeWithoutLastBrace}
+
+${JAVA_SERIALIZATION_HELPERS}
 
     public static void main(String[] args) {
 ${testCasesCode}
@@ -92,7 +79,7 @@ ${testCasesCode}
 
 export const buildCSharpTestSuite = (
   userCode: string,
-  testCases: { input: string; expectedOutput: string }[],
+  testCases: { input: string; expectedOutput: unknown }[],
   funcName: string | null
 ): string => {
   if (!funcName) return userCode;
@@ -110,6 +97,7 @@ export const buildCSharpTestSuite = (
             var originalError = Console.Error;
             var outWriter = new StringWriter();
             var errorWriter = new StringWriter();
+            var jsonOptions = new System.Text.Json.JsonSerializerOptions { IncludeFields = true };
             Console.SetOut(outWriter);
             Console.SetError(errorWriter);
             
@@ -137,14 +125,14 @@ export const buildCSharpTestSuite = (
                 }
                 
                 Console.WriteLine("===RESULT_START_" + ${testNum} + "===");
-                Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(result));
+                Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(result, jsonOptions));
                 Console.WriteLine("===RESULT_END_" + ${testNum} + "===");
                 
             } catch (Exception e) {
                 Console.SetOut(originalOut);
                 Console.SetError(originalError);
                 Console.WriteLine("===RESULT_START_" + ${testNum} + "===");
-                Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new { error = e.Message }));
+                Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new { error = e.Message }, jsonOptions));
                 Console.WriteLine("===RESULT_END_" + ${testNum} + "===");
             }
         }`;

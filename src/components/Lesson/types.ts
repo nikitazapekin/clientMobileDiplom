@@ -22,6 +22,14 @@ export type CodeConstraintType =
   | "memoryLimit"
   | "requiredKeywords";
 
+export type ExpectedOutputValue =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: ExpectedOutputValue }
+  | ExpectedOutputValue[];
+
 export interface BaseBlock {
   id: string;
   order: number;
@@ -83,8 +91,8 @@ export interface CodeTaskBlock extends BaseBlock {
   language: CodeLanguage;
   description?: string;
   startCode?: string;
-  testCases?: Array<{ input: string; expectedOutput: string; args?: TestCaseArgument[] }>;
-  expectedOutput?: string;
+  testCases?: Array<{ input: string; expectedOutput: ExpectedOutputValue; args?: TestCaseArgument[] }>;
+  expectedOutput?: ExpectedOutputValue;
   constraints?: {
     type: CodeConstraintType;
     value: number | string[] | boolean;

@@ -1,4 +1,5 @@
 import type { CodeLanguage } from "@/components/Lesson/types";
+import { JAVA_SERIALIZATION_HELPERS } from "./resultSerialization";
 
 export const stripMainMethod = (code: string, language: CodeLanguage): string => {
   if (language === "java") {
@@ -19,6 +20,8 @@ export const addJavaMainMethod = (code: string, funcName: string | null, input: 
   if (!funcName) return code;
 
   const mainMethod = `
+${JAVA_SERIALIZATION_HELPERS}
+
     public static void main(String[] args) {
         java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
         java.io.PrintStream originalOut = System.out;
@@ -38,29 +41,13 @@ export const addJavaMainMethod = (code: string, funcName: string | null, input: 
             }
             
             System.out.println("===RESULT_START===");
-            if (result == null) {
-                System.out.print("null");
-            } else if (result instanceof String) {
-                System.out.print("\\"" + result + "\\"");
-            } else if (result.getClass().isArray()) {
-                if (result instanceof int[]) {
-                    System.out.print(java.util.Arrays.toString((int[])result));
-                } else if (result instanceof Integer[]) {
-                    System.out.print(java.util.Arrays.toString((Integer[])result));
-                } else if (result instanceof String[]) {
-                    System.out.print(java.util.Arrays.toString((String[])result));
-                } else {
-                    System.out.print(java.util.Arrays.toString((Object[])result));
-                }
-            } else {
-                System.out.print(result);
-            }
+            System.out.print(__codexSerializeResult(result));
             System.out.println("===RESULT_END===");
             
         } catch (Exception e) {
             System.setOut(originalOut);
             System.out.println("===RESULT_START===");
-            System.out.print("{\\"error\\":\\"" + e.getMessage() + "\\"}");
+            System.out.print(__codexSerializeError(e));
             System.out.println("===RESULT_END===");
         }
     }`;

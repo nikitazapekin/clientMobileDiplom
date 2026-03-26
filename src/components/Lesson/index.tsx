@@ -49,9 +49,12 @@ import {
   generateObjectClassesForPreview,
   getArgumentTypeDescription,
   getDisplayInput,
+  hasExpectedOutputValue,
   normalizeFillTaskBlock,
+  normalizeOutputValue,
   parseArguments,
   renderArgumentScheme,
+  stringifyOutputValue,
   stripMainMethod,
   validateFillTaskAnswers
 } from "@/code";
@@ -144,7 +147,12 @@ const ObjectDescriptions = ({ argumentScheme, language }: { argumentScheme?: Arg
 
   if (language !== "java" && language !== "csharp") return null;
 
-  const hasObjects = argumentScheme.some(a => a.type === "object" && a.objectFields);
+  const hasObjects = argumentScheme.some(a => (
+    (a.type === "object" && a.objectFields) ||
+    ((a.type === "array" || a.type === "list") &&
+      a.arrayElementType === "object" &&
+      a.arrayElementObjectFields)
+  ));
 
   if (!hasObjects) return null;
 
@@ -1306,30 +1314,14 @@ const Lesson = ({ id }: { id: string }) => {
               inResult = false;
 
               if (currentResult.length > 0) {
-                const actual = currentResult.join("\n").trim();
-                const expected = block.testCases[i].expectedOutput.trim();
-
-                let actualParsed: any;
-                let expectedParsed: any;
-
-                try {
-                  actualParsed = JSON.parse(actual);
-                } catch {
-                  actualParsed = actual;
-                }
-
-                try {
-                  expectedParsed = JSON.parse(expected);
-                } catch {
-                  expectedParsed = expected;
-                }
-
-                const passed = compareOutputs(actualParsed, expectedParsed);
+                const actualValue = normalizeOutputValue(currentResult.join("\n").trim());
+                const expectedValue = normalizeOutputValue(block.testCases[i].expectedOutput);
+                const passed = compareOutputs(actualValue, expectedValue);
 
                 results.push({
                   input: getDisplayInput(block.testCases[i], block.argumentScheme, block.language),
-                  expected,
-                  actual,
+                  expected: stringifyOutputValue(expectedValue),
+                  actual: stringifyOutputValue(actualValue),
                   passed,
                 });
               }
@@ -1419,30 +1411,14 @@ const Lesson = ({ id }: { id: string }) => {
               inResult = false;
 
               if (currentResult.length > 0) {
-                const actual = currentResult.join("\n").trim();
-                const expected = block.testCases[i].expectedOutput.trim();
-
-                let actualParsed: any;
-                let expectedParsed: any;
-
-                try {
-                  actualParsed = JSON.parse(actual);
-                } catch {
-                  actualParsed = actual;
-                }
-
-                try {
-                  expectedParsed = JSON.parse(expected);
-                } catch {
-                  expectedParsed = expected;
-                }
-
-                const passed = compareOutputs(actualParsed, expectedParsed);
+                const actualValue = normalizeOutputValue(currentResult.join("\n").trim());
+                const expectedValue = normalizeOutputValue(block.testCases[i].expectedOutput);
+                const passed = compareOutputs(actualValue, expectedValue);
 
                 results.push({
                   input: getDisplayInput(block.testCases[i], block.argumentScheme, block.language),
-                  expected,
-                  actual,
+                  expected: stringifyOutputValue(expectedValue),
+                  actual: stringifyOutputValue(actualValue),
                   passed,
                 });
               }
@@ -1475,7 +1451,7 @@ const Lesson = ({ id }: { id: string }) => {
           // Если есть аргументы в схеме, используем их, иначе используем старый input
           const inputToUse = (block.argumentScheme?.length ?? 0) > 0 ? argsInput : (tc.input || "");
 
-          if (!inputToUse || !tc.expectedOutput) {
+          if (!inputToUse || !hasExpectedOutputValue(tc.expectedOutput)) {
             setTestErrors(prev => ({ ...prev, [slideId]: "Заполните все тест-кейсы (входные данные и ожидаемый вывод)" }));
 
             return;
@@ -1540,30 +1516,14 @@ const Lesson = ({ id }: { id: string }) => {
               inResult = false;
 
               if (currentResult.length > 0) {
-                const actual = currentResult.join("\n").trim();
-                const expected = tc.expectedOutput.trim();
-
-                let actualParsed: any;
-                let expectedParsed: any;
-
-                try {
-                  actualParsed = JSON.parse(actual);
-                } catch {
-                  actualParsed = actual;
-                }
-
-                try {
-                  expectedParsed = JSON.parse(expected);
-                } catch {
-                  expectedParsed = expected;
-                }
-
-                const passed = compareOutputs(actualParsed, expectedParsed);
+                const actualValue = normalizeOutputValue(currentResult.join("\n").trim());
+                const expectedValue = normalizeOutputValue(tc.expectedOutput);
+                const passed = compareOutputs(actualValue, expectedValue);
 
                 results.push({
                   input: getDisplayInput(tc, block.argumentScheme, block.language),
-                  expected,
-                  actual,
+                  expected: stringifyOutputValue(expectedValue),
+                  actual: stringifyOutputValue(actualValue),
                   passed,
                 });
               }
@@ -1586,7 +1546,7 @@ const Lesson = ({ id }: { id: string }) => {
       // Для остальных языков (C#, Golang, старый формат)
       else {
         for (const tc of block.testCases) {
-          if (!tc.input || !tc.expectedOutput) {
+          if (!tc.input || !hasExpectedOutputValue(tc.expectedOutput)) {
             setTestErrors(prev => ({ ...prev, [slideId]: "Заполните все тест-кейсы" }));
 
             return;
@@ -1647,29 +1607,14 @@ const Lesson = ({ id }: { id: string }) => {
               inResult = false;
 
               if (currentResult.length > 0) {
-                const resultStr = currentResult.join("\n").trim();
-
-                let actualParsed: any;
-                let expectedParsed: any;
-
-                try {
-                  actualParsed = JSON.parse(resultStr);
-                } catch {
-                  actualParsed = resultStr;
-                }
-
-                try {
-                  expectedParsed = JSON.parse(tc.expectedOutput);
-                } catch {
-                  expectedParsed = tc.expectedOutput;
-                }
-
-                const passed = compareOutputs(actualParsed, expectedParsed);
+                const actualValue = normalizeOutputValue(currentResult.join("\n").trim());
+                const expectedValue = normalizeOutputValue(tc.expectedOutput);
+                const passed = compareOutputs(actualValue, expectedValue);
 
                 results.push({
                   input: getDisplayInput(tc, block.argumentScheme, block.language),
-                  expected: tc.expectedOutput,
-                  actual: resultStr,
+                  expected: stringifyOutputValue(expectedValue),
+                  actual: stringifyOutputValue(actualValue),
                   passed,
                 });
               }

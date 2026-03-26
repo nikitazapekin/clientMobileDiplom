@@ -1,8 +1,9 @@
+import type { ExpectedOutputValue } from "@/components/Lesson/types";
 import $api from "./api";
 
 export interface TestCase {
   input: string;
-  expectedOutput: string;
+  expectedOutput: ExpectedOutputValue;
 }
 
 export interface CodeConstraint {
