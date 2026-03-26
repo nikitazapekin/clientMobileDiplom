@@ -94,7 +94,14 @@ export interface CodeTaskBlock extends BaseBlock {
 }
 
 export interface FillCodeTaskCaseValue {
-  inputId: string;
+  slotId: string;
+  optionId: string | null;
+  value?: string;
+  inputId?: string;
+}
+
+export interface FillCodeTaskOption {
+  id: string;
   value: string;
 }
 
@@ -108,6 +115,7 @@ export interface FillCodeTaskBlock extends BaseBlock {
   description?: string;
   language: FillCodeLanguage;
   templateCode: string;
+  options: FillCodeTaskOption[];
   testCases: FillCodeTaskCase[];
 }
 

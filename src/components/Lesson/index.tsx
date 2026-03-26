@@ -8,7 +8,6 @@ import {
   Modal,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View
 } from "react-native";
@@ -18,6 +17,7 @@ import { useNavigation } from "@react-navigation/native";
 import { COLORS } from "appStyles";
 import { useRouter } from "expo-router";
 
+import { FillTaskInteraction } from "./FillTaskInteraction";
 import { styles } from "./styled";
 import type { ArgumentSchema, CodeLanguage, ConstraintResult,TestCaseArgument } from "./types";
 import type {
@@ -49,6 +49,7 @@ import {
   generateObjectClassesForPreview,
   getArgumentTypeDescription,
   getDisplayInput,
+  normalizeFillTaskBlock,
   parseArguments,
   renderArgumentScheme,
   stripMainMethod,
@@ -359,55 +360,58 @@ const CodeTaskBlockView = ({
 const FillCodeTaskBlockView = ({
   block,
   answers,
-  onAnswerChange,
+  onAssignAnswer,
   onCheck,
   validationResult,
   error,
+  onDragStateChange,
 }: {
   block: FillCodeTaskBlock;
   answers: Record<string, string>;
-  onAnswerChange: (inputId: string, value: string) => void;
+  onAssignAnswer: (slotId: string, optionId: string | null) => void;
   onCheck: () => void;
   validationResult?: { passed: boolean; matchedCaseIndex: number | null; totalCases: number };
   error?: string;
+  onDragStateChange?: (dragging: boolean) => void;
 }) => {
-  const inputIds = extractFillTaskInputs(block.templateCode || "");
+  const normalizedBlock = normalizeFillTaskBlock(block);
+  const inputIds = extractFillTaskInputs(normalizedBlock.templateCode || "");
+  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (
+      selectedOptionId &&
+      !normalizedBlock.options.some((option) => option.id === selectedOptionId)
+    ) {
+      setSelectedOptionId(null);
+    }
+  }, [normalizedBlock.options, selectedOptionId]);
 
   return (
     <View style={styles.fillTaskBlock}>
-      {block.description && <Text style={styles.taskDescription}>{block.description}</Text>}
+      {normalizedBlock.description && (
+        <Text style={styles.taskDescription}>{normalizedBlock.description}</Text>
+      )}
 
       <Text style={styles.fillTaskHint}>
-        Изменять код нельзя. Заполните только поля для плейсхолдеров и нажмите "Проверить".
+        Код менять нельзя. Перетащите вариант в белое поле или нажмите на вариант, а потом на
+        нужный слот.
       </Text>
 
-      <CodeEditor
-        value={block.templateCode || ""}
-        onChange={() => {}}
-        language={block.language || "javascript"}
-        readOnly
-        height={180}
+      <FillTaskInteraction
+        templateCode={normalizedBlock.templateCode || ""}
+        answers={answers}
+        options={normalizedBlock.options}
+        selectedOptionId={selectedOptionId}
+        onSelectedOptionChange={setSelectedOptionId}
+        onAssign={onAssignAnswer}
+        onDragStateChange={onDragStateChange}
       />
 
       <Text style={styles.fillTaskMeta}>
-        Допустимых вариантов: {block.testCases?.length ?? 0}. Достаточно совпасть с одним.
+        Белых полей: {inputIds.length}. Допустимых решений: {normalizedBlock.testCases?.length ?? 0}.
+        Достаточно совпасть хотя бы с одним.
       </Text>
-
-      <View style={styles.fillTaskInputs}>
-        {inputIds.map((inputId) => (
-          <View key={inputId} style={styles.fillTaskInputRow}>
-            <Text style={styles.fillTaskLabel}>[{inputId}]</Text>
-            <TextInput
-              style={styles.fillTaskInput}
-              value={answers[inputId] ?? ""}
-              onChangeText={(value) => onAnswerChange(inputId, value)}
-              placeholder={`Введите значение для [${inputId}]`}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
-        ))}
-      </View>
 
       <View style={styles.buttonRow}>
         <CustomButton
@@ -788,6 +792,7 @@ const Lesson = ({ id }: { id: string }) => {
 
   const [lessonDetailsId, setLessonDetailsId] = useState<string | null>(null);
   const [commentsModalVisible, setCommentsModalVisible] = useState(false);
+  const [isFillTaskDragging, setIsFillTaskDragging] = useState(false);
 
   useEffect(() => {
     void loadLessonDetails();
@@ -814,6 +819,19 @@ const Lesson = ({ id }: { id: string }) => {
       const data = await LessonDetailsService.getLessonDetailsByLessonId(id);
 
       const allSlides: Slide[] = [];
+      const normalizeBlocks = (blocks: unknown): Slide["blocks"] => {
+        if (!Array.isArray(blocks)) {
+          return [];
+        }
+
+        return blocks.map((block) => {
+          if ((block as { type?: string }).type === "fillCodeTask") {
+            return normalizeFillTaskBlock(block as FillCodeTaskBlock);
+          }
+
+          return block as Slide["blocks"][number];
+        });
+      };
 
       if (Array.isArray(data.slides)) {
         data.slides.forEach((slide, index) => {
@@ -822,7 +840,7 @@ const Lesson = ({ id }: { id: string }) => {
             title: slide.title || "Урок",
             type: "lesson",
             order: slide.orderIndex || index,
-            blocks: Array.isArray(slide.blocks) ? (slide.blocks as any) : [],
+            blocks: normalizeBlocks(slide.blocks),
           });
         });
       }
@@ -834,7 +852,7 @@ const Lesson = ({ id }: { id: string }) => {
             title: test.title || "Тест",
             type: "test",
             order: test.orderIndex || (data.slides?.length || 0) + index,
-            blocks: Array.isArray(test.blocks) ? (test.blocks as any) : [],
+            blocks: normalizeBlocks(test.blocks),
           });
         });
       }
@@ -1718,7 +1736,8 @@ const Lesson = ({ id }: { id: string }) => {
   }, [testAnswers]);
 
   const checkFillTask = useCallback((block: FillCodeTaskBlock) => {
-    const inputIds = extractFillTaskInputs(block.templateCode || "");
+    const normalizedBlock = normalizeFillTaskBlock(block);
+    const inputIds = extractFillTaskInputs(normalizedBlock.templateCode || "");
     const answers = fillTaskAnswers[block.id] || {};
 
     setFillTaskErrors(prev => ({ ...prev, [block.id]: "" }));
@@ -1730,13 +1749,13 @@ const Lesson = ({ id }: { id: string }) => {
       }));
       setFillTaskErrors(prev => ({
         ...prev,
-        [block.id]: "В задаче не найдено ни одного плейсхолдера вида [input]."
+        [block.id]: "В задаче не найдено ни одного слота вида [[slot]] или [input]."
       }));
 
       return;
     }
 
-    if (!block.testCases || block.testCases.length === 0) {
+    if (!normalizedBlock.testCases || normalizedBlock.testCases.length === 0) {
       setFillTaskResults(prev => ({
         ...prev,
         [block.id]: { passed: false, matchedCaseIndex: null, totalCases: 0 }
@@ -1752,17 +1771,26 @@ const Lesson = ({ id }: { id: string }) => {
     if (inputIds.some((inputId) => (answers[inputId] ?? "").trim() === "")) {
       setFillTaskResults(prev => ({
         ...prev,
-        [block.id]: { passed: false, matchedCaseIndex: null, totalCases: block.testCases.length }
+        [block.id]: {
+          passed: false,
+          matchedCaseIndex: null,
+          totalCases: normalizedBlock.testCases.length
+        }
       }));
       setFillTaskErrors(prev => ({
         ...prev,
-        [block.id]: "Заполните все поля ввода."
+        [block.id]: "Заполните все белые поля в коде."
       }));
 
       return;
     }
 
-    const result = validateFillTaskAnswers(block.testCases, answers, inputIds);
+    const result = validateFillTaskAnswers(
+      normalizedBlock.testCases,
+      answers,
+      inputIds,
+      normalizedBlock.options
+    );
 
     setFillTaskResults(prev => ({
       ...prev,
@@ -1929,7 +1957,11 @@ const Lesson = ({ id }: { id: string }) => {
         </Text>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        scrollEnabled={!isFillTaskDragging}
+      >
         {sortBlocks(currentSlide.blocks).map((block) => {
           console.log("🔍 Rendering block type:", block.type);
 
@@ -1974,13 +2006,12 @@ const Lesson = ({ id }: { id: string }) => {
                   key={block.id}
                   block={block}
                   answers={fillTaskAnswers[block.id] || {}}
-                  onAnswerChange={(inputId, value) =>
-                  {
+                  onAssignAnswer={(slotId, optionId) => {
                     setFillTaskAnswers(prev => ({
                       ...prev,
                       [block.id]: {
                         ...(prev[block.id] || {}),
-                        [inputId]: value
+                        [slotId]: optionId ?? ""
                       }
                     }));
                     setFillTaskErrors(prev => ({ ...prev, [block.id]: "" }));
@@ -1991,11 +2022,11 @@ const Lesson = ({ id }: { id: string }) => {
 
                       return next;
                     });
-                  }
-                  }
+                  }}
                   onCheck={() => checkFillTask(block)}
                   validationResult={fillTaskResults[block.id]}
                   error={fillTaskErrors[block.id]}
+                  onDragStateChange={setIsFillTaskDragging}
                 />
               );
 
