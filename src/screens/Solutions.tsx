@@ -1,19 +1,26 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  View,
-  Text,
+  ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
+  Text,
   TouchableOpacity,
-  Alert,
+  View,
 } from "react-native";
-import { COLORS, SIZES } from "appStyles";
-import {
-  CodingTasksService,
-  type CodeTaskSolution,
-} from "@/http/codingTasksService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { COLORS, SIZES } from "appStyles";
+
+import type { TabName } from "../components/Footer";
+import Footer from "../components/Footer";
+import Header from "../components/Header";
+
+import { styles as screenStyles } from "./styles";
+
+import {
+  type CodeTaskSolution,
+  CodingTasksService,
+} from "@/http/codingTasksService";
 
 interface Props {
   route: {
@@ -24,287 +31,450 @@ interface Props {
   };
 }
 
+type SolutionSortMode = "all" | "fastest" | "popular";
+
+const UNKNOWN_NAME = "unknown";
+
+const getErrorMessage = (error: unknown, fallbackMessage: string): string =>
+  error instanceof Error && error.message ? error.message : fallbackMessage;
+
+const getStudentDisplayName = (solution: CodeTaskSolution): string => {
+  const directName = solution.studentName?.trim();
+
+  if (directName && directName.toLowerCase() !== UNKNOWN_NAME) {
+    return directName;
+  }
+
+  const fallbackName = [
+    solution.client?.lastName?.trim(),
+    solution.client?.firstName?.trim(),
+    solution.client?.middleName?.trim(),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  return fallbackName || "Студент";
+};
+
 const SolutionsScreen = ({ route }: Props) => {
   const { taskId, taskTitle } = route.params;
+  const activeTab: TabName = "courses";
+
   const [solutions, setSolutions] = useState<CodeTaskSolution[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "passed" | "fastest">("all");
+  const [sortMode, setSortMode] = useState<SolutionSortMode>("all");
+  const [selectedLanguage, setSelectedLanguage] = useState("all");
   const [currentClientId, setCurrentClientId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadSolutions();
-    loadCurrentUser();
+    void (async () => {
+      try {
+        const storedEntries = await AsyncStorage.multiGet(["userAuditoryId", "userId"]);
+        const storedValues = Object.fromEntries(storedEntries);
+
+        setCurrentClientId(storedValues.userAuditoryId || storedValues.userId);
+      } catch (error) {
+        console.error("Failed to load current user:", error);
+      }
+    })();
   }, []);
 
-  const loadCurrentUser = async () => {
-    try {
-      const auditoryId = await AsyncStorage.getItem("userAuditoryId") || 
-                         await AsyncStorage.getItem("userId");
-      setCurrentClientId(auditoryId);
-    } catch (e) {
-      console.error("Failed to load user:", e);
-    }
-  };
-
-  const loadSolutions = async () => {
+  const loadSolutions = useCallback(async () => {
     try {
       setLoading(true);
       const data = await CodingTasksService.getTaskSolutions(taskId);
+
       setSolutions(data);
-    } catch (e: any) {
+    } catch (_error: unknown) {
       Alert.alert("Ошибка", "Не удалось загрузить решения");
     } finally {
       setLoading(false);
     }
-  };
+  }, [taskId]);
+
+  useEffect(() => {
+    void loadSolutions();
+  }, [loadSolutions]);
 
   const handleLike = async (solutionId: string) => {
     try {
       const updated = await CodingTasksService.likeSolution(solutionId);
+
       setSolutions((prev) =>
-        prev.map((s) => (s.id === solutionId ? updated : s)),
+        prev.map((solution) =>
+          solution.id === solutionId
+            ? {
+              ...solution,
+              ...updated,
+              client: solution.client,
+            }
+            : solution,
+        ),
       );
-    } catch (e: any) {
-      Alert.alert("Ошибка", e?.message || "Не удалось поставить лайк");
+    } catch (error: unknown) {
+      Alert.alert("Ошибка", getErrorMessage(error, "Не удалось поставить лайк"));
     }
   };
 
   const handleDislike = async (solutionId: string) => {
     try {
       const updated = await CodingTasksService.dislikeSolution(solutionId);
+
       setSolutions((prev) =>
-        prev.map((s) => (s.id === solutionId ? updated : s)),
+        prev.map((solution) =>
+          solution.id === solutionId
+            ? {
+              ...solution,
+              ...updated,
+              client: solution.client,
+            }
+            : solution,
+        ),
       );
-    } catch (e: any) {
-      Alert.alert("Ошибка", e?.message || "Не удалось поставить дизлайк");
+    } catch (error: unknown) {
+      Alert.alert("Ошибка", getErrorMessage(error, "Не удалось поставить дизлайк"));
     }
   };
 
-  const getFilteredSolutions = () => {
-    let filtered = [...solutions];
+  const solvedSolutions = useMemo(
+    () => solutions.filter((solution) => solution.allPassed),
+    [solutions],
+  );
 
-    if (filter === "passed") {
-      filtered = filtered.filter((s) => s.allPassed);
-    } else if (filter === "fastest") {
-      const passed = filtered.filter((s) => s.allPassed);
-      passed.sort((a, b) => a.executionTimeMs - b.executionTimeMs);
-      filtered = passed;
+  const availableLanguages = useMemo(
+    () => Array.from(new Set(solvedSolutions.map((solution) => solution.language).filter(Boolean))),
+    [solvedSolutions],
+  );
+
+  useEffect(() => {
+    if (selectedLanguage !== "all" && !availableLanguages.includes(selectedLanguage)) {
+      setSelectedLanguage("all");
+    }
+  }, [availableLanguages, selectedLanguage]);
+
+  const filteredSolutions = useMemo(() => {
+    const filteredByLanguage =
+      selectedLanguage === "all"
+        ? solvedSolutions
+        : solvedSolutions.filter((solution) => solution.language === selectedLanguage);
+
+    const next = [...filteredByLanguage];
+
+    if (sortMode === "fastest") {
+      next.sort(
+        (a, b) =>
+          a.executionTimeMs - b.executionTimeMs ||
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+
+      return next;
     }
 
-    return filtered;
-  };
+    if (sortMode === "popular") {
+      next.sort(
+        (a, b) =>
+          (b.likes || 0) - (a.likes || 0) ||
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
 
-  const filteredSolutions = getFilteredSolutions();
+      return next;
+    }
 
-  if (loading) {
-    return (
-      <View style={st.center}>
-        <ActivityIndicator size="large" color={COLORS.ACCENT} />
-      </View>
+    next.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
-  }
+
+    return next;
+  }, [selectedLanguage, solvedSolutions, sortMode]);
 
   return (
-    <View style={st.container}>
-      <View style={st.header}>
-        <Text style={st.title}>📝 Решения: {taskTitle}</Text>
-      </View>
+    <View style={screenStyles.containerLight}>
+      <Header title="Solutions" />
 
-      <View style={st.filters}>
-        <TouchableOpacity
-          style={[st.filterBtn, filter === "all" && st.filterBtnActive]}
-          onPress={() => setFilter("all")}
-        >
-          <Text style={[st.filterBtnText, filter === "all" && st.filterBtnTextActive]}>
-            Все ({solutions.length})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[st.filterBtn, filter === "passed" && st.filterBtnActive]}
-          onPress={() => setFilter("passed")}
-        >
-          <Text style={[st.filterBtnText, filter === "passed" && st.filterBtnTextActive]}>
-            ✅ Решены ({solutions.filter((s) => s.allPassed).length})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[st.filterBtn, filter === "fastest" && st.filterBtnActive]}
-          onPress={() => setFilter("fastest")}
-        >
-          <Text style={[st.filterBtnText, filter === "fastest" && st.filterBtnTextActive]}>
-            ⚡ Быстрые
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView style={st.list} contentContainerStyle={st.listContent}>
-        {filteredSolutions.length === 0 ? (
-          <View style={st.empty}>
-            <Text style={st.emptyText}>Нет решений</Text>
+      <View style={screenStyles.content}>
+        <View style={st.content}>
+          <View style={st.titleBlock}>
+            <Text style={st.title}>{taskTitle}</Text>
+            <Text style={st.subtitle}>Решенные решения студентов: {solvedSolutions.length}</Text>
           </View>
-        ) : (
-          filteredSolutions.map((solution) => (
-            <View key={solution.id} style={st.card}>
-              <View style={st.cardHeader}>
-                <View style={st.studentInfo}>
-                  <Text style={st.studentName}>{solution.studentName}</Text>
-                  <Text style={st.language}>{solution.language.toUpperCase()}</Text>
-                </View>
-                <View style={st.resultBadge}>
-                  <Text
-                    style={[
-                      st.resultBadgeText,
-                      solution.allPassed ? st.resultBadgeTextPassed : st.resultBadgeTextFailed,
-                    ]}
-                  >
-                    {solution.allPassed ? "✅ Решено" : "❌ Не решено"}
-                  </Text>
-                </View>
-              </View>
 
-              <View style={st.stats}>
-                <View style={st.stat}>
-                  <Text style={st.statLabel}>Тесты:</Text>
-                  <Text style={st.statValue}>
-                    {solution.testCasesPassed}/{solution.totalTestCases}
-                  </Text>
-                </View>
-                <View style={st.stat}>
-                  <Text style={st.statLabel}>Время:</Text>
-                  <Text
-                    style={[
-                      st.statValue,
-                      solution.executionTimeMs < 1000
-                        ? st.statValueFast
-                        : solution.executionTimeMs < 2000
-                        ? st.statValueMedium
-                        : st.statValueSlow,
-                    ]}
-                  >
-                    {solution.executionTimeMs}мс
-                  </Text>
-                </View>
-                {solution.experienceGained > 0 && (
-                  <View style={st.stat}>
-                    <Text style={st.statLabel}>XP:</Text>
-                    <Text style={[st.statValue, { color: COLORS.ACCENT }]}>
-                      +{solution.experienceGained}
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              {solution.testResults && solution.testResults.length > 0 && (
-                <View style={st.testResults}>
-                  <Text style={st.testResultsTitle}>Результаты тестов:</Text>
-                  {solution.testResults.slice(0, 3).map((test, idx) => (
-                    <View key={idx} style={st.testResult}>
-                      <Text style={test.passed ? st.testResultPassed : st.testResultFailed}>
-                        {test.passed ? "✅" : "❌"} Тест #{test.index + 1}
-                      </Text>
-                      {idx < Math.min(3, solution.testResults.length) - 1 && (
-                        <Text style={st.testResultInput}>Вход: {test.input}</Text>
-                      )}
-                    </View>
-                  ))}
-                  {solution.testResults.length > 3 && (
-                    <Text style={st.moreTests}>
-                      ...и еще {solution.testResults.length - 3} тестов
-                    </Text>
-                  )}
-                </View>
-              )}
-
-              <View style={st.codePreview}>
-                <Text style={st.codeTitle}>Код решения:</Text>
-                <Text style={st.code} numberOfLines={4}>
-                  {solution.code}
+          <View style={st.controlsCard}>
+            <Text style={st.controlsLabel}>Сортировка</Text>
+            <View style={st.filtersRow}>
+              <TouchableOpacity
+                style={[st.filterBtn, sortMode === "all" && st.filterBtnActive]}
+                onPress={() => setSortMode("all")}
+              >
+                <Text
+                  style={[
+                    st.filterBtnText,
+                    sortMode === "all" && st.filterBtnTextActive,
+                  ]}
+                >
+                  Все
                 </Text>
-              </View>
+              </TouchableOpacity>
 
-              <View style={st.likeButtons}>
-                <TouchableOpacity
+              <TouchableOpacity
+                style={[st.filterBtn, sortMode === "fastest" && st.filterBtnActive]}
+                onPress={() => setSortMode("fastest")}
+              >
+                <Text
                   style={[
-                    st.likeBtn,
-                    solution.likedBy?.includes(currentClientId || "") && st.likeBtnActive,
+                    st.filterBtnText,
+                    sortMode === "fastest" && st.filterBtnTextActive,
                   ]}
-                  onPress={() => handleLike(solution.id)}
                 >
-                  <Text style={st.likeBtnText}>
-                    {solution.likedBy?.includes(currentClientId || "") ? "👍" : "👍"} {solution.likes || 0}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    st.dislikeBtn,
-                    solution.dislikedBy?.includes(currentClientId || "") && st.dislikeBtnActive,
-                  ]}
-                  onPress={() => handleDislike(solution.id)}
-                >
-                  <Text style={st.dislikeBtnText}>
-                    {solution.dislikedBy?.includes(currentClientId || "") ? "👎" : "👎"} {solution.dislikes || 0}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+                  Самые быстрые
+                </Text>
+              </TouchableOpacity>
 
-              <Text style={st.timestamp}>
-                {new Date(solution.createdAt).toLocaleString("ru-RU")}
-              </Text>
+              <TouchableOpacity
+                style={[st.filterBtn, sortMode === "popular" && st.filterBtnActive]}
+                onPress={() => setSortMode("popular")}
+              >
+                <Text
+                  style={[
+                    st.filterBtnText,
+                    sortMode === "popular" && st.filterBtnTextActive,
+                  ]}
+                >
+                  Самые популярные
+                </Text>
+              </TouchableOpacity>
             </View>
-          ))
-        )}
-      </ScrollView>
+
+            <Text style={st.controlsLabel}>Язык</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={st.languageRow}
+            >
+              <TouchableOpacity
+                style={[
+                  st.languageChip,
+                  selectedLanguage === "all" && st.languageChipActive,
+                ]}
+                onPress={() => setSelectedLanguage("all")}
+              >
+                <Text
+                  style={[
+                    st.languageChipText,
+                    selectedLanguage === "all" && st.languageChipTextActive,
+                  ]}
+                >
+                  Все языки
+                </Text>
+              </TouchableOpacity>
+
+              {availableLanguages.map((language) => (
+                <TouchableOpacity
+                  key={language}
+                  style={[
+                    st.languageChip,
+                    selectedLanguage === language && st.languageChipActive,
+                  ]}
+                  onPress={() => setSelectedLanguage(language)}
+                >
+                  <Text
+                    style={[
+                      st.languageChipText,
+                      selectedLanguage === language && st.languageChipTextActive,
+                    ]}
+                  >
+                    {language.toUpperCase()}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          {loading ? (
+            <View style={st.center}>
+              <ActivityIndicator size="large" color={COLORS.ACCENT} />
+            </View>
+          ) : (
+            <ScrollView style={st.list} contentContainerStyle={st.listContent}>
+              {filteredSolutions.length === 0 ? (
+                <View style={st.empty}>
+                  <Text style={st.emptyText}>
+                    {selectedLanguage === "all"
+                      ? "Решенных решений пока нет"
+                      : "Для выбранного языка решенных решений пока нет"}
+                  </Text>
+                </View>
+              ) : (
+                filteredSolutions.map((solution) => (
+                  <View key={solution.id} style={st.card}>
+                    <View style={st.cardHeader}>
+                      <View style={st.studentMeta}>
+                        <Text style={st.studentName}>{getStudentDisplayName(solution)}</Text>
+                        <Text style={st.languageBadge}>{solution.language.toUpperCase()}</Text>
+                      </View>
+
+                      <View style={st.timeBadge}>
+                        <Text style={st.timeBadgeText}>{solution.executionTimeMs} мс</Text>
+                      </View>
+                    </View>
+
+                    <View style={st.codePreview}>
+                      <Text style={st.codeTitle}>Код решения</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+                        <Text style={st.code}>{solution.code}</Text>
+                      </ScrollView>
+                    </View>
+
+                    <View style={st.cardFooter}>
+                      <View style={st.likeButtons}>
+                        <TouchableOpacity
+                          style={[
+                            st.likeBtn,
+                            solution.likedBy?.includes(currentClientId || "") && st.likeBtnActive,
+                          ]}
+                          onPress={() => handleLike(solution.id)}
+                        >
+                          <Text style={st.likeBtnText}>👍 {solution.likes || 0}</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[
+                            st.dislikeBtn,
+                            solution.dislikedBy?.includes(currentClientId || "") &&
+                              st.dislikeBtnActive,
+                          ]}
+                          onPress={() => handleDislike(solution.id)}
+                        >
+                          <Text style={st.dislikeBtnText}>👎 {solution.dislikes || 0}</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      <Text style={st.timestamp}>
+                        {new Date(solution.createdAt).toLocaleString("ru-RU")}
+                      </Text>
+                    </View>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+          )}
+        </View>
+      </View>
+
+      <Footer activeTab={activeTab} />
     </View>
   );
 };
 
 const st = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.GRAY_50 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-
-  header: {
-    backgroundColor: COLORS.WHITE,
+  content: {
+    flex: 1,
+    backgroundColor: COLORS.GRAY_50,
     padding: SIZES.SPACING_MD,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.GRAY_200,
   },
-  title: { fontSize: 18, fontWeight: "700", color: COLORS.GRAY_900 },
-
-  filters: {
-    flexDirection: "row",
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  titleBlock: {
+    marginBottom: SIZES.SPACING_MD,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: COLORS.GRAY_900,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: COLORS.GRAY_600,
+  },
+  controlsCard: {
     backgroundColor: COLORS.WHITE,
-    padding: SIZES.SPACING_SM,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.GRAY_200,
+    padding: SIZES.SPACING_MD,
+    marginBottom: SIZES.SPACING_MD,
+    gap: 10,
+  },
+  controlsLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.GRAY_700,
+  },
+  filtersRow: {
+    flexDirection: "row",
     gap: 8,
   },
   filterBtn: {
     flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    minHeight: 44,
+    paddingHorizontal: 10,
+    borderRadius: 10,
     backgroundColor: COLORS.GRAY_100,
-    alignItems: "center",
-  },
-  filterBtnActive: { backgroundColor: COLORS.ACCENT },
-  filterBtnText: { fontSize: 12, fontWeight: "600", color: COLORS.GRAY_600 },
-  filterBtnTextActive: { color: "#fff" },
-
-  list: { flex: 1 },
-  listContent: { padding: SIZES.SPACING_MD, paddingBottom: 60 },
-  empty: {
-    flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: SIZES.SPACING_LG,
   },
-  emptyText: { fontSize: 14, color: COLORS.GRAY_500 },
-
+  filterBtnActive: {
+    backgroundColor: COLORS.ACCENT,
+  },
+  filterBtnText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: COLORS.GRAY_700,
+    textAlign: "center",
+  },
+  filterBtnTextActive: {
+    color: COLORS.WHITE,
+  },
+  languageRow: {
+    gap: 8,
+    paddingRight: 4,
+  },
+  languageChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: COLORS.GRAY_100,
+  },
+  languageChipActive: {
+    backgroundColor: COLORS.ACCENT,
+  },
+  languageChipText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: COLORS.GRAY_700,
+  },
+  languageChipTextActive: {
+    color: COLORS.WHITE,
+  },
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    flexGrow: 1,
+    paddingBottom: SIZES.SPACING_MD,
+  },
+  empty: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: SIZES.SPACING_LG,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: COLORS.GRAY_500,
+    textAlign: "center",
+  },
   card: {
     backgroundColor: COLORS.WHITE,
-    borderRadius: 12,
-    padding: SIZES.SPACING_MD,
-    marginBottom: 12,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: COLORS.GRAY_200,
+    padding: SIZES.SPACING_MD,
+    marginBottom: 12,
     shadowColor: "#000",
     shadowOpacity: 0.04,
     shadowRadius: 6,
@@ -314,91 +484,73 @@ const st = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 12,
+    gap: 12,
   },
-  studentInfo: { flexDirection: "row", alignItems: "center", gap: 8 },
-  studentName: { fontSize: 15, fontWeight: "600", color: COLORS.GRAY_900 },
-  language: {
+  studentMeta: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  studentName: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: COLORS.GRAY_900,
+  },
+  languageBadge: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#fff",
+    color: COLORS.WHITE,
     backgroundColor: COLORS.ACCENT,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  resultBadge: {
-    paddingVertical: 4,
     paddingHorizontal: 8,
-    borderRadius: 6,
+    paddingVertical: 4,
+    borderRadius: 999,
   },
-  resultBadgeText: { fontSize: 11, fontWeight: "700" },
-  resultBadgeTextPassed: { color: "#4caf50" },
-  resultBadgeTextFailed: { color: "#f44336" },
-
-  stats: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    backgroundColor: COLORS.GRAY_50,
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 10,
+  timeBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "#e8f5e9",
   },
-  stat: { alignItems: "center" },
-  statLabel: { fontSize: 11, color: COLORS.GRAY_500, marginBottom: 2 },
-  statValue: { fontSize: 16, fontWeight: "700", color: COLORS.GRAY_900 },
-  statValueFast: { color: "#4caf50" },
-  statValueMedium: { color: "#ff9800" },
-  statValueSlow: { color: "#f44336" },
-
-  testResults: { marginBottom: 10 },
-  testResultsTitle: { fontSize: 12, fontWeight: "600", color: COLORS.GRAY_700, marginBottom: 6 },
-  testResult: { marginBottom: 4 },
-  testResultPassed: { fontSize: 12, color: "#4caf50" },
-  testResultFailed: { fontSize: 12, color: "#f44336" },
-  testResultInput: { fontSize: 11, color: COLORS.GRAY_500, marginLeft: 18 },
-  moreTests: { fontSize: 11, color: COLORS.GRAY_400, fontStyle: "italic" },
-
+  timeBadgeText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#2e7d32",
+  },
   codePreview: {
     backgroundColor: "#1e1e1e",
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 8,
+    borderRadius: 10,
+    padding: 12,
   },
   codeTitle: {
     fontSize: 11,
-    color: "#aaa",
-    marginBottom: 6,
     fontWeight: "600",
+    color: "#bdbdbd",
+    marginBottom: 8,
   },
   code: {
-    fontSize: 11,
+    fontSize: 12,
+    lineHeight: 18,
     color: "#d4d4d4",
     fontFamily: "monospace",
   },
-
-  timestamp: {
-    fontSize: 10,
-    color: COLORS.GRAY_400,
-    textAlign: "right",
+  cardFooter: {
+    marginTop: 12,
+    gap: 10,
   },
-
   likeButtons: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.GRAY_200,
+    gap: 8,
   },
   likeBtn: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+    paddingVertical: 8,
+    borderRadius: 8,
     backgroundColor: COLORS.GRAY_100,
-    gap: 4,
   },
   likeBtnActive: {
     backgroundColor: "#e3f2fd",
@@ -411,10 +563,9 @@ const st = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+    paddingVertical: 8,
+    borderRadius: 8,
     backgroundColor: COLORS.GRAY_100,
-    gap: 4,
   },
   dislikeBtnActive: {
     backgroundColor: "#ffebee",
@@ -422,6 +573,10 @@ const st = StyleSheet.create({
   dislikeBtnText: {
     fontSize: 14,
     color: COLORS.GRAY_700,
+  },
+  timestamp: {
+    fontSize: 11,
+    color: COLORS.GRAY_500,
   },
 });
 

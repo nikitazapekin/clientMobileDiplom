@@ -1,5 +1,6 @@
-import type { ExpectedOutputValue } from "@/components/Lesson/types";
 import $api from "./api";
+
+import type { ExpectedOutputValue } from "@/components/Lesson/types";
 
 export interface TestCase {
   input: string;
@@ -72,6 +73,11 @@ export interface CodeTaskSolution {
   dislikedBy?: string[];
   likes?: number;
   dislikes?: number;
+  client?: {
+    firstName?: string;
+    lastName?: string;
+    middleName?: string | null;
+  };
 }
 
 export interface TaskStatistics {
@@ -100,16 +106,19 @@ export interface UserRank {
 export class CodingTasksService {
   static async getAllTasks(): Promise<CodeTask[]> {
     const response = await $api.get("/coding-tasks");
+
     return response.data;
   }
 
   static async getTask(id: string): Promise<CodeTask> {
     const response = await $api.get(`/coding-tasks/${id}`);
+
     return response.data;
   }
 
   static async getTasksByDifficulty(difficulty: string): Promise<CodeTask[]> {
     const response = await $api.get(`/coding-tasks/difficulty/${difficulty}`);
+
     return response.data;
   }
 
@@ -123,21 +132,25 @@ export class CodingTasksService {
       code,
       language,
     });
+
     return response.data;
   }
 
   static async getStudentLevel(): Promise<StudentLevel> {
     const response = await $api.get("/coding-tasks/student-level");
+
     return response.data;
   }
- 
+
   static async getStudentLevelByClientId(clientId: string): Promise<StudentLevel> {
     const response = await $api.get(`/coding-tasks/student-level/${clientId}`);
+
     return response.data;
   }
 
   static async getTaskSolutions(taskId: string): Promise<CodeTaskSolution[]> {
     const response = await $api.get(`/coding-tasks/${taskId}/solutions`);
+
     return response.data;
   }
 
@@ -146,16 +159,19 @@ export class CodingTasksService {
     language: string
   ): Promise<CodeTaskSolution[]> {
     const response = await $api.get(`/coding-tasks/${taskId}/solutions/language/${language}`);
+
     return response.data;
   }
 
   static async getTaskStatistics(taskId: string): Promise<TaskStatistics> {
     const response = await $api.get(`/coding-tasks/${taskId}/statistics`);
+
     return response.data;
   }
 
   static async getUserSolutions(): Promise<CodeTaskSolution[]> {
     const response = await $api.get("/coding-tasks/solutions/user");
+
     return response.data;
   }
 
@@ -164,21 +180,25 @@ export class CodingTasksService {
     language: string
   ): Promise<Array<{ studentName: string; executionTimeMs: number; rank: number }>> {
     const response = await $api.get(`/coding-tasks/${taskId}/ranking/${language}`);
+
     return response.data;
   }
 
   static async getUserRank(taskId: string, language: string): Promise<UserRank> {
     const response = await $api.get(`/coding-tasks/${taskId}/rank/${language}`);
+
     return response.data;
   }
 
   static async likeSolution(solutionId: string): Promise<CodeTaskSolution> {
     const response = await $api.post(`/coding-tasks/solutions/${solutionId}/like`);
+
     return response.data;
   }
 
   static async dislikeSolution(solutionId: string): Promise<CodeTaskSolution> {
     const response = await $api.post(`/coding-tasks/solutions/${solutionId}/dislike`);
+
     return response.data;
   }
 }

@@ -1,4 +1,4 @@
-import React, { useCallback,useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -568,6 +568,20 @@ const CodingTaskSolver = ({ id }: Props) => {
   const [statistics, setStatistics] = useState<TaskStatistics | null>(null);
   const [showStatistics, setShowStatistics] = useState(false);
   const [userRank, setUserRank] = useState<{ rank: number; executionTimeMs: number; totalParticipants: number } | null>(null);
+  const [hasSolvedTask, setHasSolvedTask] = useState(false);
+
+  const loadSolvedStatus = useCallback(async () => {
+    try {
+      const userSolutions = await CodingTasksService.getUserSolutions();
+
+      setHasSolvedTask(
+        userSolutions.some((solution) => solution.taskId === id && solution.allPassed),
+      );
+    } catch (error) {
+      console.error("Failed to load solved task status:", error);
+      setHasSolvedTask(false);
+    }
+  }, [id]);
 
   const loadTask = useCallback(async () => {
     try {
@@ -587,8 +601,10 @@ const CodingTaskSolver = ({ id }: Props) => {
   }, [id]);
 
   useEffect(() => {
+    setHasSolvedTask(false);
     void loadTask();
-  }, [loadTask]);
+    void loadSolvedStatus();
+  }, [loadSolvedStatus, loadTask]);
 
   const handleLangChange = (lang: CodeLanguage) => {
     setSelectedLang(lang);
@@ -652,6 +668,8 @@ const CodingTaskSolver = ({ id }: Props) => {
       setConstraintErrors(combinedConstraintErrors);
 
       if (finalAllPassed) {
+        setHasSolvedTask(true);
+
         try {
           const [stats, rank] = await Promise.all([
             CodingTasksService.getTaskStatistics(task.id),
@@ -791,17 +809,19 @@ const CodingTaskSolver = ({ id }: Props) => {
         </View>
       )}
 
-      <TouchableOpacity
-        style={st.solutionsBtn}
-        onPress={() =>
-          navigation.navigate("Solutions" as never, {
-            taskId: task.id,
-            taskTitle: task.title,
-          } as never)
-        }
-      >
-        <Text style={st.solutionsBtnText}>📝 Посмотреть решения других студентов</Text>
-      </TouchableOpacity>
+      {hasSolvedTask && (
+        <TouchableOpacity
+          style={st.solutionsBtn}
+          onPress={() =>
+            navigation.navigate("Solutions" as never, {
+              taskId: task.id,
+              taskTitle: task.title,
+            } as never)
+          }
+        >
+          <Text style={st.solutionsBtnText}>📝 Посмотреть решения других студентов</Text>
+        </TouchableOpacity>
+      )}
 
       {result && !showResult && (
         <TouchableOpacity onPress={() => setShowResult(true)}>
