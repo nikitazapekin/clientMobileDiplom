@@ -819,7 +819,7 @@ const CodingTaskSolver = ({ id }: Props) => {
             } as never)
           }
         >
-          <Text style={st.solutionsBtnText}>📝 Посмотреть решения других студентов</Text>
+          <Text style={st.solutionsBtnText}>Посмотреть решения других студентов</Text>
         </TouchableOpacity>
       )}
 

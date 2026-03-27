@@ -139,9 +139,7 @@ export default function Course({ item, onPress }: CourseProps) {
           <Text numberOfLines={2} style={styles.courseTitle}>
             {item.title}
           </Text>
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusBadgeText}>{STATUS_LABELS[item.status]}</Text>
-          </View>
+          
         </View>
 
         <Text numberOfLines={3} style={styles.courseDescription}>
@@ -172,12 +170,7 @@ export default function Course({ item, onPress }: CourseProps) {
           </View>
         ) : null}
 
-        <View style={styles.bottomRow}>
-          <Text style={styles.bottomMetaText}>
-            {subscribedAt ? `Добавлен ${subscribedAt}` : "Открыть курс"}
-          </Text>
-          <Text style={styles.bottomActionText}>Открыть</Text>
-        </View>
+     
       </View>
     </TouchableOpacity>
   );
