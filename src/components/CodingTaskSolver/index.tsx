@@ -703,6 +703,14 @@ const CodingTaskSolver = ({ id }: Props) => {
   const diffLabel = DIFF_LABELS[task.difficulty] || task.difficulty;
   const passedCount = result?.results?.filter((r) => r.passed).length ?? 0;
   const totalCount = result?.results?.length ?? 0;
+  const taskWithMetadata = task as CodeTaskWithMetadata;
+  const visibleTestCases = getTaskTestCases(taskWithMetadata, selectedLang).slice(0, 3);
+  const hiddenTestCasesCount = Math.max(
+    0,
+    getTaskTestCases(taskWithMetadata, selectedLang).length - visibleTestCases.length
+  );
+  const visibleResults = (result?.results || []).slice(0, 3);
+  const hiddenResultsCount = Math.max(0, totalCount - visibleResults.length);
 
   return (
     <ScrollView style={st.container} contentContainerStyle={st.content}>
@@ -716,12 +724,43 @@ const CodingTaskSolver = ({ id }: Props) => {
             <Text style={st.xpBadgeText}>+{task.experienceReward} XP</Text>
           </View>
         </View>
+        {(task.tags || []).length > 0 && (
+          <View style={st.taskTags}>
+            {(task.tags || []).map((tag) => (
+              <View key={tag} style={st.taskTag}>
+                <Text style={st.taskTagText}>{tag}</Text>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
 
       <View style={st.descriptionCard}>
         <Text style={st.descTitle}>Описание</Text>
         <Text style={st.descText}>{task.description}</Text>
       </View>
+
+      {visibleTestCases.length > 0 && (
+        <View style={st.examplesCard}>
+          <Text style={st.examplesTitle}>Примеры тест-кейсов</Text>
+          {visibleTestCases.map((testCase, index) => (
+            <View key={`${index}-${testCase.input}`} style={st.exampleItem}>
+              <Text style={st.exampleLabel}>
+                Тест #{index + 1}
+              </Text>
+              <Text style={st.exampleText}>
+                Вход: {getDisplayInput(testCase, taskWithMetadata.argumentScheme, selectedLang)}
+              </Text>
+              <Text style={st.exampleText}>Выход: {String(testCase.expectedOutput)}</Text>
+            </View>
+          ))}
+          {hiddenTestCasesCount > 0 && (
+            <Text style={st.hiddenExamplesText}>
+              Ещё {hiddenTestCasesCount} тестов скрыто
+            </Text>
+          )}
+        </View>
+      )}
 
       {task.constraints && task.constraints.length > 0 && (
         <View style={st.constraintsCard}>
@@ -767,17 +806,6 @@ const CodingTaskSolver = ({ id }: Props) => {
       </View>
 
       <View style={st.actions}>
-        <TouchableOpacity
-          style={[st.actionBtn, st.runBtn]}
-          onPress={handleRun}
-          disabled={runLoading}
-        >
-          {runLoading ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={st.actionBtnText}>▶ Запустить</Text>
-          )}
-        </TouchableOpacity>
         <TouchableOpacity
           style={[st.actionBtn, st.submitBtn]}
           onPress={handleSubmit}
@@ -911,12 +939,12 @@ const CodingTaskSolver = ({ id }: Props) => {
                     style={st.statisticsBtn}
                     onPress={() => setShowStatistics(true)}
                   >
-                    <Text style={st.statisticsBtnText}>📊 Статистика решений</Text>
+                    <Text style={st.statisticsBtnText}>Статистика решений</Text>
                   </TouchableOpacity>
                 )}
 
                 <ScrollView style={st.resultsList}>
-                  {result.results.map((r) => (
+                  {visibleResults.map((r) => (
                     <View
                       key={r.index}
                       style={[
@@ -926,16 +954,18 @@ const CodingTaskSolver = ({ id }: Props) => {
                     >
                       <View style={st.resultHeader}>
                         <Text style={st.resultIndex}>Тест #{r.index + 1}</Text>
-                        <Text style={{ color: r.passed ? "#4caf50" : "#f44336", fontWeight: "600" }}>
+                        <Text style={[st.resultStatus, { color: r.passed ? "#4caf50" : "#f44336" }]}>
                           {r.passed ? "Пройден" : "Провален"}
                         </Text>
                       </View>
-                      <Text style={st.resultDetail}>Вход: {r.input}</Text>
-                      <Text style={st.resultDetail}>Ожидалось: {r.expected}</Text>
-                      <Text style={st.resultDetail}>Получено: {r.actual}</Text>
                     </View>
                   ))}
                 </ScrollView>
+                {hiddenResultsCount > 0 && (
+                  <Text style={st.hiddenExamplesText}>
+                    Ещё {hiddenResultsCount} тестов скрыто
+                  </Text>
+                )}
               </>
             )}
 
@@ -1078,6 +1108,14 @@ const st = StyleSheet.create({
   taskHeader: { marginBottom: SIZES.SPACING_MD },
   taskTitle: { fontSize: 22, fontWeight: "700", color: COLORS.GRAY_900, marginBottom: 8 },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
+  taskTags: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
+  taskTag: {
+    backgroundColor: "#FFF6DA",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  taskTagText: { color: "#836400", fontSize: 11, fontWeight: "600" },
   badge: { paddingVertical: 3, paddingHorizontal: 10, borderRadius: 10 },
   badgeText: { color: "#fff", fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
   xpBadge: { paddingVertical: 3, paddingHorizontal: 8, borderRadius: 10, backgroundColor: "#667eea" },
@@ -1095,6 +1133,27 @@ const st = StyleSheet.create({
   },
   descTitle: { fontSize: 15, fontWeight: "600", color: COLORS.GRAY_800, marginBottom: 6 },
   descText: { fontSize: 14, color: COLORS.GRAY_600, lineHeight: 20 },
+  examplesCard: {
+    backgroundColor: COLORS.WHITE,
+    borderRadius: 12,
+    padding: SIZES.SPACING_MD,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  examplesTitle: { fontSize: 15, fontWeight: "600", color: COLORS.GRAY_800, marginBottom: 10 },
+  exampleItem: {
+    backgroundColor: COLORS.GRAY_50,
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 8,
+    gap: 4,
+  },
+  exampleLabel: { fontSize: 13, fontWeight: "700", color: COLORS.GRAY_800 },
+  exampleText: { fontSize: 13, color: COLORS.GRAY_600, lineHeight: 18 },
+  hiddenExamplesText: { fontSize: 12, color: COLORS.GRAY_400, marginTop: 4 },
 
   constraintsCard: {
     backgroundColor: "#fff8e1",
@@ -1238,7 +1297,7 @@ const st = StyleSheet.create({
     marginBottom: 6,
   },
   resultIndex: { fontSize: 13, fontWeight: "600", color: COLORS.GRAY_800 },
-  resultDetail: { fontSize: 12, color: COLORS.GRAY_600, marginBottom: 2 },
+  resultStatus: { fontSize: 13, fontWeight: "600" },
 
   modalCloseBtn: {
     marginTop: 16,

@@ -2,9 +2,16 @@ import $api from "./api";
 
 import type { ExpectedOutputValue } from "@/components/Lesson/types";
 
+export interface TestCaseArgument {
+  index: number;
+  value: string;
+  objectValues?: Record<string, string>;
+}
+
 export interface TestCase {
   input: string;
   expectedOutput: ExpectedOutputValue;
+  args?: TestCaseArgument[];
 }
 
 export interface CodeConstraint {
@@ -12,13 +19,26 @@ export interface CodeConstraint {
   value: any;
 }
 
+export interface ArgumentSchema {
+  name: string;
+  type: string;
+  className?: string;
+  arrayElementType?: string;
+  arrayElementClassName?: string;
+  objectFields?: { name: string; type: string; value: string }[];
+  arrayElementObjectFields?: { name: string; type: string; value: string }[];
+}
+
 export interface CodeTask {
   id: string;
   title: string;
   description: string;
+  tags?: string[];
   languages: string[];
   startCodes: Record<string, string>;
   testCases: TestCase[];
+  testCasesByLanguage?: Record<string, TestCase[]>;
+  argumentScheme?: ArgumentSchema[];
   constraints: CodeConstraint[];
   difficulty: "easy" | "medium" | "hard";
   experienceReward: number;

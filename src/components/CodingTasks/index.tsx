@@ -1,17 +1,19 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
   ActivityIndicator,
-  StyleSheet,
   RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import { COLORS, SIZES } from "appStyles";
-import { CodingTasksService, type CodeTask, type StudentLevel } from "@/http/codingTasksService";
+
+import { type CodeTask, CodingTasksService, type StudentLevel } from "@/http/codingTasksService";
 import { ROUTES } from "@/navigation/routes";
 import type { RootStackParamList } from "@/navigation/types";
 
@@ -28,6 +30,7 @@ const CodingTasksList = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const loadData = useCallback(async () => {
     try {
@@ -35,6 +38,7 @@ const CodingTasksList = () => {
         CodingTasksService.getAllTasks(),
         CodingTasksService.getStudentLevel().catch(() => null),
       ]);
+
       setTasks(tasksData);
       setStudentLevel(levelData);
     } catch (e) {
@@ -46,17 +50,24 @@ const CodingTasksList = () => {
   }, []);
 
   useEffect(() => {
-    loadData();
+    void loadData();
   }, [loadData]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadData();
+    void loadData();
   };
 
   const solvedTaskIds = new Set(studentLevel?.solvedTasks?.map((s) => s.codeTaskId) ?? []);
 
-  const filteredTasks = filter === "all" ? tasks : tasks.filter((t) => t.difficulty === filter);
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredTasks = tasks.filter((task) => {
+    const matchesDifficulty = filter === "all" || task.difficulty === filter;
+    const searchTarget = [task.title, ...(task.tags || [])].join(" ").toLowerCase();
+    const matchesSearch = normalizedQuery.length === 0 || searchTarget.includes(normalizedQuery);
+
+    return matchesDifficulty && matchesSearch;
+  });
 
   const getRequiredExp = (level: number) => Math.pow(10, level - 1);
 
@@ -116,8 +127,8 @@ const CodingTasksList = () => {
               filter === f.key && s.filterActive,
               filter === f.key &&
                 f.key !== "all" && {
-                  backgroundColor: DIFFICULTIES[f.key]?.color,
-                },
+                backgroundColor: DIFFICULTIES[f.key]?.color,
+              },
             ]}
             onPress={() => setFilter(f.key)}
           >
@@ -129,6 +140,14 @@ const CodingTasksList = () => {
           </TouchableOpacity>
         ))}
       </View>
+
+      <TextInput
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        placeholder="Поиск по названию или тегу"
+        placeholderTextColor={COLORS.GRAY_400}
+        style={s.searchInput}
+      />
 
       {filteredTasks.length === 0 ? (
         <Text style={s.emptyText}>Нет доступных задач</Text>
@@ -154,9 +173,15 @@ const CodingTasksList = () => {
                   <Text style={s.badgeText}>{diffInfo.label}</Text>
                 </View>
               </View>
-              <Text style={s.taskDesc} numberOfLines={2}>
-                {task.description}
-              </Text>
+              {(task.tags || []).length > 0 && (
+                <View style={s.taskTags}>
+                  {(task.tags || []).map((tag) => (
+                    <View key={tag} style={s.taskTag}>
+                      <Text style={s.taskTagText}>{tag}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
               <View style={s.taskFooter}>
                 <Text style={s.taskMeta}>
                   {(task.languages || []).join(", ")} | {task.testCases?.length ?? 0} тестов
@@ -232,6 +257,17 @@ const s = StyleSheet.create({
   },
   filterText: { fontSize: 14, color: COLORS.GRAY_700 },
   filterTextActive: { color: COLORS.WHITE, fontWeight: "600" },
+  searchInput: {
+    backgroundColor: COLORS.WHITE,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.GRAY_BORDER,
+    color: COLORS.GRAY_900,
+    fontSize: 14,
+    marginBottom: SIZES.SPACING_MD,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
 
   emptyText: {
     textAlign: "center",
@@ -280,11 +316,22 @@ const s = StyleSheet.create({
     fontWeight: "700",
     textTransform: "uppercase",
   },
-  taskDesc: {
-    fontSize: 13,
-    color: COLORS.GRAY_600,
-    lineHeight: 18,
-    marginBottom: 8,
+  taskTags: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 10,
+  },
+  taskTag: {
+    backgroundColor: "#FFF6DA",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  taskTagText: {
+    color: "#836400",
+    fontSize: 11,
+    fontWeight: "600",
   },
   taskFooter: {
     flexDirection: "row",
