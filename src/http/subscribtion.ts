@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { isAxiosError } from "axios";
 
-import type { CourseResponse } from "./types/course";
+import type { CourseResponse, StudentCourseResponse } from "./types/course";
 import $api from "./api";
 
 export interface SubscriptionResponse {
@@ -87,10 +87,10 @@ export default class SubscriptionService {
     }
   }
 
-  static async getStudentCourses(_auditoryId: string): Promise<CourseResponse[]> {
+  static async getStudentCourses(_auditoryId: string): Promise<StudentCourseResponse[]> {
     try {
       const token = await this.getToken();
-      const response = await $api.get<CourseResponse[]>(
+      const response = await $api.get<StudentCourseResponse[]>(
         `/course-subscriptions/my-courses`,
         {
           headers: {

@@ -1,3 +1,15 @@
+export type CourseStatus = "draft" | "published" | "archived";
+
+export interface CoursePreviewResponse {
+  id: string;
+  title: string;
+  description: string;
+  type: string;
+  language: string;
+  tags: string[];
+  logo: string;
+}
+
 export interface CreateCourseRequest {
   title: string;
   description: string;
@@ -16,15 +28,14 @@ export interface CourseListResponse {
   page: number;
   pages: number;
 }
-export interface CourseResponse {
-  id: string;
-  title: string;
-  description: string;
-  type: string;
-  language: string;
-  tags: string[];
-  logo: string;
 
+export interface StudentCourseResponse extends CoursePreviewResponse {
+  status: CourseStatus;
+  subscribedAt: string;
+  publishedAt?: string | null;
+}
+
+export interface CourseResponse extends CoursePreviewResponse {
   status: CourseStatus;
   adminId: string;
   createdAt: string;
@@ -36,5 +47,3 @@ export interface CourseStatsResponse {
   lessonCount: number;
   studentCount: number;
 }
-
-export type CourseStatus = "draft" | "published" | "archived";

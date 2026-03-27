@@ -1,40 +1,37 @@
-import { StyleSheet } from "react-native";
+import { Platform, StatusBar, StyleSheet } from "react-native";
 import { COLORS } from "appStyles";
+
+const bottomPadding = Platform.OS === "android" ? 18 : 28;
+const topInset = Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0;
 
 export const styles = StyleSheet.create({
   footer: {
+    alignItems: "center",
+    backgroundColor: COLORS.WHITE,
+    borderTopColor: "#EFEFEF",
+    borderTopWidth: 1,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    paddingBottom: 40,
-    paddingTop: 10,
-    paddingHorizontal: 10,
-    backgroundColor: COLORS.GRAY_DARK,
+    paddingBottom: 44,
+    paddingHorizontal: 34,
+    paddingTop: Math.max(14, topInset * 0.15),
   },
   footerButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 65,
-    backgroundColor: COLORS.GRAY_LIGHT,
-    justifyContent: "center",
     alignItems: "center",
-  
-    padding: 8,
+    borderRadius: 18,
+    height: 52,
+    justifyContent: "center",
+    width: 52,
   },
   footerButtonActive: {
-    borderColor: "#9F0FA7",
-    borderWidth: 2,
+    backgroundColor: "#F3F3F3",
   },
   footerButtonIcon: {
-    width: 34,
-    height: 34,
-    marginBottom: 2,
+    height: 40,
+    resizeMode: "contain",
+    width: 40,
   },
-
-  footerButtonTextActive: {
-   
-    borderColor: "#9F0FA7",
-    borderWidth: 2,
-
+  footerButtonIconInactive: {
+    opacity: 0.72,
   },
 });
