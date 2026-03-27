@@ -16,14 +16,25 @@ import Course from "../Course";
 
 import { styles } from "./styled";
 
+import CourseService from "@/http/courses";
 import SubscriptionService from "@/http/subscribtion";
-import type { StudentCourseResponse } from "@/http/types/course";
+import type { CourseResponse, StudentCourseResponse } from "@/http/types/course";
 
 const normalizeValue = (value: string) => value.trim().toLowerCase();
 
-export default function CoursesList() {
-  const [courses, setCourses] = useState<StudentCourseResponse[]>([]);
-  const [visibleCourses, setVisibleCourses] = useState<StudentCourseResponse[]>([]);
+type CoursesMode = "all" | "subscribed";
+type CourseListItem = CourseResponse | StudentCourseResponse;
+
+interface CoursesListProps {
+  mode?: CoursesMode;
+}
+
+const isSubscribedCourse = (course: CourseListItem): course is StudentCourseResponse =>
+  "subscribedAt" in course;
+
+export default function CoursesList({ mode = "all" }: CoursesListProps) {
+  const [courses, setCourses] = useState<CourseListItem[]>([]);
+  const [visibleCourses, setVisibleCourses] = useState<CourseListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -37,22 +48,42 @@ export default function CoursesList() {
         setLoading(true);
       }
 
-      const auditoryId = await AsyncStorage.getItem("userId");
-      const response = await SubscriptionService.getStudentCourses(auditoryId ?? "");
-      const sortedCourses = [...response].sort(
-        (left, right) => new Date(right.subscribedAt).getTime() - new Date(left.subscribedAt).getTime(),
-      );
+      const response =
+        mode === "subscribed"
+          ? await (async () => {
+            const auditoryId = await AsyncStorage.getItem("userId");
+
+            return SubscriptionService.getStudentCourses(auditoryId ?? "");
+          })()
+          : await CourseService.getPublishedCourses();
+
+      const sortedCourses = [...response].sort((left, right) => {
+        const rightDate = isSubscribedCourse(right)
+          ? right.subscribedAt
+          : right.publishedAt ?? right.createdAt;
+        const leftDate = isSubscribedCourse(left)
+          ? left.subscribedAt
+          : left.publishedAt ?? left.createdAt;
+
+        return new Date(rightDate).getTime() - new Date(leftDate).getTime();
+      });
 
       setCourses(sortedCourses);
       setError(null);
     } catch (loadError: unknown) {
-      console.error("Failed to load student courses:", loadError);
-      setError(loadError instanceof Error ? loadError.message : "Не удалось загрузить курсы студента");
+      console.error(`Failed to load ${mode} courses:`, loadError);
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : mode === "subscribed"
+            ? "Не удалось загрузить ваши курсы"
+            : "Не удалось загрузить каталог курсов",
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [mode]);
 
   useFocusEffect(
     useCallback(() => {
@@ -87,12 +118,31 @@ export default function CoursesList() {
   }, [courses, searchQuery]);
 
   const publishedCount = courses.filter((course) => course.status === "published").length;
+  const heroOverline = mode === "subscribed" ? "Личный кабинет" : "Каталог";
+  const heroTitle = mode === "subscribed" ? "Мои курсы" : "Все курсы";
+  const heroDescription =
+    mode === "subscribed"
+      ? "Все подписки студента в одном месте: открывайте курсы, продолжайте обучение и быстро возвращайтесь к нужным материалам."
+      : "Здесь собраны все доступные курсы. Открывайте программы, изучайте описание и подписывайтесь на интересующие направления.";
+  const loadingText = mode === "subscribed" ? "Загружаем ваши курсы..." : "Загружаем каталог курсов...";
+  const secondaryLabel = mode === "subscribed" ? "Активных" : "Опубликовано";
+  const emptyTitle = searchQuery
+    ? "Ничего не найдено"
+    : mode === "subscribed"
+      ? "У вас пока нет курсов"
+      : "Курсы пока недоступны";
+  const emptyDescription = searchQuery
+    ? "Попробуйте изменить поисковый запрос или очистить фильтр."
+    : mode === "subscribed"
+      ? "После подписки курс появится здесь автоматически."
+      : "Когда в системе появятся опубликованные курсы, они отобразятся в этом каталоге.";
+  const emptyButtonText = searchQuery ? "Сбросить поиск" : "Обновить список";
 
   if (loading && courses.length === 0) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator color={COLORS.ACCENT} size="large" />
-        <Text style={styles.loadingText}>Загружаем ваши курсы...</Text>
+        <Text style={styles.loadingText}>{loadingText}</Text>
       </View>
     );
   }
@@ -100,12 +150,9 @@ export default function CoursesList() {
   return (
     <View style={styles.container}>
       <View style={styles.heroCard}>
-        <Text style={styles.heroOverline}>Личный кабинет</Text>
-        <Text style={styles.heroTitle}>Мои курсы</Text>
-        <Text style={styles.heroDescription}>
-          Все подписки студента в одном месте: открывайте курсы, продолжайте обучение и быстро
-          возвращайтесь к нужным материалам.
-        </Text>
+        <Text style={styles.heroOverline}>{heroOverline}</Text>
+        <Text style={styles.heroTitle}>{heroTitle}</Text>
+        <Text style={styles.heroDescription}>{heroDescription}</Text>
 
         <View style={styles.summaryRow}>
           <View style={styles.summaryCard}>
@@ -114,7 +161,7 @@ export default function CoursesList() {
           </View>
           <View style={styles.summaryCard}>
             <Text style={styles.summaryValue}>{publishedCount}</Text>
-            <Text style={styles.summaryLabel}>Активных</Text>
+            <Text style={styles.summaryLabel}>{secondaryLabel}</Text>
           </View>
         </View>
       </View>
@@ -155,14 +202,8 @@ export default function CoursesList() {
         keyExtractor={(item) => item.id}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyTitle}>
-              {searchQuery ? "Ничего не найдено" : "У вас пока нет курсов"}
-            </Text>
-            <Text style={styles.emptyDescription}>
-              {searchQuery
-                ? "Попробуйте изменить поисковый запрос или очистить фильтр."
-                : "После подписки курс появится здесь автоматически."}
-            </Text>
+            <Text style={styles.emptyTitle}>{emptyTitle}</Text>
+            <Text style={styles.emptyDescription}>{emptyDescription}</Text>
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={() => {
@@ -176,9 +217,7 @@ export default function CoursesList() {
               }}
               style={styles.emptyButton}
             >
-              <Text style={styles.emptyButtonText}>
-                {searchQuery ? "Сбросить поиск" : "Обновить список"}
-              </Text>
+              <Text style={styles.emptyButtonText}>{emptyButtonText}</Text>
             </TouchableOpacity>
           </View>
         }

@@ -12,10 +12,8 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 
-import AppLogo from "../AppLogo";
+import Logo from "../../assets/BigLogo.png";
 
-
-import Logo from "../../assets/BigLogo.png"
 import { DRAWER_WIDTH, styles } from "./styles";
 
 import { ProfileService } from "@/http/profile";
@@ -28,6 +26,7 @@ interface HeaderProps {
 
 type MenuRoute =
   | typeof ROUTES.STACK.COURSES
+  | typeof ROUTES.STACK.MY_COURSES
   | typeof ROUTES.STACK.FRIENDS
   | typeof ROUTES.STACK.PROFILE;
 
@@ -40,7 +39,7 @@ interface DrawerProfileState {
 
 const MENU_ITEMS: { label: string; route: MenuRoute }[] = [
   { label: "Друзья", route: ROUTES.STACK.FRIENDS },
-  { label: "Мои курсы", route: ROUTES.STACK.COURSES },
+  { label: "Мои курсы", route: ROUTES.STACK.MY_COURSES },
   { label: "Профиль", route: ROUTES.STACK.PROFILE },
 ];
 
@@ -187,12 +186,11 @@ export default function Header({ title }: HeaderProps) {
           onPress={() => navigation.navigate(ROUTES.STACK.COURSES)}
           style={styles.logoButton}
         >
- 
-             <Image
-                      resizeMode="cover"
-                      source={  Logo }
-                      style={styles.logo}
-                    />
+          <Image
+            resizeMode="cover"
+            source={Logo}
+            style={styles.logo}
+          />
         </TouchableOpacity>
 
         <TouchableOpacity activeOpacity={1} onPress={openMenu} style={styles.menuButton}>

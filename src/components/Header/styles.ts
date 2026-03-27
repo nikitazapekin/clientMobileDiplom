@@ -40,7 +40,7 @@ height: 50
   },
   menuBar: {
     backgroundColor: "#878787",
-    borderRadius: 999,
+ //   borderRadius: 999,
     height: 5,
     width: 35,
   },
@@ -56,8 +56,8 @@ height: 50
   },
   drawer: {
     backgroundColor: COLORS.WHITE,
-    borderBottomLeftRadius: 28,
-    borderTopLeftRadius: 28,
+  //  borderBottomLeftRadius: 28,
+   // borderTopLeftRadius: 28,
     bottom: 0,
     paddingBottom: 36,
     paddingHorizontal: 20,

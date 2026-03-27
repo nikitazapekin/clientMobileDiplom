@@ -5,6 +5,7 @@ export const ROUTES = {
     REGISTER: "Register",
     WELCOME: "Welcome",
     COURSES: "Courses",
+    MY_COURSES: "MyCourses",
     ACHIEVEMENTS: "Achievements",
     CHATS: "Chats",
     CHAT: "Chat",

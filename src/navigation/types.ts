@@ -10,6 +10,7 @@ export type RootStackParamList = {
   [ROUTES.STACK.MAIN]: undefined;
 
   [ROUTES.STACK.COURSES]: undefined;
+  [ROUTES.STACK.MY_COURSES]: undefined;
   [ROUTES.STACK.ACHIEVEMENTS]: undefined;
   [ROUTES.STACK.CHATS]: undefined;
   [ROUTES.STACK.SANDBOX]: undefined;
