@@ -148,12 +148,12 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
     const idToUse = lessonDetailsId;
 
     if (!newCommentText.trim() || !idToUse) {
-      console.log("⚠️ Cannot submit comment: missing text or lessonDetailsId");
+      console.log("Cannot submit comment: missing text or lessonDetailsId");
       return;
     }
 
     try {
-      console.log("📤 Submitting comment to lessonDetailsId:", idToUse);
+      console.log("Submitting comment to lessonDetailsId:", idToUse);
       await LessonCommentsService.createComment({
         lessonDetailsId: idToUse,
         content: newCommentText.trim(),

@@ -173,7 +173,7 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
           setLessonProgress(progressMap);
 
           if (sortedLessons.length === 0) {
-            console.log("⏳ Уроки ещё не загружены, пропускаем проверку сертификата");
+            console.log("Уроки ещё не загружены, пропускаем проверку сертификата");
             return;
           }
 
@@ -195,7 +195,7 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
           });
           const maxStars = sortedLessons.length * 3;
           const pct = (totalStars / maxStars) * 100;
-          console.log(`⭐ Звёзд: ${totalStars}/${maxStars} (${pct.toFixed(1)}%)`);
+          console.log(` Звёзд: ${totalStars}/${maxStars} (${pct.toFixed(1)}%)`);
 
           if (pct < 90) {
             console.log("Менее 90% звёзд");

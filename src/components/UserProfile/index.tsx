@@ -506,7 +506,7 @@ const UserProfile = () => {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
-        {/* Header с аватаром */}
+     
         <View style={styles.header}>
           <TouchableOpacity
             onPress={handleAvatarPress}

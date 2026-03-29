@@ -362,7 +362,7 @@ const formatExecutionResponse = (response: ExecuteCodeWithTimeResponse): string 
     if (parsed.logs.length) {
       parts.push(
         parsed.logs
-          .map((log, idx) => `📋 Логи ${idx + 1}:\n${log}`)
+          .map((log, idx) => `Логи ${idx + 1}:\n${log}`)
           .join("\n\n")
       );
     }
@@ -370,7 +370,7 @@ const formatExecutionResponse = (response: ExecuteCodeWithTimeResponse): string 
     if (parsed.results.length) {
       parts.push(
         parsed.results
-          .map((result, idx) => `✅ Результат ${idx + 1}:\n${result}`)
+          .map((result, idx) => `Результат ${idx + 1}:\n${result}`)
           .join("\n\n")
       );
     }
@@ -983,7 +983,7 @@ const CodingTaskSolver = ({ id }: Props) => {
         <View style={st.modalOverlay}>
           <View style={st.modalContent}>
             <View style={st.modalHeader}>
-              <Text style={st.modalTitle}>📊 Статистика решений</Text>
+              <Text style={st.modalTitle}> Статистика решений</Text>
               <TouchableOpacity onPress={() => setShowStatistics(false)}>
                 <Text style={st.modalClose}>✕</Text>
               </TouchableOpacity>
@@ -1371,8 +1371,7 @@ const st = StyleSheet.create({
     backgroundColor: COLORS.ACCENT,
     borderRadius: 3,
   },
-
-  // Гистограммы
+ 
   histogramContainer: {
     marginTop: 12,
     paddingTop: 12,

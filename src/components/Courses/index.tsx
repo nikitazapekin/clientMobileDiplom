@@ -153,17 +153,7 @@ export default function CoursesList({ mode = "all" }: CoursesListProps) {
         <Text style={styles.heroOverline}>{heroOverline}</Text>
         <Text style={styles.heroTitle}>{heroTitle}</Text>
         <Text style={styles.heroDescription}>{heroDescription}</Text>
-
-        <View style={styles.summaryRow}>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryValue}>{courses.length}</Text>
-            <Text style={styles.summaryLabel}>Всего</Text>
-          </View>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryValue}>{publishedCount}</Text>
-            <Text style={styles.summaryLabel}>{secondaryLabel}</Text>
-          </View>
-        </View>
+ 
       </View>
 
       <View style={styles.searchBlock}>

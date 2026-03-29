@@ -158,9 +158,7 @@ const SolvedTaskCard = ({
           <Text style={styles.badgeText}>{diffInfo.label}</Text>
         </View>
       </View>
-      <Text style={styles.taskDesc} numberOfLines={2}>
-        {task.description}
-      </Text>
+   
       <View style={styles.taskFooter}>
         <Text style={styles.taskMeta}>
           {(task.languages || []).join(", ")} | {task.testCases?.length ?? 0} тестов
@@ -280,7 +278,7 @@ const AllSolvedTasksModal = ({
             }}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyIcon}>📚</Text>
+              
                 <Text style={styles.emptyText}>У пользователя еще нет решенных задач</Text>
               </View>
             }

@@ -139,7 +139,7 @@ export const styles = StyleSheet.create({
     borderRadius: 4,
   },
 
-  // Стили для модального окна
+ 
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

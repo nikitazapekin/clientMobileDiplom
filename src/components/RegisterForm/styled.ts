@@ -13,7 +13,7 @@ export const styles = StyleSheet.create({
     padding: 20,
     maxWidth: 350,
     width: "100%",
-    //  flex: 1,
+ 
     justifyContent: "center",
     alignItems: "center",
     flexDirection: "column",

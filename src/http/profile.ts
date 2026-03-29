@@ -275,7 +275,7 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
       const response = await $api.post('/profile/avatar/upload', formData, {
         headers: {
           Authorization: token ? `Bearer ${token}` : '',
-          // Не устанавливаем Content-Type - React Native/axios сделает это автоматически с правильным boundary
+          
         },
         timeout: 30000,
       });

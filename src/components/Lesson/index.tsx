@@ -302,7 +302,7 @@ const CodeTaskBlockView = ({
       {testResults && testResults.length > 0 && (
         <View style={styles.testResults}>
           <Text style={styles.resultsTitle}>
-            📊 Результаты тестирования
+            Результаты тестирования
           </Text>
           <Text style={styles.testSummary}>
             Пройдено: {testResults.filter(r => r.passed).length}/{testResults.length}
@@ -726,9 +726,9 @@ const ResultsModal = ({
   );
 };
 
-// Основной компонент
+ 
 const Lesson = ({ id }: { id: string }) => {
-  console.log("🎯 Lesson mounted with ID:", id);
+  console.log("  Lesson mounted with ID:", id);
   const router = useRouter();
   const navigation = useNavigation();
 
@@ -759,7 +759,7 @@ const Lesson = ({ id }: { id: string }) => {
     stars: 0,
   });
 
-  // Состояния для тестов и ответов
+ 
   const [testAnswers, setTestAnswers] = useState<{ [slideId: string]: string }>({});
   const [testErrors, setTestErrors] = useState<{ [slideId: string]: string }>({});
   const [testResults, setTestResults] = useState<{
@@ -788,7 +788,7 @@ const Lesson = ({ id }: { id: string }) => {
   const [codeRunOutput, setCodeRunOutput] = useState<{ [blockId: string]: string }>({});
   const [codeRunLoading, setCodeRunLoading] = useState<{ [blockId: string]: boolean }>({});
 
-  // Состояние для отслеживания ответов на теоретические вопросы
+  
   const [theoryAnswers, setTheoryAnswers] = useState<{
     [slideId: string]: {
       [blockId: string]: {
@@ -871,13 +871,12 @@ const Lesson = ({ id }: { id: string }) => {
         setError("В уроке нет слайдов");
       } else {
         setSlides(allSlides);
-
-        // Set lessonDetailsId from the lesson details
+ 
         if (data.id) {
           setLessonDetailsId(data.id);
-          console.log("📝 LessonDetailsId set to:", data.id);
+          console.log(" LessonDetailsId set to:", data.id);
         } else {
-          console.log("⚠️ No lessonDetails id found in response");
+          console.log(" No lessonDetails id found in response");
         }
       }
     } catch (err: any) {
@@ -911,7 +910,7 @@ const Lesson = ({ id }: { id: string }) => {
         countOfStars: stars,
         completedAt: new Date().toISOString(),
       });
-      console.log(`✅ Lesson result saved with ${stars} stars`);
+      console.log(` Lesson result saved with ${stars} stars`);
 
       return true;
     } catch (error) {
@@ -920,8 +919,7 @@ const Lesson = ({ id }: { id: string }) => {
       return false;
     }
   }, [id]);
-
-  // Функция для обновления ответа на теоретический вопрос
+ 
   const handleTheoryAnswer = useCallback((slideId: string, blockId: string, selectedIndex: number, isCorrect: boolean) => {
     setTheoryAnswers(prev => ({
       ...prev,
@@ -934,13 +932,11 @@ const Lesson = ({ id }: { id: string }) => {
       }
     }));
   }, []);
-
-  // ИСПРАВЛЕННАЯ функция calculateResults с новой логикой звезд
+ 
   const calculateResults = useCallback(async () => {
     const testSlides = slides.filter((s) => s.type === "test");
     const results: any[] = [];
-
-    // Счетчики для разных типов заданий
+ 
     let totalCodeTasks = 0;
     let passedCodeTasks = 0;
     let totalFillTasks = 0;
@@ -958,8 +954,7 @@ const Lesson = ({ id }: { id: string }) => {
       const theoryQuestions = slide.blocks.filter(
         (b) => b.type === "theoryQuestion"
       ) as TheoryQuestionBlock[];
-
-      // Проверяем код-задачи
+ 
       let slideCodePassed = true;
       let slideTestCasesPassed = 0;
       let slideTestCasesTotal = 0;
@@ -970,8 +965,7 @@ const Lesson = ({ id }: { id: string }) => {
         if (slideTestResult) {
           slideTestCasesPassed = slideTestResult.filter(r => r.passed).length || 0;
           slideTestCasesTotal = slideTestResult.length || 0;
-
-          // Код-задача считается пройденной, если все тест-кейсы пройдены
+ 
           slideCodePassed = slideTestCasesPassed === slideTestCasesTotal && slideTestCasesTotal > 0;
 
           if (slideCodePassed) {
@@ -992,8 +986,7 @@ const Lesson = ({ id }: { id: string }) => {
         slideTestCasesPassed += currentPassedFillTasks.length;
         slideTestCasesTotal += fillCodeTasks.length;
       }
-
-      // Проверяем теоретические вопросы
+ 
       if (theoryQuestions.length > 0) {
         totalTheoryQuestions += theoryQuestions.length;
 
@@ -1007,8 +1000,7 @@ const Lesson = ({ id }: { id: string }) => {
           }
         });
       }
-
-      // Проверяем ограничения
+ 
       if (slideConstraintResult) {
         const slideConstraintsPassed = slideConstraintResult.every(c => c.passed);
 
@@ -1027,42 +1019,38 @@ const Lesson = ({ id }: { id: string }) => {
         constraintsPassed: slideConstraintResult ? slideConstraintResult.every(c => c.passed) : true,
       });
     });
-
-    // Расчет процента выполнения
+ 
     const totalTasks = totalCodeTasks + totalFillTasks + totalTheoryQuestions;
     const completedTasks = passedCodeTasks + passedFillTasks + correctTheoryAnswers;
     const completionPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-
-    // Проверяем, все ли практические задачи решены правильно
+ 
     const totalPracticeTasks = totalCodeTasks + totalFillTasks;
     const passedPracticeTasks = passedCodeTasks + passedFillTasks;
     const allPracticeTasksPassed = totalPracticeTasks === 0 || passedPracticeTasks === totalPracticeTasks;
 
     let stars = 0;
-
-    // НОВАЯ ЛОГИКА РАСЧЕТА ЗВЕЗД:
-    // 0 звезд - все неправильно ИЛИ кодовые задачи решены не полностью (не все тест-кейсы пройдены)
+ 
     if (!allPracticeTasksPassed) {
       stars = 0;
     }
-    // 1 звезда - теоретических вопросов и задач решено меньше 50% (при условии, что все кодовые задачи решены правильно)
+    
     else if (completionPercentage < 50) {
       stars = 1;
     }
-    // 2 звезды - решено больше 50% (и все тест-кейсы в кодовых задачах решены верно)
+   
     else if (completionPercentage >= 50 && completionPercentage < 100) {
       stars = 2;
     }
-    // 3 звезды - все верно и в кодовых задачах все ограничения учтены
+    
     else if (completionPercentage === 100 && allConstraintsPassed) {
       stars = 3;
     }
-    // 2 звезды - все верно, но ограничения не соблюдены
+   
     else if (completionPercentage === 100 && !allConstraintsPassed) {
       stars = 2;
     }
 
-    console.log("📊 Results calculation:", {
+    console.log("  Results calculation:", {
       totalCodeTasks,
       passedCodeTasks,
       totalFillTasks,
@@ -1089,8 +1077,7 @@ const Lesson = ({ id }: { id: string }) => {
       constraintsPassed: allConstraintsPassed,
       stars,
     });
-
-    // Сохраняем результат
+ 
     await saveLessonResult(stars);
 
     setResultsModalVisible(true);
@@ -1139,8 +1126,7 @@ const Lesson = ({ id }: { id: string }) => {
 
     try {
       let codeToRun = code;
-
-      // Для Java добавляем main метод с тестовым вводом (как в превью EditLesson)
+ 
       if (language === "java") {
         const funcName = extractFunctionName(code, language);
 
@@ -1151,8 +1137,7 @@ const Lesson = ({ id }: { id: string }) => {
 
       const res = await CodeService.executeCode({ language, code: codeToRun });
       const text = res.error ? `Ошибка: ${res.error}` : res.output || "Код выполнен успешно";
-
-      // Парсим вывод для отделения логов от результата
+ 
       let output = "";
 
       if (res.output) {
@@ -1173,7 +1158,7 @@ const Lesson = ({ id }: { id: string }) => {
             inLogs = false;
 
             if (currentLogs.length > 0) {
-              output += "📋 Логи выполнения:\n" + currentLogs.join("\n") + "\n\n";
+              output += "  Логи выполнения:\n" + currentLogs.join("\n") + "\n\n";
             }
 
             continue;
@@ -1189,7 +1174,7 @@ const Lesson = ({ id }: { id: string }) => {
             inResult = false;
 
             if (currentResult.length > 0) {
-              output += "✅ Результат функции:\n" + currentResult.join("\n");
+              output += "  Результат функции:\n" + currentResult.join("\n");
             }
 
             continue;
@@ -1209,7 +1194,7 @@ const Lesson = ({ id }: { id: string }) => {
 
       setCodeRunOutput(prev => ({ ...prev, [blockId]: output }));
     } catch (error: any) {
-      setCodeRunOutput(prev => ({ ...prev, [blockId]: `❌ Ошибка: ${error.message}` }));
+      setCodeRunOutput(prev => ({ ...prev, [blockId]: `  Ошибка: ${error.message}` }));
     } finally {
       setCodeRunLoading(prev => ({ ...prev, [blockId]: false }));
     }
@@ -1243,10 +1228,9 @@ const Lesson = ({ id }: { id: string }) => {
     try {
       const results: any[] = [];
       let allLogs: string[] = [];
-
-      // Специальная обработка для Java
+ 
       if (block.language === "java") {
-      // Форматируем тест-кейсы с учетом схемы аргументов
+     
         const formattedTestCases = (block.testCases ?? []).map(tc => {
           const argsInput = formatArgsForJavaOrCSharp(tc.args, block.argumentScheme ?? [], "java");
 
@@ -1257,7 +1241,7 @@ const Lesson = ({ id }: { id: string }) => {
         });
 
         const codeWithTests = buildJavaTestSuite(userCode, formattedTestCases, funcName);
-        // Добавляем определения классов для объектов в аргументах
+ 
         const objectClasses = generateObjectClasses(block.argumentScheme ?? [], "java");
         const codeToRun = objectClasses
           ? `${codeWithTests}\n\n${objectClasses}`
@@ -1296,7 +1280,7 @@ const Lesson = ({ id }: { id: string }) => {
               inLogs = false;
 
               if (currentLogs.length > 0) {
-                testLogs.push(`📋 Логи теста #${testNum} (вход: ${getDisplayInput(block.testCases[i], block.argumentScheme, block.language)}):`);
+                testLogs.push(`  Логи теста #${testNum} (вход: ${getDisplayInput(block.testCases[i], block.argumentScheme, block.language)}):`);
                 testLogs.push(currentLogs.join("\n"));
                 testLogs.push("");
               }
@@ -1341,9 +1325,9 @@ const Lesson = ({ id }: { id: string }) => {
           }
         }
       }
-      // Специальная обработка для C#
+    
       else if (block.language === "csharp") {
-        // Форматируем тест-кейсы с учетом схемы аргументов
+       
         const formattedTestCases = (block.testCases ?? []).map(tc => {
           const argsInput = formatArgsForJavaOrCSharp(tc.args, block.argumentScheme ?? [], "csharp");
 
@@ -1354,7 +1338,7 @@ const Lesson = ({ id }: { id: string }) => {
         });
 
         const codeWithTests = buildCSharpTestSuite(userCode, formattedTestCases, funcName);
-        // Добавляем определения классов для объектов в аргументах
+      
         const objectClasses = generateObjectClasses(block.argumentScheme ?? [], "csharp");
         const codeToRun = objectClasses
           ? `${codeWithTests}\n\n${objectClasses}`
@@ -1393,7 +1377,7 @@ const Lesson = ({ id }: { id: string }) => {
               inLogs = false;
 
               if (currentLogs.length > 0) {
-                testLogs.push(`📋 Логи теста #${testNum} (вход: ${getDisplayInput(block.testCases[i], block.argumentScheme, block.language)}):`);
+                testLogs.push(`  Логи теста #${testNum} (вход: ${getDisplayInput(block.testCases[i], block.argumentScheme, block.language)}):`);
                 testLogs.push(currentLogs.join("\n"));
                 testLogs.push("");
               }
@@ -1437,18 +1421,16 @@ const Lesson = ({ id }: { id: string }) => {
             allLogs.push(...testLogs);
           }
         }
-      }
-      // Для JavaScript и Python используем схему аргументов
+      } 
       else if (block.language === "javascript" || block.language === "python") {
         const lang = block.language;
 
         for (let i = 0; i < block.testCases.length; i++) {
           const tc = block.testCases[i];
-
-          // Форматируем аргументы с использованием схемы
+ 
           const argsInput = formatArgsForDynamicLang(tc.args, block.argumentScheme ?? [], lang);
 
-          // Если есть аргументы в схеме, используем их, иначе используем старый input
+      
           const inputToUse = (block.argumentScheme?.length ?? 0) > 0 ? argsInput : (tc.input || "");
 
           if (!inputToUse || !hasExpectedOutputValue(tc.expectedOutput)) {
@@ -1456,8 +1438,7 @@ const Lesson = ({ id }: { id: string }) => {
 
             return;
           }
-
-          // Для JS/Python передаём предварительно отформатированные аргументы
+ 
           const codeToRun = buildTestCode(
             userCode,
             "",
@@ -1498,7 +1479,7 @@ const Lesson = ({ id }: { id: string }) => {
               inLogs = false;
 
               if (currentLogs.length > 0) {
-                testLogs.push(`📋 Логи теста #${testNum} (вход: ${getDisplayInput(tc, block.argumentScheme, block.language)}):`);
+                testLogs.push(` Логи теста #${testNum} (вход: ${getDisplayInput(tc, block.argumentScheme, block.language)}):`);
                 testLogs.push(currentLogs.join("\n"));
                 testLogs.push("");
               }
@@ -1543,7 +1524,7 @@ const Lesson = ({ id }: { id: string }) => {
           }
         }
       }
-      // Для остальных языков (C#, Golang, старый формат)
+ 
       else {
         for (const tc of block.testCases) {
           if (!tc.input || !hasExpectedOutputValue(tc.expectedOutput)) {
@@ -1589,7 +1570,7 @@ const Lesson = ({ id }: { id: string }) => {
               inLogs = false;
 
               if (currentLogs.length > 0) {
-                allLogs.push(`📋 Логи для входа "${tc.input}":`);
+                allLogs.push(`  Логи для входа "${tc.input}":`);
                 allLogs.push(currentLogs.join("\n"));
                 allLogs.push("");
               }
@@ -1636,8 +1617,7 @@ const Lesson = ({ id }: { id: string }) => {
       }
 
       setTestResults(prev => ({ ...prev, [slideId]: results }));
-
-      // Проверяем ограничения
+ 
       const constraintCheckResults = checkConstraints(userCode, block.constraints);
 
       setConstraintResults(prev => ({ ...prev, [slideId]: constraintCheckResults }));
@@ -1646,7 +1626,7 @@ const Lesson = ({ id }: { id: string }) => {
       const allConstraintsPassed = constraintCheckResults.every((c) => c.passed);
 
       if (allPassed && allConstraintsPassed) {
-        // Все тесты и ограничения пройдены
+       
       } else {
         const failedCount = results.filter((r: any) => !r.passed).length;
         const failedConstraints = constraintCheckResults.filter((c) => !c.passed);
@@ -1654,13 +1634,13 @@ const Lesson = ({ id }: { id: string }) => {
         let errorMessage = "";
 
         if (failedCount > 0) {
-          errorMessage += `❌ Провалено тестов: ${failedCount} из ${results.length}`;
+          errorMessage += `  Провалено тестов: ${failedCount} из ${results.length}`;
         }
 
         if (failedConstraints.length > 0) {
           if (errorMessage) errorMessage += "\n\n";
 
-          errorMessage += `❌ Не пройдены ограничения:\n`;
+          errorMessage += ` Не пройдены ограничения:\n`;
           errorMessage += failedConstraints.map(c => `- ${c.name}: ${c.actual}`).join("\n");
         }
 
@@ -1675,7 +1655,7 @@ const Lesson = ({ id }: { id: string }) => {
     } catch (error: any) {
       setTestErrors(prev => ({
         ...prev,
-        [slideId]: `❌ Ошибка проверки: ${error.message}`
+        [slideId]: `  Ошибка проверки: ${error.message}`
       }));
     }
   }, [testAnswers]);
@@ -1749,8 +1729,7 @@ const Lesson = ({ id }: { id: string }) => {
       }));
     }
   }, [fillTaskAnswers]);
-
-  // Компонент для теоретического вопроса с передачей ответа наверх
+ 
   const TheoryQuestionBlockViewWithHandler = ({ block, slideId }: { block: TheoryQuestionBlock; slideId: string }) => {
     const [selected, setSelected] = useState<number | undefined>(
       theoryAnswers[slideId]?.[block.id]?.selectedIndex
@@ -1764,7 +1743,7 @@ const Lesson = ({ id }: { id: string }) => {
 
       setShowResult(true);
 
-      // Передаем ответ в родительский компонент
+      
       handleTheoryAnswer(slideId, block.id, selected, isCorrect);
     };
 
@@ -1826,7 +1805,7 @@ const Lesson = ({ id }: { id: string }) => {
 
         {showResult && (
           <Text style={selected === block.correctIndex ? styles.correctText : styles.incorrectText}>
-            {selected === block.correctIndex ? "✅ Правильно!" : "❌ Неправильно"}
+            {selected === block.correctIndex ? " Правильно!" : " Неправильно"}
           </Text>
         )}
       </View>
@@ -1868,7 +1847,6 @@ const Lesson = ({ id }: { id: string }) => {
 
   const currentSlide = slides[currentIndex];
 
-  // Собираем источники для текущего слайда
   const slideSources = currentSlide.blocks
     .filter((block): block is SourceBlock => block.type === "source")
     .map((block) => ({ url: block.url, note: block.note }));
@@ -1885,7 +1863,7 @@ const Lesson = ({ id }: { id: string }) => {
                 onPress={() => openSourcesModal(slideSources)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.sourcesButtonText}>📚 Источники</Text>
+                <Text style={styles.sourcesButtonText}> Источники</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
@@ -1893,7 +1871,7 @@ const Lesson = ({ id }: { id: string }) => {
               onPress={handleOpenComments}
               activeOpacity={0.7}
             >
-              <Text style={styles.commentsButtonText}>💬 Комментарии</Text>
+              <Text style={styles.commentsButtonText}> Комментарии</Text>
             </TouchableOpacity>
           </View>
         </View>
