@@ -329,14 +329,14 @@ const FriendsScreen = () => {
           </View>
           <View style={styles.friendInfo}>
             <Text style={styles.userName}>{fullName || 'Unknown'}</Text>
-            <Text style={styles.userEmail}>{item.friendId}</Text>
+          
           </View>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.addFriendButton}
           onPress={() => handleAddFriend(item.friendId)}
         >
-          <Text style={styles.addFriendButtonText}>+ Add</Text>
+          <Text style={styles.addFriendButtonText}>+</Text>
         </TouchableOpacity>
       </View>
     );
@@ -376,7 +376,7 @@ const FriendsScreen = () => {
             style={styles.addFriendButton}
             onPress={() => handleAddFriend(item.friendId)}
           >
-            <Text style={styles.addFriendButtonText}>+ Add</Text>
+            <Text style={styles.addFriendButtonText}>+</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -439,7 +439,7 @@ const FriendsScreen = () => {
             }}
           >
             <Text style={[styles.tabButtonText, isMyFriendsTab && styles.tabButtonTextActive]}>
-              My Friends
+            Мои друзья
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -452,7 +452,7 @@ const FriendsScreen = () => {
             }}
           >
             <Text style={[styles.tabButtonText, isFindFriendsTab && styles.tabButtonTextActive]}>
-              Find Friends
+            Найти друзей
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -466,7 +466,7 @@ const FriendsScreen = () => {
           >
             <View style={styles.tabButtonWithBadge}>
               <Text style={[styles.tabButtonText, isRequestsTab && styles.tabButtonTextActive]}>
-                Requests
+                Запросы
               </Text>
               {pendingRequests.length > 0 && (
                 <View style={styles.badge}>
@@ -483,13 +483,13 @@ const FriendsScreen = () => {
           <View style={styles.searchContainer}>
             <TextInput
               style={styles.searchInput}
-              placeholder={isMyFriendsTab ? "Search my friends..." : "Search users by name..."}
+              placeholder={isMyFriendsTab ? "Найти друзей..." : "Найти пользователей по имени..."}
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholderTextColor="#999"
             />
             {isSearching ? (
-              <Text style={styles.searchingText}>Searching...</Text>
+              <Text style={styles.searchingText}>Поиск...</Text>
             ) : null}
           </View>
         )}
@@ -504,8 +504,8 @@ const FriendsScreen = () => {
             }
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyIcon}>📬</Text>
-                <Text style={styles.emptyText}>No friend requests</Text>
+           
+                <Text style={styles.emptyText}>Друзей не найдено</Text>
               </View>
             }
             contentContainerStyle={styles.listContent}
@@ -529,7 +529,7 @@ const FriendsScreen = () => {
             ListHeaderComponent={
               isMyFriendsTab && showRequests ? (
                 <>
-                  <Text style={styles.sectionTitle}>Pending Requests ({pendingRequests.length})</Text>
+                  <Text style={styles.sectionTitle}>Ожидание подтверждения ({pendingRequests.length})</Text>
                   <FlatList
                     data={pendingRequests}
                     keyExtractor={(item: FriendRequestResponse) => item.id}
@@ -542,11 +542,11 @@ const FriendsScreen = () => {
             }
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyIcon}>👥</Text>
+         
                 <Text style={styles.emptyText}>
                   {isMyFriendsTab
-                    ? pendingRequests.length === 0 ? 'No friends yet' : 'No friends found'
-                    : 'No users found'
+                    ? pendingRequests.length === 0 ? 'Нет друзей' : 'Не найдено'
+                    : 'Пользователей не найдено'
                   }
                 </Text>
               </View>

@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import axios from 'axios';
  
-export const BASE_URL = 'https://sculpture-brook-brad-historic.trycloudflare.com';
+export const BASE_URL = 'https://chronicle-plants-memorial-our.trycloudflare.com';
 const $api = axios.create({
   baseURL: BASE_URL,
   withCredentials: true, 

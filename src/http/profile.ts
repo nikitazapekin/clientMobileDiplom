@@ -274,8 +274,7 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
 
       const response = await $api.post('/profile/avatar/upload', formData, {
         headers: {
-          Authorization: token ? `Bearer ${token}` : '',
-          
+          'Content-Type': 'multipart/form-data',
         },
         timeout: 30000,
       });

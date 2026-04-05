@@ -14,7 +14,7 @@ export const checkConstraints = (
         const actualLines = countCodeLines(code);
         results.push({
           type: "maxLines",
-          name: "📏 Максимум строк кода",
+          name: " Максимум строк кода",
           passed: actualLines <= maxLines,
           expected: `≤ ${maxLines} строк`,
           actual: `${actualLines} строк`,

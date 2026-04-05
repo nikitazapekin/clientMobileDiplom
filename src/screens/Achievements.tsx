@@ -97,14 +97,14 @@ export default function AchievementsScreen() {
 
   const getTierLabel = (tier: string): string => {
     const tierLabels: Record<string, string> = {
-      novice: "Novice",
-      advanced: "Advanced",
-      expert: "Expert",
-      master: "Master",
-      beginner: "Beginner",
-      intermediate: "Intermediate",
-      professional: "Professional",
-      legendary: "Legendary",
+      novice: "Новичок",
+      advanced: "Продивнутый",
+      expert: "Эксперт",
+      master: "Мастер",
+      beginner: "Начинающий",
+      intermediate: "Медиум",
+      professional: "Профессионал",
+      legendary: "Легенда",
     };
 
     return tierLabels[tier] || tier;
@@ -137,16 +137,16 @@ export default function AchievementsScreen() {
 
     return (
       <View style={styles.progressSection}>
-        <Text style={styles.progressTitle}>Progress Towards Achievements</Text>
+        <Text style={styles.progressTitle}>Прогресс</Text>
 
         {renderProgressItem(
-          "Student Results (lessons with 2+ stars)",
+          "Результаты студента (lуроки с 2+ звездами)",
           progress.studentResults.current,
           progress.studentResults.thresholds
         )}
 
         {renderProgressItem(
-          "Solved Tasks",
+          "Решенных задач",
           progress.solvedTasks.current,
           progress.solvedTasks.thresholds
         )}
@@ -174,7 +174,7 @@ export default function AchievementsScreen() {
           {getTierLabel(item.tier)}
         </Text>
         <Text style={styles.achievementDate}>
-          Earned: {new Date(item.earnedAt).toLocaleDateString("en-US", {
+          Получено: {new Date(item.earnedAt).toLocaleDateString("en-US", {
             year: "numeric",
             month: "short",
             day: "numeric",
@@ -200,7 +200,7 @@ export default function AchievementsScreen() {
           <Header title="Achievements" />
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={COLORS.PRIMARY} />
-            <Text style={{ marginTop: 16, color: COLORS.GRAY_600 }}>Loading achievements...</Text>
+            <Text style={{ marginTop: 16, color: COLORS.GRAY_600 }}>Загрузка достижений...</Text>
           </View>
           <Footer activeTab={activeTab} />
         </View>

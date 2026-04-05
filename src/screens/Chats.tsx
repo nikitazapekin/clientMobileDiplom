@@ -26,6 +26,7 @@ const chatStyles = StyleSheet.create({
   searchContainer: {
     paddingHorizontal: 16,
     paddingBottom: 16,
+    marginTop: 16
   },
   searchInput: {
     backgroundColor: COLORS.GRAY_LIGHT,

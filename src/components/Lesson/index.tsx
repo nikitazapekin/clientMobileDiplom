@@ -887,8 +887,8 @@ const Lesson = ({ id }: { id: string }) => {
   };
 
   const handleOpenComments = useCallback(() => {
-    console.log("🔓 Opening comments modal");
-    console.log("🔓 lessonDetailsId value:", lessonDetailsId);
+    console.log(" Opening comments modal");
+    console.log(" lessonDetailsId value:", lessonDetailsId);
     setCommentsModalVisible(true);
   }, [lessonDetailsId]);
 

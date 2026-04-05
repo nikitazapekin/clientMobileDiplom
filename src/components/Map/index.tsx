@@ -224,7 +224,7 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
                 return;
               }
               console.log("ℹЕсть непросмотренный сертификат, показываем");
-              setCertificateData({ ...latest, imageUrl: latest.url });
+              setCertificateData({ ...latest, imageUrl: CertificateService.getCertificateImageUrl(latest.id) });
               setShowConfetti(true);
               setCertificateModalVisible(true);
               return;
@@ -251,7 +251,7 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
 
             if (cancelled) return;
 
-            setCertificateData({ ...cert, imageUrl: cert.url });
+            setCertificateData({ ...cert, imageUrl: CertificateService.getCertificateImageUrl(cert.id) });
             setShowConfetti(true);
             setCertificateModalVisible(true);
           } finally {

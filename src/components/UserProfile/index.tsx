@@ -472,7 +472,7 @@ const UserProfile = () => {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading profile...</Text>
+        <Text style={styles.loadingText}>Загрузка...</Text>
       </View>
     );
   }
@@ -483,7 +483,7 @@ const UserProfile = () => {
      
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={loadProfile}>
-          <Text style={styles.retryButtonText}>Try Again</Text>
+          <Text style={styles.retryButtonText}>Попробуйте снова</Text>
         </TouchableOpacity>
       </View>
     );
@@ -491,7 +491,7 @@ const UserProfile = () => {
   if (!profile) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.noDataText}>No profile data available</Text>
+        <Text style={styles.noDataText}>Нет доступа</Text>
       </View>
     );
   }
@@ -552,7 +552,7 @@ const UserProfile = () => {
               navigation.navigate(ROUTES.STACK.FRIENDS as any);
             }}
           >
-            <Text style={styles.friendsButtonText}>👥 Мои друзья</Text>
+            <Text style={styles.friendsButtonText}>Мои друзья</Text>
           </TouchableOpacity>
         </View>
 
@@ -860,6 +860,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+    backgroundColor:  ''
   },
   statsContainer: {
     flexDirection: 'row',
