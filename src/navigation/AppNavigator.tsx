@@ -10,6 +10,7 @@ import AchievementsScreen from "@/screens/Achievements";
 import AuthScreen from "@/screens/AuthScreen";
 import ChatScreen from "@/screens/Chat";
 import ChatsScreen from "@/screens/Chats";
+import CheckpointScreen from "@/screens/Checkpoint";
 import CodingTasksScreen from "@/screens/CodingTasks";
 import CodingTaskSolveScreen from "@/screens/CodingTaskSolve";
 import CourseScreen from "@/screens/Course";
@@ -63,6 +64,7 @@ export default function AppNavigator() {
         <Stack.Screen name={ROUTES.STACK.COURSE} component={CourseScreen} />
         <Stack.Screen name={ROUTES.STACK.MAP} component={MapScreen} />
         <Stack.Screen name={ROUTES.STACK.LESSON} component={LessonScreen} />
+        <Stack.Screen name={ROUTES.STACK.CHECKPOINT} component={CheckpointScreen} />
 
         <Stack.Screen name={ROUTES.STACK.ACHIEVEMENTS} component={AchievementsScreen} />
 

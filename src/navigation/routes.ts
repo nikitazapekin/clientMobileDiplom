@@ -14,6 +14,7 @@ export const ROUTES = {
     COURSE: "Course",
     MAP: "Map",
     LESSON: "Lesson",
+    CHECKPOINT: "Checkpoint",
     CODING_TASKS: "CodingTasks",
     CODING_SOLVE: "CodingTaskSolve",
     FRIENDS: "Friends",

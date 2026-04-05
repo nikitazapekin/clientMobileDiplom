@@ -11,22 +11,22 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import ConfettiCannon from 'react-native-confetti-cannon';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
 import CustomButton from "../Button";
 
 import { styles } from "./styled";
 
+import { CertificateService } from "@/http/certificate";
 import { CheckpointService } from "@/http/checkpoint";
 import { LessonService } from "@/http/lesson";
 import { MapService } from "@/http/map";
+import { ProfileService } from "@/http/profile";
 import type { MapElementResponse } from "@/http/types/map";
 import { ROUTES } from "@/navigation/routes";
 import type { RootStackNavigationProp } from "@/navigation/types";
-import { ProfileService } from "@/http/profile";
-import { CertificateService } from "@/http/certificate";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import ConfettiCannon from 'react-native-confetti-cannon';
 
 interface Position {
   x: number;
@@ -91,6 +91,7 @@ interface CheckpointData {
   title: string;
   description: string;
   type: string;
+  orderIndex?: number;
   passingScore?: number;
   maxAttempts?: number;
   timeLimit?: number;
@@ -106,8 +107,11 @@ interface ModalData {
   targetId: string;
 }
 
-interface LessonProgress {
-  lessonId: string;
+interface CourseProgressUnit {
+  targetId: string;
+  targetType: "lesson" | "checkpoint";
+  mapElementId: string;
+  orderIndex: number;
   bestResult: {
     countOfStars: number | null;
     completedAt: string;
@@ -121,7 +125,7 @@ interface MapProps {
   onElementPress?: (element: MapElement) => void;
 }
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementPress }) => {
   const [mapSize, setMapSize] = useState<MapSize>({ width: 800, height: 600 });
@@ -138,9 +142,8 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
   const [containerWidth, setContainerWidth] = useState(SCREEN_WIDTH);
   const [modalData, setModalData] = useState<ModalData | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [lessonProgress, setLessonProgress] = useState<Record<string, LessonProgress>>({});
-  const [sortedLessons, setSortedLessons] = useState<LessonData[]>([]);
-  
+  const [courseProgress, setCourseProgress] = useState<CourseProgressUnit[]>([]);
+
   const [certificateModalVisible, setCertificateModalVisible] = useState(false);
   const [certificateData, setCertificateData] = useState<any>(null);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -149,7 +152,7 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
 
   useEffect(() => {
     if (courseId) {
-      loadCourseMap();
+      void loadCourseMap();
     }
   }, [courseId]);
 
@@ -159,53 +162,63 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
 
       const loadAndCheck = async () => {
         const userId = await AsyncStorage.getItem('userId');
+
         if (!userId || !courseId) return;
 
         try {
           console.log("Загрузка прогресса...");
           const response = await ProfileService.getStudentCourseProgress(userId, courseId);
-          const progressMap: Record<string, LessonProgress> = {};
-          response.forEach((item: LessonProgress) => {
-            progressMap[item.lessonId] = item;
-          });
+          const progressUnits = (response as CourseProgressUnit[]).sort(
+            (a, b) => a.orderIndex - b.orderIndex
+          );
 
           if (cancelled) return;
-          setLessonProgress(progressMap);
 
-          if (sortedLessons.length === 0) {
-            console.log("Уроки ещё не загружены, пропускаем проверку сертификата");
+          setCourseProgress(progressUnits);
+
+          if (progressUnits.length === 0) {
+            console.log("Этапы ещё не загружены, пропускаем проверку сертификата");
+
             return;
           }
 
-          const allCompleted = sortedLessons.every(lesson => {
-            const p = progressMap[lesson.id];
-            const done = p?.bestResult?.countOfStars !== null && p?.bestResult?.countOfStars !== undefined;
-            console.log(`Урок "${lesson.title}" (${lesson.id}): ${done ? 'Огрничение пройдено' : 'Огрничение не пройдено'}, звёзды: ${p?.bestResult?.countOfStars ?? 'нет'}`);
+          const allCompleted = progressUnits.every(unit => {
+            const stars = unit.bestResult?.countOfStars;
+            const done = stars !== null && stars !== undefined && stars > 0;
+
+            console.log(`Этап "${unit.targetType}" (${unit.targetId}): ${done ? 'Огрничение пройдено' : 'Огрничение не пройдено'}, звёзды: ${stars ?? 'нет'}`);
+
             return done;
           });
 
           if (!allCompleted) {
-            console.log("Не все уроки пройдены");
+            console.log("Не все этапы пройдены");
+
             return;
           }
 
           let totalStars = 0;
-          sortedLessons.forEach(lesson => {
-            totalStars += progressMap[lesson.id]?.bestResult?.countOfStars || 0;
+
+          progressUnits.forEach(unit => {
+            totalStars += unit.bestResult?.countOfStars || 0;
           });
-          const maxStars = sortedLessons.length * 3;
+          const maxStars = progressUnits.length * 3;
           const pct = (totalStars / maxStars) * 100;
+
           console.log(` Звёзд: ${totalStars}/${maxStars} (${pct.toFixed(1)}%)`);
 
           if (pct < 90) {
             console.log("Менее 90% звёзд");
+
             return;
           }
 
           if (cancelled || isCheckingCertificateRef.current) {
             console.log("Проверка сертификата уже выполняется или эффект отменён");
+
             return;
           }
+
           isCheckingCertificateRef.current = true;
 
           try {
@@ -213,20 +226,25 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
 
             const allCerts = await CertificateService.getCertificatesByAuditoryId(userId);
             const existing = allCerts.filter(c => c.courseId === courseId);
+
             console.log(`Сертификатов для курса ${courseId}: ${existing.length}`);
 
             if (cancelled) return;
 
             if (existing.length > 0) {
               const latest = existing[0];
+
               if (latest.isViewed) {
                 console.log("ℹСертификат для этого курса уже просмотрен");
+
                 return;
               }
+
               console.log("ℹЕсть непросмотренный сертификат, показываем");
               setCertificateData({ ...latest, imageUrl: CertificateService.getCertificateImageUrl(latest.id) });
               setShowConfetti(true);
               setCertificateModalVisible(true);
+
               return;
             }
 
@@ -236,17 +254,23 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
             if (cancelled) return;
 
             let studentName = "Студент";
+
             if (profile.firstName || profile.lastName) {
               const parts = [];
+
               if (profile.lastName) parts.push(profile.lastName);
+
               if (profile.firstName) parts.push(profile.firstName);
+
               if (profile.middleName) parts.push(profile.middleName);
+
               studentName = parts.join(' ');
             } else {
               studentName = profile.email || studentName;
             }
 
             const cert = await CertificateService.createStudentCertificate(userId, studentName, courseName, courseId);
+
             console.log("Сертификат создан:", cert.id);
 
             if (cancelled) return;
@@ -263,12 +287,12 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
         }
       };
 
-      loadAndCheck();
+      void loadAndCheck();
 
       return () => {
         cancelled = true;
       };
-    }, [courseId, sortedLessons, courseName])
+    }, [courseId, courseName])
   );
 
   const loadCourseMap = async () => {
@@ -346,11 +370,11 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
               orderIndex: lessonData.orderIndex,
               isPublished: lessonData.isPublished,
             };
-            
+
             console.log(`Загружены данные урока для элемента: ${element.id}, название: "${lessonData.title}", order: ${lessonData.orderIndex}, lessonId: ${lessonData.id}`);
-          } catch (error) {
+          } catch {
             console.warn(`Не удалось загрузить данные урока для элемента: ${element.id}`);
-          
+
             if (element.title) {
               lessons[element.id] = {
                 id: `temp_${element.id}`,
@@ -366,6 +390,7 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
       );
 
       const checkpointElements = elements.filter((el) => el.type === "checkpoint");
+
       await Promise.all(
         checkpointElements.map(async (element) => {
           try {
@@ -377,6 +402,7 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
               title: checkpointData.title,
               description: checkpointData.description,
               type: checkpointData.type || "quiz",
+              orderIndex: checkpointData.orderIndex || 0,
               passingScore: checkpointData.passingScore,
               maxAttempts: checkpointData.maxAttempts,
               timeLimit: checkpointData.timeLimit,
@@ -384,10 +410,11 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
               isPublished: checkpointData.isPublished,
             };
             console.log(`Загружены данные контрольной точки для элемента: ${element.id}, название: "${checkpointData.title}"`);
-          } catch (error) {
+          } catch {
             console.warn(
               `Не удалось загрузить данные контрольной точки для элемента: ${element.id}`
             );
+
             if (element.title) {
               checkpoints[element.id] = {
                 id: `temp_${element.id}`,
@@ -395,6 +422,7 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
                 title: element.title,
                 description: element.text || "",
                 type: "quiz",
+                orderIndex: 999,
                 isPublished: true,
               };
             }
@@ -404,66 +432,43 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
 
       setLessonsData(lessons);
       setCheckpointsData(checkpoints);
-
-      const lessonsArray = Object.values(lessons);
-      const sorted = lessonsArray.sort((a, b) => a.orderIndex - b.orderIndex);
-      setSortedLessons(sorted);
-
-      console.log("Отсортированные уроки:");
-      sorted.forEach((lesson, index) => {
-        console.log(`   ${index + 1}. ${lesson.title} (order: ${lesson.orderIndex}, mapElementId: ${lesson.mapElementId})`);
-      });
     } catch (error) {
       console.error("Ошибка загрузки дополнительных данных:", error);
     }
   };
 
+  const getCourseUnitByMapElementId = (mapElementId: string): CourseProgressUnit | undefined =>
+    courseProgress.find((unit) => unit.mapElementId === mapElementId);
+
   const getStarsByMapElementId = (mapElementId: string): number => {
-    const lessonData = lessonsData[mapElementId];
-    if (!lessonData) return 0;
-    
-    const progress = lessonProgress[lessonData.id];
-    const stars = progress?.bestResult?.countOfStars;
-    
-    console.log(`getStarsByMapElementId: ${mapElementId}, lessonId: ${lessonData.id}, stars: ${stars}`);
-    
+    const stars = getCourseUnitByMapElementId(mapElementId)?.bestResult?.countOfStars;
+
     if (stars === null || stars === undefined) {
       return 0;
     }
-    
+
     return stars;
   };
 
-  const isLessonAvailableByMapElementId = (mapElementId: string): boolean => {
-    if (sortedLessons.length === 0) return true;
-    
-    const currentLessonIndex = sortedLessons.findIndex(l => l.mapElementId === mapElementId);
-    
-    if (currentLessonIndex === -1) return true;
-    
-    if (currentLessonIndex === 0) return true;
-    
-    const previousLesson = sortedLessons[currentLessonIndex - 1];
-    const previousProgress = lessonProgress[previousLesson.id];
-    const previousStars = previousProgress?.bestResult?.countOfStars;
+  const isUnitAvailableByMapElementId = (mapElementId: string): boolean => {
+    if (courseProgress.length === 0) return true;
 
-    console.log(`Проверка предыдущего урока ${currentLessonIndex}: ${previousLesson.mapElementId}, звезды: ${previousStars}`);
-     
+    const currentIndex = courseProgress.findIndex((unit) => unit.mapElementId === mapElementId);
+
+    if (currentIndex <= 0) return true;
+
+    const previousUnit = courseProgress[currentIndex - 1];
+    const previousStars = previousUnit?.bestResult?.countOfStars;
+
     if (previousStars === null || previousStars === undefined || previousStars === 0) {
-      console.log(`Урок ${mapElementId} недоступен: предыдущий урок ${previousLesson.mapElementId} имеет ${previousStars} звезд`);
+      console.log(
+        `Этап ${mapElementId} недоступен: предыдущий этап ${previousUnit?.mapElementId} имеет ${previousStars} звезд`
+      );
+
       return false;
     }
-    
-    console.log(`Урок ${mapElementId} доступен: предыдущий урок пройден с ${previousStars} звездами`);
-    return true;
-  };
 
-  const isFirstLesson = (mapElementId: string): boolean => {
-    if (sortedLessons.length === 0) return false;
-    
-    const currentLessonIndex = sortedLessons.findIndex(l => l.mapElementId === mapElementId);
-    
-    return currentLessonIndex === 0;
+    return true;
   };
 
   const getValidFontWeight = (weight?: string): any => {
@@ -517,15 +522,16 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
   };
   const handleElementClick = (element: MapElement) => {
     console.log("Клик по элементу:", element.type, element.id);
-    
+
     if (element.type === "lesson") {
       const lessonData = lessonsData[element.id];
-      
-      if (!isLessonAvailableByMapElementId(element.id)) {
+
+      if (!isUnitAvailableByMapElementId(element.id)) {
         Alert.alert(
-          "Урок недоступен",
-          "Пожалуйста, завершите предыдущий урок, чтобы получить доступ к этому уроку."
+          "Этап недоступен",
+          "Пожалуйста, завершите предыдущий этап минимум на 1 звезду, чтобы открыть этот."
         );
+
         return;
       }
 
@@ -541,6 +547,15 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
       }
     } else if (element.type === "checkpoint") {
       const checkpointData = checkpointsData[element.id];
+
+      if (!isUnitAvailableByMapElementId(element.id)) {
+        Alert.alert(
+          "Этап недоступен",
+          "Пожалуйста, завершите предыдущий этап минимум на 1 звезду, чтобы открыть этот."
+        );
+
+        return;
+      }
 
       if (checkpointData) {
         setModalData({
@@ -564,7 +579,10 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
   const handleNavigate = () => {
     if (!modalData || !modalData.targetId) return;
 
-    navigation.navigate(ROUTES.STACK.LESSON, { id: modalData.targetId });
+    navigation.navigate(
+      modalData.type === "checkpoint" ? ROUTES.STACK.CHECKPOINT : ROUTES.STACK.LESSON,
+      { id: modalData.targetId }
+    );
     setModalVisible(false);
   };
 
@@ -576,37 +594,9 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
         console.error("Ошибка при setIsViewed:", e);
       }
     }
+
     setCertificateModalVisible(false);
     setShowConfetti(false);
-  };
-
-  const handleCertificateShare = async () => {
-    if (!certificateData) return;
-    
-    try {
-      await CertificateService.shareCertificate(
-        certificateData.id,
-        `Certificate of Completion - ${courseName}`
-      );
-    } catch (error) {
-      Alert.alert("Ошибка", "Не удалось поделиться сертификатом");
-    }
-  };
-
-  const handleCertificateDownload = async () => {
-    if (!certificateData) return;
-    
-     
-  };
-
-  const handleCertificateOpen = async () => {
-    if (!certificateData) return;
-    
-    try {
-      await CertificateService.openDigitalVersion(certificateData.id);
-    } catch (error) {
-      Alert.alert("Ошибка", "Не удалось открыть сертификат");
-    }
   };
 
   const renderElement = (element: MapElement) => {
@@ -674,14 +664,11 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
           </TouchableOpacity>
         );
 
-      case "lesson":
+      case "lesson": {
         const lessonData = lessonsData[element.id];
         const displayTitle = lessonData?.title || element.title || "Урок";
         const starsCount = getStarsByMapElementId(element.id);
-        const available = isLessonAvailableByMapElementId(element.id);
-        const isFirst = isFirstLesson(element.id);
-
-        console.log(`Рендер урока ${element.id}: звезды=${starsCount}, доступен=${available}, первый=${isFirst}, lessonId=${lessonData?.id}`);
+        const available = isUnitAvailableByMapElementId(element.id);
 
         return (
           <TouchableOpacity
@@ -709,12 +696,11 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
                 {displayTitle.charAt(0).toUpperCase()}
               </Text>
             </View>
-            
-         
+
             <View style={styles.starsContainer}>
               {[1, 2, 3].map((star) => {
                 const isFilled = star <= starsCount;
-                
+
                 return (
                   <Text
                     key={star}
@@ -728,12 +714,13 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
                 );
               })}
             </View>
-            
+
             <Text style={styles.lessonTitle} numberOfLines={2}>
               {displayTitle}
             </Text>
           </TouchableOpacity>
         );
+      }
 
       case "text":
         return (
@@ -760,9 +747,11 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
           </TouchableOpacity>
         );
 
-      case "checkpoint":
+      case "checkpoint": {
         const checkpointData = checkpointsData[element.id];
         const checkpointTitle = checkpointData?.title || element.title || "Контрольная точка";
+        const checkpointStars = getStarsByMapElementId(element.id);
+        const checkpointAvailable = isUnitAvailableByMapElementId(element.id);
 
         return (
           <TouchableOpacity
@@ -774,6 +763,7 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
               {
                 alignItems: 'center',
                 justifyContent: 'center',
+                opacity: checkpointAvailable ? 1 : 0.6,
               },
             ]}
           >
@@ -789,11 +779,29 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
             >
               <View style={styles.checkpointInner} />
             </View>
+            <View style={styles.starsContainer}>
+              {[1, 2, 3].map((star) => {
+                const isFilled = star <= checkpointStars;
+
+                return (
+                  <Text
+                    key={star}
+                    style={[
+                      styles.starText,
+                      isFilled ? styles.starFilledText : styles.starEmptyText
+                    ]}
+                  >
+                    ★
+                  </Text>
+                );
+              })}
+            </View>
             <Text style={styles.checkpointTitle} numberOfLines={2}>
               {checkpointTitle}
             </Text>
           </TouchableOpacity>
         );
+      }
 
       case "emoji":
         return (
@@ -823,7 +831,7 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
         return null;
     }
   };
- 
+
   const getBackgroundImageStyle = () => {
     const style: any = {
       position: 'absolute',
@@ -844,12 +852,15 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
         case 'cover':
           style.resizeMode = 'cover';
           break;
+
         case 'contain':
           style.resizeMode = 'contain';
           break;
+
         case 'auto':
           style.resizeMode = 'center';
           break;
+
         default:
           style.resizeMode = 'cover';
       }
@@ -925,11 +936,10 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
       <View style={styles.infoPanel}>
         <Text style={styles.infoText}>
           {mapSize.width}×{mapSize.height} | Эл: {elements.length} |
-          Ур: {Object.keys(lessonsData).length} |
-          КТ: {Object.keys(checkpointsData).length}
+          Эт: {Object.keys(lessonsData).length + Object.keys(checkpointsData).length}
         </Text>
       </View>
- 
+
       <Modal
         animationType="fade"
         transparent={true}
@@ -974,7 +984,7 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
           </View>
         </View>
       </Modal>
- 
+
       <Modal
         animationType="slide"
         transparent={true}
@@ -991,7 +1001,7 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
             </TouchableOpacity>
 
             <Text style={styles.certificateTitle}> Поздравляем! </Text>
-            
+
             <Text style={styles.certificateSubtitle}>
               Вы успешно завершили курс!
             </Text>

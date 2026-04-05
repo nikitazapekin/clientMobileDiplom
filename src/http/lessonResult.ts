@@ -1,10 +1,12 @@
- 
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import $api from "./api";
 
 export interface CreateLessonResultRequest {
   clientId: string;
-  lessonId: string;
+  lessonId?: string;
+  checkpointId?: string;
   countOfStars: number;
   completedAt?: string;
 }
@@ -17,7 +19,10 @@ export interface UpdateLessonResultRequest {
 export interface LessonResultResponse {
   id: string;
   clientId: string;
-  lessonId: string;
+  lessonId?: string | null;
+  checkpointId?: string | null;
+  targetId: string;
+  targetType: "lesson" | "checkpoint";
   countOfStars: number;
   completedAt: string;
   createdAt: string;
@@ -35,7 +40,6 @@ export default class LessonResultService {
     return await AsyncStorage.getItem("accessToken");
   }
 
-  
   static async createLessonResult(data: CreateLessonResultRequest): Promise<LessonResultResponse> {
     try {
       const token = await this.getToken();
@@ -55,7 +59,7 @@ export default class LessonResultService {
       throw new Error(error.response?.data?.message || "Failed to create lesson result");
     }
   }
- 
+
   static async getLessonResultById(id: string): Promise<LessonResultResponse> {
     try {
       const token = await this.getToken();
@@ -75,7 +79,6 @@ export default class LessonResultService {
     }
   }
 
-   
   static async getStudentResults(clientId: string): Promise<LessonResultResponse[]> {
     try {
       const token = await this.getToken();
@@ -94,7 +97,7 @@ export default class LessonResultService {
       throw new Error(error.response?.data?.message || "Failed to fetch student results");
     }
   }
- 
+
   static async getLessonResults(lessonId: string): Promise<LessonResultResponse[]> {
     try {
       const token = await this.getToken();
@@ -113,7 +116,7 @@ export default class LessonResultService {
       throw new Error(error.response?.data?.message || "Failed to fetch lesson results");
     }
   }
- 
+
   static async getStudentProgress(clientId: string): Promise<StudentProgressResponse> {
     try {
       const token = await this.getToken();
@@ -132,7 +135,7 @@ export default class LessonResultService {
       throw new Error(error.response?.data?.message || "Failed to fetch student progress");
     }
   }
- 
+
   static async updateLessonResult(id: string, data: UpdateLessonResultRequest): Promise<LessonResultResponse> {
     try {
       const token = await this.getToken();
@@ -152,10 +155,11 @@ export default class LessonResultService {
       throw new Error(error.response?.data?.message || "Failed to update lesson result");
     }
   }
- 
+
   static async deleteLessonResult(id: string): Promise<{ success: boolean }> {
     try {
       const token = await this.getToken();
+
       await $api.delete(`/profile/student-results/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -168,10 +172,11 @@ export default class LessonResultService {
       throw new Error(error.response?.data?.message || "Failed to delete lesson result");
     }
   }
- 
+
   static async deleteAllStudentResults(clientId: string): Promise<{ success: boolean }> {
     try {
       const token = await this.getToken();
+
       await $api.delete(`/profile/student-results/client/${clientId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -184,23 +189,26 @@ export default class LessonResultService {
       throw new Error(error.response?.data?.message || "Failed to delete all student results");
     }
   }
- 
+
   static async getAverageStars(clientId: string): Promise<number> {
     try {
       const results = await this.getStudentResults(clientId);
+
       if (results.length === 0) return 0;
-      
+
       const totalStars = results.reduce((sum, result) => sum + result.countOfStars, 0);
+
       return totalStars / results.length;
     } catch (error: any) {
       console.error("Get average stars error:", error.message);
       throw new Error("Failed to calculate average stars");
     }
   }
- 
+
   static async getLatestStudentResults(clientId: string, limit: number = 5): Promise<LessonResultResponse[]> {
     try {
       const results = await this.getStudentResults(clientId);
+
       return results
         .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
         .slice(0, limit);
@@ -209,17 +217,18 @@ export default class LessonResultService {
       throw new Error("Failed to fetch latest results");
     }
   }
- 
+
   static async hasCompletedLesson(clientId: string, lessonId: string): Promise<boolean> {
     try {
       const results = await this.getStudentResults(clientId);
+
       return results.some(result => result.lessonId === lessonId);
     } catch (error: any) {
       console.error("Check lesson completion error:", error.message);
       throw new Error("Failed to check lesson completion");
     }
   }
- 
+
   static async hasCompletedLessonWithStars(clientId: string, lessonId: string): Promise<boolean> {
     try {
       const token = await this.getToken();
@@ -238,10 +247,11 @@ export default class LessonResultService {
       return userResult ? userResult.countOfStars >= 1 : false;
     } catch (error: any) {
       console.error("Check lesson completion with stars error:", error.response?.data || error.message);
+
       return false;
     }
   }
- 
+
   static async getLessonStats(clientId: string): Promise<{
     totalLessons: number;
     completedLessons: number;
@@ -251,7 +261,7 @@ export default class LessonResultService {
   }> {
     try {
       const results = await this.getStudentResults(clientId);
-      
+
       if (results.length === 0) {
         return {
           totalLessons: 0,
@@ -264,7 +274,7 @@ export default class LessonResultService {
 
       const totalStars = results.reduce((sum, result) => sum + result.countOfStars, 0);
       const averageStars = totalStars / results.length;
-      
+
       const sortedByStars = [...results].sort((a, b) => b.countOfStars - a.countOfStars);
       const bestResult = sortedByStars[0];
       const worstResult = sortedByStars[sortedByStars.length - 1];

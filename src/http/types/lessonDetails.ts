@@ -15,7 +15,8 @@ export interface Slide {
 
 export interface LessonDetailsResponse {
   id: string;
-  lessonId: string;
+  lessonId?: string | null;
+  checkpointId?: string | null;
   slides: Slide[];
   tests: Slide[];
   createdAt: string;
@@ -36,7 +37,8 @@ export interface CreateTestDto {
 }
 
 export interface CreateLessonDetailsRequest {
-  lessonId: string;
+  lessonId?: string;
+  checkpointId?: string;
   slides?: CreateSlideDto[];
   tests?: CreateTestDto[];
 }

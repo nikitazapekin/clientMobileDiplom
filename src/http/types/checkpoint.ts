@@ -4,6 +4,7 @@ export interface CheckpointResponse {
   title: string;
   description: string;
   type: string;
+  orderIndex: number;
   passingScore?: number;
   maxAttempts?: number;
   timeLimit?: number;
@@ -18,6 +19,7 @@ export interface CreateCheckpointRequest {
   title: string;
   description: string;
   type: string;
+  orderIndex?: number;
   passingScore?: number;
   maxAttempts?: number;
   timeLimit?: number;
@@ -29,6 +31,7 @@ export interface UpdateCheckpointRequest {
   title?: string;
   description?: string;
   type?: string;
+  orderIndex?: number;
   passingScore?: number;
   maxAttempts?: number;
   timeLimit?: number;

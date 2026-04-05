@@ -502,6 +502,7 @@ const SourcesModal = ({ visible, onClose, sources }: {
 const ResultsModal = ({
   visible,
   onClose,
+  title,
   results,
   totalTasks,
   completedTasks,
@@ -514,6 +515,7 @@ const ResultsModal = ({
 }: {
   visible: boolean;
   onClose: () => void;
+  title?: string;
   results: {
     slideId: string;
     title: string;
@@ -618,7 +620,7 @@ const ResultsModal = ({
       <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
         <View style={styles.resultsModalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Результаты урока</Text>
+            <Text style={styles.modalTitle}>{title || "Результаты урока"}</Text>
             <TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
               <Text style={styles.modalCloseText}>✕</Text>
             </TouchableOpacity>
@@ -727,10 +729,13 @@ const ResultsModal = ({
 };
 
  
-const Lesson = ({ id }: { id: string }) => {
+const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkpoint" }) => {
   console.log("  Lesson mounted with ID:", id);
   const router = useRouter();
   const navigation = useNavigation();
+  const isCheckpointMode = mode === "checkpoint";
+  const entityTitle = isCheckpointMode ? "контрольной точки" : "урока";
+  const entityTitleDisplay = isCheckpointMode ? "Контрольная точка" : "Урок";
 
   const [loading, setLoading] = useState(true);
   const [slides, setSlides] = useState<Slide[]>([]);
@@ -805,7 +810,7 @@ const Lesson = ({ id }: { id: string }) => {
   useEffect(() => {
     void loadLessonDetails();
     void getClientId();
-  }, [id]);
+  }, [id, mode]);
 
   const getClientId = async () => {
     try {
@@ -822,9 +827,11 @@ const Lesson = ({ id }: { id: string }) => {
     setError(null);
 
     try {
-      if (!id) throw new Error("Lesson ID is required");
+      if (!id) throw new Error(`${entityTitleDisplay} ID is required`);
 
-      const data = await LessonDetailsService.getLessonDetailsByLessonId(id);
+      const data = isCheckpointMode
+        ? await LessonDetailsService.getLessonDetailsByCheckpointId(id)
+        : await LessonDetailsService.getLessonDetailsByLessonId(id);
 
       const allSlides: Slide[] = [];
       const normalizeBlocks = (blocks: unknown): Slide["blocks"] => {
@@ -841,11 +848,11 @@ const Lesson = ({ id }: { id: string }) => {
         });
       };
 
-      if (Array.isArray(data.slides)) {
+      if (!isCheckpointMode && Array.isArray(data.slides)) {
         data.slides.forEach((slide, index) => {
           allSlides.push({
             id: slide.id || `slide_${index}`,
-            title: slide.title || "Урок",
+            title: slide.title || entityTitleDisplay,
             type: "lesson",
             order: slide.orderIndex || index,
             blocks: normalizeBlocks(slide.blocks),
@@ -868,7 +875,11 @@ const Lesson = ({ id }: { id: string }) => {
       allSlides.sort((a, b) => a.order - b.order);
 
       if (allSlides.length === 0) {
-        setError("В уроке нет слайдов");
+        setError(
+          isCheckpointMode
+            ? "В контрольной точке пока нет заданий"
+            : "В уроке нет слайдов"
+        );
       } else {
         setSlides(allSlides);
  
@@ -880,7 +891,7 @@ const Lesson = ({ id }: { id: string }) => {
         }
       }
     } catch (err: any) {
-      setError(err.message || "Ошибка загрузки");
+      setError(err.message || `Ошибка загрузки ${entityTitle}`);
     } finally {
       setLoading(false);
     }
@@ -895,10 +906,15 @@ const Lesson = ({ id }: { id: string }) => {
   const saveLessonResult = useCallback(async (stars: number) => {
     const auditoryId = await AsyncStorage.getItem('userId');
 
-    console.log("Saving result:", { auditoryId, lessonId: id, stars });
+    console.log("Saving result:", {
+      auditoryId,
+      lessonId: isCheckpointMode ? undefined : id,
+      checkpointId: isCheckpointMode ? id : undefined,
+      stars
+    });
 
     if (!auditoryId || !id) {
-      console.log("Cannot save result: missing userId or lessonId");
+      console.log("Cannot save result: missing userId or target id");
 
       return false;
     }
@@ -906,19 +922,19 @@ const Lesson = ({ id }: { id: string }) => {
     try {
       await LessonResultService.createLessonResult({
         clientId: auditoryId,
-        lessonId: id,
+        ...(isCheckpointMode ? { checkpointId: id } : { lessonId: id }),
         countOfStars: stars,
         completedAt: new Date().toISOString(),
       });
-      console.log(` Lesson result saved with ${stars} stars`);
+      console.log(` Result saved for ${mode} with ${stars} stars`);
 
       return true;
     } catch (error) {
-      console.error("Failed to save lesson result:", error);
+      console.error(`Failed to save ${mode} result:`, error);
 
       return false;
     }
-  }, [id]);
+  }, [id, isCheckpointMode, mode]);
  
   const handleTheoryAnswer = useCallback((slideId: string, blockId: string, selectedIndex: number, isCorrect: boolean) => {
     setTheoryAnswers(prev => ({
@@ -1091,7 +1107,7 @@ const Lesson = ({ id }: { id: string }) => {
     try {
       await LessonResultService.createLessonResult({
         clientId: auditoryId,
-        lessonId: id,
+        ...(isCheckpointMode ? { checkpointId: id } : { lessonId: id }),
         countOfStars: lessonResults.stars,
         completedAt: new Date().toISOString(),
       });
@@ -1099,7 +1115,7 @@ const Lesson = ({ id }: { id: string }) => {
     } catch (error) {
       Alert.alert("Ошибка", "Не удалось сохранить результат");
     }
-  }, [id, lessonResults.stars]);
+  }, [id, isCheckpointMode, lessonResults.stars]);
 
   const goToNext = useCallback(() => {
     if (currentIndex < slides.length - 1) {
@@ -1817,7 +1833,7 @@ const Lesson = ({ id }: { id: string }) => {
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
           <ActivityIndicator size="large" color={COLORS.BLACK} />
-          <Text style={styles.loadingText}>Загрузка урока...</Text>
+          <Text style={styles.loadingText}>Загрузка {entityTitle}...</Text>
         </View>
       </SafeAreaView>
     );
@@ -1997,13 +2013,14 @@ const Lesson = ({ id }: { id: string }) => {
         sources={currentSources}
       />
 
-      <ResultsModal
-        visible={resultsModalVisible}
-        onClose={() => {
-          setResultsModalVisible(false);
-          navigation.goBack();
-        }}
-        results={lessonResults.results}
+        <ResultsModal
+          visible={resultsModalVisible}
+          onClose={() => {
+            setResultsModalVisible(false);
+            navigation.goBack();
+          }}
+          title={isCheckpointMode ? "Результаты контрольной точки" : "Результаты урока"}
+          results={lessonResults.results}
         totalTasks={lessonResults.totalTasks}
         completedTasks={lessonResults.completedTasks}
         totalTestCases={lessonResults.totalTestCases}

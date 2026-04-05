@@ -57,13 +57,33 @@ export class LessonDetailsService {
   static async getLessonDetailsByLessonId(lessonId: string): Promise<LessonDetailsResponse> {
     try {
       const token = await this.getToken();
-  
+
       const response = await $api.get(`${this.BASE_URL}/lesson/${lessonId}?t=${Date.now()}`, this.getHeaders(token));
 
       return response.data;
     } catch (error: any) {
       console.error("Get lesson details by lesson id error:", error.response?.data || error.message);
       throw new Error(error.response?.data?.message || "Failed to fetch lesson details");
+    }
+  }
+
+  static async getLessonDetailsByCheckpointId(
+    checkpointId: string
+  ): Promise<LessonDetailsResponse> {
+    try {
+      const token = await this.getToken();
+      const response = await $api.get(
+        `${this.BASE_URL}/checkpoint/${checkpointId}?t=${Date.now()}`,
+        this.getHeaders(token)
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Get lesson details by checkpoint id error:",
+        error.response?.data || error.message
+      );
+      throw new Error(error.response?.data?.message || "Failed to fetch checkpoint details");
     }
   }
 
@@ -113,6 +133,31 @@ export class LessonDetailsService {
       }
 
       throw new Error(error.response?.data?.message || "Failed to delete lesson details");
+    }
+  }
+
+  static async deleteLessonDetailsByCheckpointId(
+    checkpointId: string
+  ): Promise<{ success: boolean }> {
+    try {
+      const token = await this.getToken();
+      const response = await $api.delete(
+        `${this.BASE_URL}/checkpoint/${checkpointId}`,
+        this.getHeaders(token)
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Delete lesson details by checkpoint id error:",
+        error.response?.data || error.message
+      );
+
+      if (error.response?.status === 404) {
+        return { success: true };
+      }
+
+      throw new Error(error.response?.data?.message || "Failed to delete checkpoint details");
     }
   }
 }
