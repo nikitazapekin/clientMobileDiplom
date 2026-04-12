@@ -5,7 +5,7 @@ import { useNavigation } from "@react-navigation/native";
 
 import Button from "../Button";
 
-import Certificate from "@/assets/utils/Certificate.jpg";
+import Certificate from "../../assets/utils/Certificate.png";
 import CourseService from "@/http/courses";
 import SubscriptionService from "@/http/subscribtion";
 import type { CourseResponse, CourseStatsResponse } from "@/http/types/course";

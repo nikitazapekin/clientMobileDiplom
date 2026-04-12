@@ -494,21 +494,21 @@ export const styles = StyleSheet.create({
   },
 
   starsContainer: {
-    position: 'relative',
-    height: 100,
+    height: 80,
     marginVertical: 20,
-    overflow: 'hidden',
     backgroundColor: '#1a1a2e',
     borderRadius: 10,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 10,
+    overflow: 'hidden',
+    paddingVertical: 15,
   },
 
   starWrapper: {
-    position: 'absolute',
-    top: 0,
     width: 50,
-    height: 50,
+    height: 80,
     justifyContent: 'center',
     alignItems: 'center',
   },

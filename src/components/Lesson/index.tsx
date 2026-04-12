@@ -644,7 +644,6 @@ const ResultsModal = ({
                         { rotate: rotate }
                       ],
                       opacity: starOpacities[index],
-                      left: `${30 + index * 20}%`,
                     }
                   ]}
                 >
@@ -670,12 +669,6 @@ const ResultsModal = ({
               <Text style={styles.summaryLabel}>Пройдено тестов:</Text>
               <Text style={styles.summaryValue}>
                 {passedTestCases}/{totalTestCases}
-              </Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Ограничения:</Text>
-              <Text style={styles.summaryValue}>
-                {constraintsPassed ? "Огрничение не пройдено" : "Огрничение пройдено"}
               </Text>
             </View>
           </View>
