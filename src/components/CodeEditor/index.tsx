@@ -12,7 +12,17 @@ import {
   TextInputProps,
 } from 'react-native';
 
-type CodeLanguage = 'javascript' | 'python' | 'java' | 'csharp' | 'golang' | 'cpp';
+type CodeLanguage =
+  | 'javascript'
+  | 'typescript'
+  | 'python'
+  | 'php'
+  | 'ruby'
+  | 'rust'
+  | 'java'
+  | 'csharp'
+  | 'golang'
+  | 'cpp';
 
 interface CodeEditorProps {
   value: string;
@@ -32,11 +42,35 @@ const KEYWORDS: Record<CodeLanguage, string[]> = {
     'switch', 'case', 'break', 'continue', 'typeof', 'instanceof',
     'console.log', 'Array', 'Object', 'String', 'Number', 'Boolean',
   ],
+  typescript: [
+    'function', 'const', 'let', 'var', 'if', 'else', 'for', 'while',
+    'return', 'class', 'interface', 'type', 'enum', 'extends', 'implements',
+    'public', 'private', 'protected', 'readonly', 'as', 'unknown', 'never',
+    'console.log', 'Array', 'Record', 'Partial', 'Pick', 'Promise',
+  ],
   python: [
     'def', 'if', 'elif', 'else', 'for', 'while', 'return', 'import',
     'from', 'as', 'class', 'try', 'except', 'finally', 'with',
     'print', 'len', 'range', 'enumerate', 'zip', 'open', 'None',
     'True', 'False', 'and', 'or', 'not', 'in', 'is', 'lambda',
+  ],
+  php: [
+    'function', 'if', 'elseif', 'else', 'for', 'foreach', 'while', 'return',
+    'echo', 'print', 'class', 'public', 'private', 'protected', 'new',
+    'array', 'null', 'true', 'false', 'try', 'catch', 'finally',
+    'json_encode', 'json_decode', 'count', 'isset', 'empty',
+  ],
+  ruby: [
+    'def', 'end', 'if', 'elsif', 'else', 'unless', 'for', 'while',
+    'do', 'class', 'module', 'return', 'puts', 'print', 'each',
+    'map', 'select', 'nil', 'true', 'false', 'begin', 'rescue',
+    'ensure', 'require', 'attr_reader', 'attr_accessor',
+  ],
+  rust: [
+    'fn', 'let', 'mut', 'if', 'else', 'match', 'loop', 'while', 'for',
+    'return', 'struct', 'enum', 'impl', 'trait', 'pub', 'use',
+    'println!', 'print!', 'vec!', 'Some', 'None', 'Result', 'Ok', 'Err',
+    'String', 'Vec', 'HashMap',
   ],
   java: [
     'public', 'private', 'protected', 'class', 'void', 'static',

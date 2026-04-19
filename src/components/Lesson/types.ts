@@ -9,8 +9,26 @@ export interface Slide {
   blocks: SlideBlock[];
 }
 
-export type CodeLanguage = "javascript" | "python" | "csharp" | "golang" | "java";
-export type FillCodeLanguage = "javascript" | "python" | "csharp" | "java";
+export type CodeLanguage =
+  | "javascript"
+  | "typescript"
+  | "python"
+  | "php"
+  | "ruby"
+  | "rust"
+  | "csharp"
+  | "golang"
+  | "java"
+  | "cpp";
+export type FillCodeLanguage =
+  | "javascript"
+  | "typescript"
+  | "python"
+  | "php"
+  | "ruby"
+  | "rust"
+  | "csharp"
+  | "java";
 
 export type CodeConstraintType =
   | "maxTimeMs"

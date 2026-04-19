@@ -1,9 +1,19 @@
- 
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import $api from "./api";
 
-export type CodeLanguage = "javascript" | "python" | "csharp" | "golang" | "java";
+export type CodeLanguage =
+  | "javascript"
+  | "typescript"
+  | "python"
+  | "php"
+  | "ruby"
+  | "rust"
+  | "csharp"
+  | "golang"
+  | "java"
+  | "cpp";
 
 export interface ExecuteCodeRequest {
   language: CodeLanguage;
@@ -12,7 +22,7 @@ export interface ExecuteCodeRequest {
 
 export interface ExecuteCodeResponse {
   output: string;
-  
+
   error?: string;
 }
 

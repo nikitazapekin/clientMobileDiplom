@@ -43,8 +43,9 @@ import {
   extractFillTaskInputs,
   extractFunctionName,
   formatArgsForDynamicLang,
+  formatArgsForGolang,
   formatArgsForJavaOrCSharp,
-  formatArgumentsForCode,
+  formatArgsForRust,
   generateObjectClasses,
   generateObjectClassesForPreview,
   getArgumentTypeDescription,
@@ -52,10 +53,8 @@ import {
   hasExpectedOutputValue,
   normalizeFillTaskBlock,
   normalizeOutputValue,
-  parseArguments,
   renderArgumentScheme,
   stringifyOutputValue,
-  stripMainMethod,
   validateFillTaskAnswers
 } from "@/code";
 import CustomButton from "@/components/Button";
@@ -145,7 +144,7 @@ const ImageBlockView = ({ block }: { block: ImageBlock }) => {
 const ObjectDescriptions = ({ argumentScheme, language }: { argumentScheme?: ArgumentSchema[]; language?: CodeLanguage }) => {
   if (!argumentScheme || argumentScheme.length === 0) return null;
 
-  if (language !== "java" && language !== "csharp") return null;
+  if (language !== "java" && language !== "csharp" && language !== "typescript") return null;
 
   const hasObjects = argumentScheme.some(a => (
     (a.type === "object" && a.objectFields) ||
@@ -1431,13 +1430,35 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
           }
         }
       } 
-      else if (block.language === "javascript" || block.language === "python") {
+      else if (
+        block.language === "javascript" ||
+        block.language === "typescript" ||
+        block.language === "python" ||
+        block.language === "php" ||
+        block.language === "ruby" ||
+        block.language === "rust" ||
+        block.language === "golang"
+      ) {
         const lang = block.language;
+        const objectClasses =
+          lang === "typescript"
+            ? generateObjectClasses(block.argumentScheme ?? [], "typescript")
+            : "";
 
         for (let i = 0; i < block.testCases.length; i++) {
           const tc = block.testCases[i];
  
-          const argsInput = formatArgsForDynamicLang(tc.args, block.argumentScheme ?? [], lang);
+          let argsInput = "";
+
+          if ((block.argumentScheme?.length ?? 0) > 0) {
+            if (lang === "golang") {
+              argsInput = formatArgsForGolang(tc.args, block.argumentScheme ?? []);
+            } else if (lang === "rust") {
+              argsInput = formatArgsForRust(tc.args, block.argumentScheme ?? []);
+            } else {
+              argsInput = formatArgsForDynamicLang(tc.args, block.argumentScheme ?? [], lang);
+            }
+          }
 
       
           const inputToUse = (block.argumentScheme?.length ?? 0) > 0 ? argsInput : (tc.input || "");
@@ -1449,7 +1470,7 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
           }
  
           const codeToRun = buildTestCode(
-            userCode,
+            lang === "typescript" && objectClasses ? `${objectClasses}\n\n${userCode}` : userCode,
             "",
             lang,
             funcName,
@@ -1627,7 +1648,11 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
 
       setTestResults(prev => ({ ...prev, [slideId]: results }));
  
-      const constraintCheckResults = checkConstraints(userCode, block.constraints);
+      const constraintCheckResults = checkConstraints(
+        userCode,
+        block.language,
+        block.constraints
+      );
 
       setConstraintResults(prev => ({ ...prev, [slideId]: constraintCheckResults }));
 

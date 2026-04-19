@@ -1,4 +1,14 @@
-export type CodeLanguage = 'javascript' | 'python' | 'csharp' | 'java' | 'golang';
+export type CodeLanguage =
+  | 'javascript'
+  | 'typescript'
+  | 'python'
+  | 'php'
+  | 'ruby'
+  | 'rust'
+  | 'csharp'
+  | 'java'
+  | 'golang'
+  | 'cpp';
 
 export interface CodeEditorProps {
   value: string;

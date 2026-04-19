@@ -23,6 +23,19 @@ const DIFFICULTIES: Record<string, { label: string; color: string }> = {
   hard: { label: "Сложный", color: "#f44336" },
 };
 
+const LANGUAGE_LABELS: Record<string, string> = {
+  javascript: "JavaScript",
+  typescript: "TypeScript",
+  python: "Python",
+  php: "PHP",
+  ruby: "Ruby",
+  rust: "Rust",
+  csharp: "C#",
+  java: "Java",
+  golang: "Go",
+  cpp: "C++",
+};
+
 const CodingTasksList = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [tasks, setTasks] = useState<CodeTask[]>([]);
@@ -184,7 +197,9 @@ const CodingTasksList = () => {
               )}
               <View style={s.taskFooter}>
                 <Text style={s.taskMeta}>
-                  {(task.languages || []).join(", ")} | {task.testCases?.length ?? 0} тестов
+                  {(task.languages || [])
+                    .map((language) => LANGUAGE_LABELS[language] || language)
+                    .join(", ")} | {task.testCases?.length ?? 0} тестов
                 </Text>
                 <View style={s.xpBadge}>
                   <Text style={s.xpBadgeText}>+{task.experienceReward} XP</Text>

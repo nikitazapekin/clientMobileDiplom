@@ -1,6 +1,7 @@
-import type { CodeLanguage } from "@/components/Lesson/types";
-import { parseArguments, formatArgumentsForCode } from "./argumentParser";
+import { formatArgumentsForCode,parseArguments } from "./argumentParser";
 import { JAVA_SERIALIZATION_HELPERS } from "./resultSerialization";
+
+import type { CodeLanguage } from "@/components/Lesson/types";
 
 export const buildJavaTestSuite = (
   userCode: string,
@@ -12,7 +13,7 @@ export const buildJavaTestSuite = (
   const testCasesCode = testCases
     .map((tc, index) => {
       const testNum = index + 1;
-    
+
       const argsStr = tc.input || "";
 
       return `
@@ -87,7 +88,7 @@ export const buildCSharpTestSuite = (
   const testCasesCode = testCases
     .map((tc, index) => {
       const testNum = index + 1;
-     
+
       const argsStr = tc.input || "";
 
       return `
@@ -165,23 +166,12 @@ ${testCasesCode}
   }
 };
 
-export const buildTestCode = (
+const buildJavaScriptLikeTestCode = (
   userCode: string,
-  input: string,
-  lang: CodeLanguage,
-  funcName: string | null,
-  preformattedArgs?: string  
-): string => {
-  if (!funcName) return userCode;
- 
-  const argsStr = preformattedArgs ?? (() => {
-    const args = parseArguments(input);
-    return formatArgumentsForCode(args);
-  })();
-
-  switch (lang) {
-    case "javascript":
-      return `${userCode}
+  funcName: string,
+  argsStr: string,
+  lang: "javascript" | "typescript"
+) => `${userCode}
 
 const __originalConsole = {
   log: console.log,
@@ -190,10 +180,10 @@ const __originalConsole = {
   info: console.info
 };
 
-const __logs = [];
+const __logs${lang === "typescript" ? ": string[]" : ""} = [];
 
 console.log = function(...args) {
-  const message = args.map(arg => 
+  const message = args.map(arg =>
     typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
   ).join(' ');
   __logs.push('' + message);
@@ -201,7 +191,7 @@ console.log = function(...args) {
 };
 
 console.error = function(...args) {
-  const message = args.map(arg => 
+  const message = args.map(arg =>
     typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
   ).join(' ');
   __logs.push('' + message);
@@ -209,7 +199,7 @@ console.error = function(...args) {
 };
 
 console.warn = function(...args) {
-  const message = args.map(arg => 
+  const message = args.map(arg =>
     typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
   ).join(' ');
   __logs.push('' + message);
@@ -217,7 +207,7 @@ console.warn = function(...args) {
 };
 
 console.info = function(...args) {
-  const message = args.map(arg => 
+  const message = args.map(arg =>
     typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
   ).join(' ');
   __logs.push('' + message);
@@ -226,32 +216,53 @@ console.info = function(...args) {
 
 try {
   const result = ${funcName}(${argsStr});
-  
+
   console.log = __originalConsole.log;
   console.error = __originalConsole.error;
   console.warn = __originalConsole.warn;
   console.info = __originalConsole.info;
-  
+
   if (__logs.length > 0) {
     console.log('\\n===LOGS_START===');
     __logs.forEach(log => console.log(log));
     console.log('===LOGS_END===');
   }
-  
+
   console.log('===RESULT_START===');
   console.log(JSON.stringify(result));
   console.log('===RESULT_END===');
-  
-} catch (error) {
+} catch (error${lang === "typescript" ? ": unknown" : ""}) {
   console.log = __originalConsole.log;
   console.error = __originalConsole.error;
   console.warn = __originalConsole.warn;
   console.info = __originalConsole.info;
-  
+
   console.log('===RESULT_START===');
-  console.log(JSON.stringify({ error: error.message }));
+  console.log(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }));
   console.log('===RESULT_END===');
 }`;
+
+export const buildTestCode = (
+  userCode: string,
+  input: string,
+  lang: CodeLanguage,
+  funcName: string | null,
+  preformattedArgs?: string
+): string => {
+  if (!funcName) return userCode;
+
+  const argsStr = preformattedArgs ?? (() => {
+    const args = parseArguments(input);
+
+    return formatArgumentsForCode(args);
+  })();
+
+  switch (lang) {
+    case "javascript":
+      return buildJavaScriptLikeTestCode(userCode, funcName, argsStr, "javascript");
+
+    case "typescript":
+      return buildJavaScriptLikeTestCode(userCode, funcName, argsStr, "typescript");
 
     case "python":
       return `${userCode}
@@ -294,13 +305,89 @@ except Exception as e:
     print(json.dumps({"error": str(e)}))
     print("===RESULT_END===")`;
 
+    case "php":
+      return `${userCode}
+
+ob_start();
+
+try {
+    $result = ${funcName}(${argsStr});
+    $logs = ob_get_clean();
+
+    if (!empty($logs)) {
+        echo "===LOGS_START===\\n";
+        echo $logs;
+        if (!str_ends_with($logs, PHP_EOL)) {
+            echo PHP_EOL;
+        }
+        echo "===LOGS_END===\\n";
+    }
+
+    echo "===RESULT_START===\\n";
+    echo json_encode($result);
+    echo "\\n===RESULT_END===\\n";
+} catch (Throwable $error) {
+    if (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+
+    echo "===RESULT_START===\\n";
+    echo json_encode(["error" => $error->getMessage()]);
+    echo "\\n===RESULT_END===\\n";
+}`;
+
+    case "ruby":
+      return `${userCode}
+require "json"
+require "stringio"
+
+__original_stdout = $stdout
+__stdout_buffer = StringIO.new
+$stdout = __stdout_buffer
+
+begin
+  result = ${funcName}(${argsStr})
+  $stdout = __original_stdout
+  logs = __stdout_buffer.string
+
+  unless logs.empty?
+    puts "===LOGS_START==="
+    print logs
+    puts unless logs.end_with?("\\n")
+    puts "===LOGS_END==="
+  end
+
+  puts "===RESULT_START==="
+  puts JSON.generate(result)
+  puts "===RESULT_END==="
+rescue => error
+  $stdout = __original_stdout
+  puts "===RESULT_START==="
+  puts JSON.generate({ error: error.message })
+  puts "===RESULT_END==="
+end`;
+
+    case "rust":
+      return `${userCode}
+
+fn __codex_serialize<T: std::fmt::Debug>(value: &T) -> String {
+    format!("{:?}", value)
+}
+
+fn main() {
+    let result = ${funcName}(${argsStr});
+    println!("===RESULT_START===");
+    println!("{}", __codex_serialize(&result));
+    println!("===RESULT_END===");
+}`;
+
     case "java":
       return buildJavaTestSuite(userCode, [{ input, expectedOutput: "" }], funcName);
 
     case "csharp":
       return buildCSharpTestSuite(userCode, [{ input, expectedOutput: "" }], funcName);
 
-    case "golang":
+    case "golang": {
       const hasImports = userCode.includes("import (");
 
       if (hasImports) {
@@ -396,6 +483,7 @@ func main() {
     fmt.Println("===RESULT_END===")
 }`;
       }
+    }
 
     default:
       return userCode;

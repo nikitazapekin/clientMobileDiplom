@@ -18,15 +18,16 @@ import {
   buildTestCode,
   extractFunctionName,
   formatArgsForDynamicLang,
+  formatArgsForGolang,
   formatArgsForJavaOrCSharp,
+  formatArgsForRust,
   generateObjectClasses,
   getDisplayInput,
 } from "@/code";
 import CodeEditor from "@/components/CodeEditor";
 import type { ArgumentSchema, TestCaseArgument } from "@/components/Lesson/types";
-import { CodeService } from "@/http/codeService";
+import { type CodeLanguage,CodeService } from "@/http/codeService";
 import {
-  type CodeLanguage,
   CodeWithTimeService,
   type ExecuteCodeWithTimeResponse,
 } from "@/http/codeWithTimeService";
@@ -99,7 +100,11 @@ const DIFF_LABELS: Record<string, string> = {
 
 const LANG_LABELS: Record<string, string> = {
   javascript: "JS",
+  typescript: "TS",
   python: "Python",
+  php: "PHP",
+  ruby: "Ruby",
+  rust: "Rust",
   csharp: "C#",
   java: "Java",
   golang: "Go",
@@ -122,20 +127,40 @@ const countCodeLines = (code: string): number =>
     ).length;
 
 const hasComments = (code: string, language: CodeLanguage): boolean => {
-  if (language === "python") {
+  if (language === "python" || language === "ruby") {
     return /#.*/.test(code);
+  }
+
+  if (language === "php") {
+    return /#.*/.test(code) || /\/\/.*|\/\*[\s\S]*?\*\//.test(code);
   }
 
   return /\/\/.*|\/\*[\s\S]*?\*\//.test(code);
 };
 
 const hasConsoleUsage = (code: string, language: CodeLanguage): boolean => {
-  if (language === "javascript") {
+  if (language === "javascript" || language === "typescript") {
     return /\bconsole\.(log|error|warn|info)\s*\(/.test(code);
   }
 
   if (language === "python") {
     return /\bprint\s*\(/.test(code);
+  }
+
+  if (language === "php") {
+    return /\b(?:echo|print|print_r|var_dump)\b/.test(code);
+  }
+
+  if (language === "ruby") {
+    return /\b(?:puts|print|p)\b/.test(code);
+  }
+
+  if (language === "rust") {
+    return /\b(?:println!|print!|eprintln!|eprint!)\s*\(/.test(code);
+  }
+
+  if (language === "golang") {
+    return /\bfmt\.Print(?:ln|f)?\s*\(/.test(code);
   }
 
   if (language === "java") {
@@ -146,8 +171,14 @@ const hasConsoleUsage = (code: string, language: CodeLanguage): boolean => {
     return /\bConsole\.(WriteLine|Write)\s*\(/.test(code);
   }
 
+  if (language === "cpp") {
+    return /\bcout\s*<</.test(code);
+  }
+
   return false;
 };
+
+const TIMED_EXECUTION_LANGUAGES: CodeLanguage[] = ["javascript", "python", "csharp", "java"];
 
 const calculateComplexity = (code: string): number => {
   let complexity = 1;
@@ -234,7 +265,7 @@ const evaluateCodeConstraints = (
 
       case "noConsoleLog": {
         if (constraint.value === true && hasConsoleUsage(code, language)) {
-          if (language === "javascript") {
+          if (language === "javascript" || language === "typescript") {
             errors.push("Использование console.log запрещено");
           } else if (language === "python") {
             errors.push("Использование print запрещено");
@@ -385,6 +416,41 @@ const formatExecutionResponse = (response: ExecuteCodeWithTimeResponse): string 
   return parts.filter(Boolean).join("\n\n");
 };
 
+const formatBasicExecutionResponse = (response: { output?: string; error?: string }): string => {
+  const parts: string[] = [];
+
+  if (response.error) {
+    parts.push(`Ошибка: ${response.error}`);
+  }
+
+  const output = response.output ?? "";
+  const parsed = parseExecutionMarkers(output);
+
+  if (parsed.hasMarkers) {
+    if (parsed.logs.length) {
+      parts.push(
+        parsed.logs
+          .map((log, idx) => `Логи ${idx + 1}:\n${log}`)
+          .join("\n\n")
+      );
+    }
+
+    if (parsed.results.length) {
+      parts.push(
+        parsed.results
+          .map((result, idx) => `Результат ${idx + 1}:\n${result}`)
+          .join("\n\n")
+      );
+    }
+  } else if (output.trim()) {
+    parts.push(output.trim());
+  } else if (!response.error) {
+    parts.push("Нет вывода");
+  }
+
+  return parts.filter(Boolean).join("\n\n");
+};
+
 type TaskTestCase = CodeTask["testCases"][number] & {
   args?: TestCaseArgument[];
 };
@@ -517,14 +583,25 @@ const collectCheckLogs = async (
 
   for (let index = 0; index < testCases.length; index += 1) {
     const testCase = testCases[index];
-    const preformattedArgs =
-      testCase.args && argumentScheme && argumentScheme.length > 0
-        ? formatArgsForDynamicLang(testCase.args, argumentScheme, language)
-        : undefined;
+    let preformattedArgs: string | undefined;
+
+    if (testCase.args && argumentScheme && argumentScheme.length > 0) {
+      if (language === "golang") {
+        preformattedArgs = formatArgsForGolang(testCase.args, argumentScheme);
+      } else if (language === "rust") {
+        preformattedArgs = formatArgsForRust(testCase.args, argumentScheme);
+      } else {
+        preformattedArgs = formatArgsForDynamicLang(testCase.args, argumentScheme, language);
+      }
+    }
 
     const inputToUse = preformattedArgs ?? testCase.input ?? "";
+    const objectClasses =
+      language === "typescript" && argumentScheme && argumentScheme.length > 0
+        ? generateObjectClasses(argumentScheme, "typescript")
+        : "";
     const codeToRun = buildTestCode(
-      userCode,
+      language === "typescript" && objectClasses ? `${objectClasses}\n\n${userCode}` : userCode,
       inputToUse,
       language,
       funcName,
@@ -619,9 +696,18 @@ const CodingTaskSolver = ({ id }: Props) => {
     setRunLoading(true);
     setConsoleOutput("");
     try {
-      const res = await CodeWithTimeService.executeCodeWithTime({ language: selectedLang, code });
+      if (TIMED_EXECUTION_LANGUAGES.includes(selectedLang)) {
+        const res = await CodeWithTimeService.executeCodeWithTime({
+          language: selectedLang as "javascript" | "python" | "csharp" | "java",
+          code,
+        });
 
-      setConsoleOutput(formatExecutionResponse(res));
+        setConsoleOutput(formatExecutionResponse(res));
+      } else {
+        const res = await CodeService.executeCode({ language: selectedLang, code });
+
+        setConsoleOutput(formatBasicExecutionResponse(res));
+      }
     } catch (error: any) {
       setConsoleOutput(`Ошибка выполнения: ${error?.message || "Не удалось выполнить код"}`);
     } finally {
@@ -1371,7 +1457,7 @@ const st = StyleSheet.create({
     backgroundColor: COLORS.ACCENT,
     borderRadius: 3,
   },
- 
+
   histogramContainer: {
     marginTop: 12,
     paddingTop: 12,

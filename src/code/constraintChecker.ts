@@ -1,8 +1,10 @@
-import type { CodeConstraintType, ConstraintResult } from "@/components/Lesson/types";
-import { countCodeLines, hasComments, hasConsoleLog, hasRequiredKeywords, calculateComplexity } from "./codeAnalyzer";
+import { calculateComplexity,countCodeLines, hasComments, hasConsoleLog, hasRequiredKeywords } from "./codeAnalyzer";
+
+import type { CodeConstraintType, CodeLanguage, ConstraintResult } from "@/components/Lesson/types";
 
 export const checkConstraints = (
   code: string,
+  language?: CodeLanguage,
   constraints?: { type: CodeConstraintType; value: number | string[] | boolean }[]
 ): ConstraintResult[] => {
   const results: ConstraintResult[] = [];
@@ -12,6 +14,7 @@ export const checkConstraints = (
       case "maxLines": {
         const maxLines = constraint.value as number;
         const actualLines = countCodeLines(code);
+
         results.push({
           type: "maxLines",
           name: " Максимум строк кода",
@@ -27,6 +30,7 @@ export const checkConstraints = (
         const passed = !forbidden.some(
           (token) => token.trim() && code.toLowerCase().includes(token.toLowerCase().trim())
         );
+
         results.push({
           type: "forbiddenTokens",
           name: "Запрещённые слова",
@@ -38,7 +42,8 @@ export const checkConstraints = (
       }
 
       case "noComments": {
-        const passed = !hasComments(code);
+        const passed = !hasComments(code, language);
+
         results.push({
           type: "noComments",
           name: "Без комментариев",
@@ -50,7 +55,8 @@ export const checkConstraints = (
       }
 
       case "noConsoleLog": {
-        const passed = !hasConsoleLog(code);
+        const passed = !hasConsoleLog(code, language);
+
         results.push({
           type: "noConsoleLog",
           name: "Без отладочного вывода",
@@ -64,6 +70,7 @@ export const checkConstraints = (
       case "maxComplexity": {
         const maxComplexity = constraint.value as number;
         const actualComplexity = calculateComplexity(code);
+
         results.push({
           type: "maxComplexity",
           name: "Цикломатическая сложность",
@@ -92,6 +99,7 @@ export const checkConstraints = (
       case "requiredKeywords": {
         const keywords = constraint.value as string[];
         const passed = hasRequiredKeywords(code, keywords);
+
         results.push({
           type: "requiredKeywords",
           name: "Обязательные ключевые слова",

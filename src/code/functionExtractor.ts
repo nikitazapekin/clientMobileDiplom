@@ -1,5 +1,6 @@
-import type { CodeLanguage } from "@/components/Lesson/types";
 import { JAVA_SERIALIZATION_HELPERS } from "./resultSerialization";
+
+import type { CodeLanguage } from "@/components/Lesson/types";
 
 export const stripMainMethod = (code: string, language: CodeLanguage): string => {
   if (language === "java") {
@@ -8,11 +9,13 @@ export const stripMainMethod = (code: string, language: CodeLanguage): string =>
       .replace(/\n\s*\n\s*\n/g, "\n\n")
       .trim();
   }
+
   if (language === "csharp") {
     return code
       .replace(/public\s+static\s+void\s+Main\s*\(string\[\]\s*args\)\s*\{[\s\S]*?\}\s*\n?/g, "")
       .trim();
   }
+
   return code;
 };
 
@@ -59,6 +62,7 @@ ${JAVA_SERIALIZATION_HELPERS}
     );
   } else {
     const codeWithoutLastBrace = code.trim().replace(/\}\s*$/, "");
+
     return `${codeWithoutLastBrace}\n${mainMethod}\n}`;
   }
 };
@@ -68,32 +72,73 @@ export const extractFunctionName = (code: string, lang: CodeLanguage): string | 
 
   try {
     switch (lang) {
-      case "javascript":
+      case "javascript": {
         const jsMatch = code.match(
           /function\s+(\w+)|const\s+(\w+)\s*=\s*\([^)]*\)\s*=>|let\s+(\w+)\s*=\s*\([^)]*\)\s*=>|var\s+(\w+)\s*=\s*\([^)]*\)\s*=>/
         );
 
         return jsMatch ? jsMatch[1] || jsMatch[2] || jsMatch[3] || jsMatch[4] : null;
+      }
 
-      case "python":
+      case "typescript": {
+        const tsMatch = code.match(
+          /function\s+(\w+)|const\s+(\w+)\s*=\s*(?:async\s*)?\([^)]*\)\s*(?::[^=]+)?=>|let\s+(\w+)\s*=\s*(?:async\s*)?\([^)]*\)\s*(?::[^=]+)?=>|var\s+(\w+)\s*=\s*(?:async\s*)?\([^)]*\)\s*(?::[^=]+)?=>/
+        );
+
+        return tsMatch ? tsMatch[1] || tsMatch[2] || tsMatch[3] || tsMatch[4] : null;
+      }
+
+      case "python": {
         const pyMatch = code.match(/def\s+(\w+)\s*\(/);
 
         return pyMatch ? pyMatch[1] : null;
+      }
 
-      case "golang":
-        const goMatch = code.match(/func\s+(\w+)\s*\(/);
+      case "php": {
+        const phpMatch = code.match(/function\s+(\w+)\s*\(/);
 
-        return goMatch ? goMatch[1] : null;
+        return phpMatch ? phpMatch[1] : null;
+      }
 
-      case "csharp":
-        const csMatch = code.match(/public\s+static\s+[\w<>\[\]]+\s+(\w+)\s*\([^)]*\)/);
+      case "ruby": {
+        const rubyTopLevelMatch = code.match(
+          /^def\s+(?:self\.)?([A-Za-z_][A-Za-z0-9_]*[!?=]?)\s*(?:\(|$)/m
+        );
+
+        if (rubyTopLevelMatch) {
+          return rubyTopLevelMatch[1];
+        }
+
+        const rubyMatch = code.match(
+          /^\s*def\s+(?:self\.)?([A-Za-z_][A-Za-z0-9_]*[!?=]?)\s*(?:\(|$)/m
+        );
+
+        return rubyMatch ? rubyMatch[1] : null;
+      }
+
+      case "rust": {
+        const rustMatches = Array.from(code.matchAll(/fn\s+(\w+)\s*\(/g));
+
+        return rustMatches.find((match) => match[1] !== "main")?.[1] ?? rustMatches[0]?.[1] ?? null;
+      }
+
+      case "golang": {
+        const goMatches = Array.from(code.matchAll(/func\s+(\w+)\s*\(/g));
+
+        return goMatches.find((match) => match[1] !== "main")?.[1] ?? goMatches[0]?.[1] ?? null;
+      }
+
+      case "csharp": {
+        const csMatch = code.match(/public\s+static\s+\S+\s+(\w+)\s*\([^)]*\)/);
 
         return csMatch ? csMatch[1] : null;
+      }
 
-      case "java":
-        const javaMatch = code.match(/public\s+static\s+[\w<>\[\]]+\s+(\w+)\s*\([^)]*\)/);
+      case "java": {
+        const javaMatch = code.match(/public\s+static\s+\S+\s+(\w+)\s*\([^)]*\)/);
 
         return javaMatch ? javaMatch[1] : null;
+      }
 
       default:
         return null;
