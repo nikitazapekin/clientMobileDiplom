@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-import { COLORS, SIZES, FONTS } from "appStyles";
+import { COLORS, FONTS,SIZES } from "appStyles";
 
 export const styles = StyleSheet.create({
   container: {
@@ -38,9 +38,9 @@ export const styles = StyleSheet.create({
     color: COLORS.WHITE,
   },
 
- 
   achievementsContainer: {
     padding: 16,
+    paddingBottom: 32,
   },
   achievementCard: {
     backgroundColor: COLORS.WHITE,
@@ -65,6 +65,13 @@ export const styles = StyleSheet.create({
   achievementContent: {
     flex: 1,
   },
+  achievementImageFallback: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  achievementFallbackIcon: {
+    fontSize: 32,
+  },
   achievementTitle: {
     fontSize: FONTS.SIZE.MD,
     fontWeight: "bold",
@@ -88,16 +95,22 @@ export const styles = StyleSheet.create({
     marginTop: 4,
   },
   noAchievementsContainer: {
-    flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 32,
+    padding: 24,
+    backgroundColor: COLORS.WHITE,
+    borderRadius: SIZES.RADIUS_MEDIUM,
+    borderWidth: 1,
+    borderColor: COLORS.GRAY_200,
   },
   noAchievementsText: {
     fontSize: FONTS.SIZE.MD,
     color: COLORS.GRAY_600,
     textAlign: "center",
     marginTop: 16,
+  },
+  noAchievementsIcon: {
+    fontSize: 52,
   },
   loadingContainer: {
     flex: 1,
@@ -116,6 +129,9 @@ export const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 16,
   },
+  errorIcon: {
+    fontSize: 64,
+  },
   retryButton: {
     marginTop: 16,
     paddingHorizontal: 24,
@@ -127,6 +143,10 @@ export const styles = StyleSheet.create({
     color: COLORS.WHITE,
     fontSize: FONTS.SIZE.MD,
     fontWeight: "600",
+  },
+  statusText: {
+    marginTop: 16,
+    color: COLORS.GRAY_600,
   },
   progressSection: {
     backgroundColor: COLORS.WHITE,
@@ -144,6 +164,12 @@ export const styles = StyleSheet.create({
     fontWeight: "bold",
     color: COLORS.GRAY_DARK,
     marginBottom: 12,
+  },
+  sectionCaption: {
+    fontSize: FONTS.SIZE.XS,
+    color: COLORS.GRAY_600,
+    marginBottom: 16,
+    lineHeight: 20,
   },
   progressItem: {
     marginBottom: 12,
@@ -169,5 +195,142 @@ export const styles = StyleSheet.create({
     color: COLORS.GRAY_500,
     marginTop: 4,
     textAlign: "right",
+  },
+  sectionBlock: {
+    marginTop: 8,
+  },
+  listSectionTitle: {
+    fontSize: FONTS.SIZE.MD,
+    fontWeight: "bold",
+    color: COLORS.GRAY_DARK,
+    marginBottom: 12,
+  },
+  myRankCard: {
+    backgroundColor: "#f6fbef",
+    borderColor: COLORS.PRIMARY,
+    borderWidth: 1,
+    borderRadius: SIZES.RADIUS_MEDIUM,
+    padding: 16,
+    marginBottom: 16,
+  },
+  myRankLabel: {
+    fontSize: FONTS.SIZE.XS,
+    fontWeight: "700",
+    color: COLORS.PRIMARY,
+    textTransform: "uppercase",
+  },
+  myRankName: {
+    fontSize: FONTS.SIZE.MD,
+    fontWeight: "700",
+    color: COLORS.GRAY_DARK,
+    marginTop: 8,
+  },
+  myRankMeta: {
+    fontSize: FONTS.SIZE.XS,
+    color: COLORS.GRAY_600,
+    marginTop: 4,
+  },
+  myRankStatsRow: {
+    flexDirection: "row",
+    marginTop: 16,
+    gap: 12,
+  },
+  myRankStat: {
+    flex: 1,
+    backgroundColor: COLORS.WHITE,
+    borderRadius: SIZES.RADIUS_MEDIUM,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: COLORS.GRAY_200,
+  },
+  myRankStatValue: {
+    fontSize: FONTS.SIZE.LG,
+    fontWeight: "700",
+    color: COLORS.GRAY_DARK,
+  },
+  myRankStatLabel: {
+    fontSize: FONTS.SIZE.XS,
+    color: COLORS.GRAY_500,
+    marginTop: 4,
+  },
+  leaderboardList: {
+    gap: 10,
+  },
+  leaderboardRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: SIZES.RADIUS_MEDIUM,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  leaderboardRowCurrent: {
+    borderColor: COLORS.PRIMARY,
+    shadowColor: COLORS.PRIMARY,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  leaderboardRankBadge: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: COLORS.WHITE,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  leaderboardRankText: {
+    fontSize: FONTS.SIZE.SM,
+    fontWeight: "700",
+    color: COLORS.GRAY_DARK,
+  },
+  leaderboardAvatarImage: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    marginRight: 12,
+  },
+  leaderboardAvatarPlaceholder: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    marginRight: 12,
+    backgroundColor: COLORS.GRAY_200,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  leaderboardAvatarPlaceholderText: {
+    fontSize: FONTS.SIZE.SM,
+    fontWeight: "700",
+    color: COLORS.GRAY_700,
+  },
+  leaderboardInfo: {
+    flex: 1,
+  },
+  leaderboardName: {
+    fontSize: FONTS.SIZE.SM,
+    fontWeight: "600",
+    color: COLORS.GRAY_DARK,
+  },
+  leaderboardMeta: {
+    fontSize: FONTS.SIZE.XS,
+    color: COLORS.GRAY_500,
+    marginTop: 4,
+  },
+  leaderboardScore: {
+    alignItems: "flex-end",
+    marginLeft: 12,
+  },
+  leaderboardScoreValue: {
+    fontSize: FONTS.SIZE.MD,
+    fontWeight: "700",
+    color: COLORS.GRAY_DARK,
+  },
+  leaderboardScoreLabel: {
+    fontSize: FONTS.SIZE.XS,
+    color: COLORS.GRAY_500,
+    marginTop: 4,
   },
 });

@@ -1,29 +1,70 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, Image } from "react-native";
-import { useRoute, useFocusEffect } from "@react-navigation/native";
+import React, { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect, useRoute } from "@react-navigation/native";
+import { COLORS } from "appStyles";
 
 import type { TabName } from "../components/Footer";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
-
 import { AchievementsService } from "../http/achievements";
+import { LeadersService } from "../http/leaders";
 import type { Achievement, AchievementProgress } from "../http/types/achievements";
+import type { LeaderboardEntry, LeaderboardResponse } from "../http/types/leaders";
 
 import { styles } from "./styles";
-import { COLORS, FONTS } from "appStyles";
+
+const RANK_COLORS: Record<number, { background: string; border: string }> = {
+  1: { background: "#fff8e1", border: "#f59e0b" },
+  2: { background: "#f8fafc", border: "#cbd5e1" },
+  3: { background: "#fff7ed", border: "#fdba74" },
+};
+
+type ScreenError = {
+  message?: string;
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+};
+
+const getScreenErrorMessage = (
+  error: unknown,
+  fallback: string,
+): string => {
+  if (!error || typeof error !== "object") {
+    return fallback;
+  }
+
+  const normalizedError = error as ScreenError;
+
+  return normalizedError.response?.data?.message || normalizedError.message || fallback;
+};
 
 export default function AchievementsScreen() {
   const route = useRoute();
-  const activeTab: TabName = route.name === "Achievements" ? "achievements" : "achievements";
+  const activeTab: TabName =
+    route.name === "Achievements" ? "achievements" : "achievements";
 
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [progress, setProgress] = useState<AchievementProgress | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadAchievements = async () => {
+  const loadAchievements = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -31,53 +72,50 @@ export default function AchievementsScreen() {
       const auditoryId = await AsyncStorage.getItem("userId");
 
       if (!auditoryId) {
-        setError("User not authenticated");
-        setLoading(false);
+        setError("Пользователь не авторизован");
+
         return;
       }
 
-      console.log("Loading achievements for auditoryId:", auditoryId);
-
-   
       try {
-        console.log("Checking and awarding achievements...");
-        const awarded = await AchievementsService.checkAndAwardAchievements(auditoryId);
-        console.log("Awarded achievements:", awarded);
-      } catch (awardError: any) {
-        console.error("Error awarding achievements:", awardError?.response?.data || awardError?.message);
-      
+        await AchievementsService.checkAndAwardAchievements(auditoryId);
+      } catch (awardError: unknown) {
+        console.error("Error awarding achievements:", getScreenErrorMessage(awardError, "Unknown error"));
       }
- 
-      console.log("Fetching achievements and progress...");
-      const [achievementsData, progressData] = await Promise.all([
-        AchievementsService.getAchievementsByAuditoryId(auditoryId),
-        AchievementsService.getAchievementProgress(auditoryId),
-      ]);
 
-      console.log("Achievements loaded:", achievementsData);
-      console.log("Progress loaded:", progressData);
+      const [achievementsData, progressData, leaderboardData] =
+        await Promise.all([
+          AchievementsService.getAchievementsByAuditoryId(auditoryId),
+          AchievementsService.getAchievementProgress(auditoryId),
+          LeadersService.getLeaderboard(),
+        ]);
 
       setAchievements(achievementsData);
       setProgress(progressData);
-    } catch (err: any) {
-      console.error("Error loading achievements:", err?.response?.data || err?.message);
-      setError(err.message || "Failed to load achievements");
+      setLeaderboard(leaderboardData);
+    } catch (error: unknown) {
+      console.error("Error loading achievements:", getScreenErrorMessage(error, "Unknown error"));
+      setError(
+        getScreenErrorMessage(
+          error,
+          "Не удалось загрузить достижения и рейтинг",
+        ),
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
- 
   useFocusEffect(
-    React.useCallback(() => {
-      loadAchievements();
-    }, [])
+    useCallback(() => {
+      void loadAchievements();
+    }, [loadAchievements]),
   );
 
   const handleRefresh = () => {
     setRefreshing(true);
-    loadAchievements();
+    void loadAchievements();
   };
 
   const getTierColor = (tier: string): string => {
@@ -98,11 +136,11 @@ export default function AchievementsScreen() {
   const getTierLabel = (tier: string): string => {
     const tierLabels: Record<string, string> = {
       novice: "Новичок",
-      advanced: "Продивнутый",
+      advanced: "Продвинутый",
       expert: "Эксперт",
       master: "Мастер",
       beginner: "Начинающий",
-      intermediate: "Медиум",
+      intermediate: "Средний",
       professional: "Профессионал",
       legendary: "Легенда",
     };
@@ -110,9 +148,48 @@ export default function AchievementsScreen() {
     return tierLabels[tier] || tier;
   };
 
-  const renderProgressItem = (label: string, current: number, thresholds: { tier: string; required: number }[]) => {
-    const nextThreshold = thresholds.find(t => t.required > current);
-    const progress = nextThreshold ? (current / nextThreshold.required) * 100 : 100;
+  const getRankMark = (rank: number): string => {
+    if (rank === 1) return "🥇";
+
+    if (rank === 2) return "🥈";
+
+    if (rank === 3) return "🥉";
+
+    return `#${rank}`;
+  };
+
+  const getLeaderboardAvatarUri = (
+    leader: LeaderboardEntry,
+  ): string | null => {
+    if (!leader.avatarUrl) {
+      return null;
+    }
+
+    if (leader.avatarUrl.startsWith("data:")) {
+      return leader.avatarUrl;
+    }
+
+    return `data:${leader.avatarMimeType || "image/jpeg"};base64,${leader.avatarUrl}`;
+  };
+
+  const getInitials = (leader: LeaderboardEntry): string => {
+    const initials = [leader.firstName, leader.lastName]
+      .map((value) => value?.trim()?.[0] || "")
+      .join("")
+      .toUpperCase();
+
+    return initials || "ST";
+  };
+
+  const renderProgressItem = (
+    label: string,
+    current: number,
+    thresholds: { tier: string; required: number }[],
+  ) => {
+    const nextThreshold = thresholds.find((threshold) => threshold.required > current);
+    const currentProgress = nextThreshold
+      ? (current / nextThreshold.required) * 100
+      : 100;
 
     return (
       <View style={styles.progressItem}>
@@ -121,7 +198,7 @@ export default function AchievementsScreen() {
           <View
             style={[
               styles.progressFill,
-              { width: `${Math.min(progress, 100)}%` },
+              { width: `${Math.min(currentProgress, 100)}%` },
             ]}
           />
         </View>
@@ -133,48 +210,167 @@ export default function AchievementsScreen() {
   };
 
   const renderProgressSection = () => {
-    if (!progress) return null;
+    if (!progress) {
+      return null;
+    }
 
     return (
       <View style={styles.progressSection}>
         <Text style={styles.progressTitle}>Прогресс</Text>
 
         {renderProgressItem(
-          "Результаты студента (lуроки с 2+ звездами)",
+          "Уроки с 2+ звездами",
           progress.studentResults.current,
-          progress.studentResults.thresholds
+          progress.studentResults.thresholds,
         )}
 
         {renderProgressItem(
-          "Решенных задач",
+          "Решенные задачи",
           progress.solvedTasks.current,
-          progress.solvedTasks.thresholds
+          progress.solvedTasks.thresholds,
         )}
       </View>
     );
   };
 
-  const renderAchievementCard = ({ item }: { item: Achievement }) => (
-    <View style={styles.achievementCard}>
+  const renderMyRankSection = () => {
+    const currentUser = leaderboard?.currentUser;
+
+    if (!leaderboard || !currentUser) {
+      return null;
+    }
+
+    return (
+      <View style={styles.myRankCard}>
+        <Text style={styles.myRankLabel}>Моя позиция</Text>
+        <Text style={styles.myRankName}>{currentUser.fullName}</Text>
+        <Text style={styles.myRankMeta}>
+          Уровень {currentUser.level} из {leaderboard.totalStudents} студентов
+        </Text>
+
+        <View style={styles.myRankStatsRow}>
+          <View style={styles.myRankStat}>
+            <Text style={styles.myRankStatValue}>#{currentUser.rank}</Text>
+            <Text style={styles.myRankStatLabel}>место</Text>
+          </View>
+
+          <View style={styles.myRankStat}>
+            <Text style={styles.myRankStatValue}>{currentUser.score}</Text>
+            <Text style={styles.myRankStatLabel}>общий XP</Text>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  const renderLeaderboardRow = (leader: LeaderboardEntry) => {
+    const isCurrentUser = leaderboard?.currentUser?.clientId === leader.clientId;
+    const colors = RANK_COLORS[leader.rank] || {
+      background: COLORS.GRAY_50,
+      border: COLORS.GRAY_200,
+    };
+    const avatarUri = getLeaderboardAvatarUri(leader);
+
+    return (
+      <View
+        key={leader.id}
+        style={[
+          styles.leaderboardRow,
+          {
+            backgroundColor: colors.background,
+            borderColor: colors.border,
+          },
+          isCurrentUser && styles.leaderboardRowCurrent,
+        ]}
+      >
+        <View style={styles.leaderboardRankBadge}>
+          <Text style={styles.leaderboardRankText}>{getRankMark(leader.rank)}</Text>
+        </View>
+
+        {avatarUri ? (
+          <Image source={{ uri: avatarUri }} style={styles.leaderboardAvatarImage} />
+        ) : (
+          <View style={styles.leaderboardAvatarPlaceholder}>
+            <Text style={styles.leaderboardAvatarPlaceholderText}>
+              {getInitials(leader)}
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.leaderboardInfo}>
+          <Text style={styles.leaderboardName} numberOfLines={1}>
+            {leader.fullName}
+          </Text>
+          <Text style={styles.leaderboardMeta}>
+            Уровень {leader.level}
+            {isCurrentUser ? " • это вы" : ""}
+          </Text>
+        </View>
+
+        <View style={styles.leaderboardScore}>
+          <Text style={styles.leaderboardScoreValue}>{leader.score}</Text>
+          <Text style={styles.leaderboardScoreLabel}>XP</Text>
+        </View>
+      </View>
+    );
+  };
+
+  const renderLeaderboardSection = () => {
+    if (!leaderboard) {
+      return null;
+    }
+
+    return (
+      <View style={styles.progressSection}>
+        <Text style={styles.progressTitle}>Рейтинг по XP</Text>
+        <Text style={styles.sectionCaption}>
+          Студенты отсортированы по общему опыту, заработанному за решенные задачи.
+        </Text>
+
+        {renderMyRankSection()}
+
+        {leaderboard.leaders.length > 0 ? (
+          <View style={styles.leaderboardList}>
+            {leaderboard.leaders.map(renderLeaderboardRow)}
+          </View>
+        ) : (
+          <View style={styles.noAchievementsContainer}>
+            <Text style={styles.noAchievementsText}>
+              Рейтинг пока пуст. Решите первую задачу, чтобы попасть в таблицу лидеров.
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  const renderAchievementCard = (item: Achievement) => (
+    <View key={item.id} style={styles.achievementCard}>
       {item.image && item.image.startsWith("http") ? (
-        <Image
-          source={{ uri: item.image }}
-          style={styles.achievementImage}
-        />
+        <Image source={{ uri: item.image }} style={styles.achievementImage} />
       ) : (
-        <View style={[styles.achievementImage, { backgroundColor: getTierColor(item.tier), justifyContent: "center", alignItems: "center" }]}>
-          <Text style={{ fontSize: 32 }}>🏆</Text>
+        <View
+          style={[
+            styles.achievementImage,
+            styles.achievementImageFallback,
+            { backgroundColor: getTierColor(item.tier) },
+          ]}
+        >
+          <Text style={styles.achievementFallbackIcon}>🏆</Text>
         </View>
       )}
 
       <View style={styles.achievementContent}>
         <Text style={styles.achievementTitle}>{item.title}</Text>
         <Text style={styles.achievementDescription}>{item.description}</Text>
-        <Text style={[styles.achievementTier, { color: getTierColor(item.tier) }]}>
+        <Text
+          style={[styles.achievementTier, { color: getTierColor(item.tier) }]}
+        >
           {getTierLabel(item.tier)}
         </Text>
         <Text style={styles.achievementDate}>
-          Получено: {new Date(item.earnedAt).toLocaleDateString("en-US", {
+          Получено:{" "}
+          {new Date(item.earnedAt).toLocaleDateString("ru-RU", {
             year: "numeric",
             month: "short",
             day: "numeric",
@@ -184,68 +380,70 @@ export default function AchievementsScreen() {
     </View>
   );
 
-  const renderEmptyList = () => (
-    <View style={styles.noAchievementsContainer}>
-      <Text style={{ fontSize: 64 }}>🏆</Text>
-      <Text style={styles.noAchievementsText}>
-        No achievements yet.{"\n"}Complete lessons and solve tasks to earn achievements!
-      </Text>
+  const renderAchievementsSection = () => (
+    <View style={styles.sectionBlock}>
+      <Text style={styles.listSectionTitle}>Достижения</Text>
+
+      {achievements.length > 0 ? (
+        achievements.map(renderAchievementCard)
+      ) : (
+        <View style={styles.noAchievementsContainer}>
+          <Text style={styles.noAchievementsIcon}>🏆</Text>
+          <Text style={styles.noAchievementsText}>
+            Пока нет достижений. Проходите уроки и решайте задачи, чтобы открыть первые награды.
+          </Text>
+        </View>
+      )}
     </View>
   );
 
   if (loading && !refreshing) {
     return (
-      <>
-        <View style={styles.containerLight}>
-          <Header title="Achievements" />
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.PRIMARY} />
-            <Text style={{ marginTop: 16, color: COLORS.GRAY_600 }}>Загрузка достижений...</Text>
-          </View>
-          <Footer activeTab={activeTab} />
+      <View style={styles.containerLight}>
+        <Header title="Achievements" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.PRIMARY} />
+          <Text style={styles.statusText}>Загрузка достижений и рейтинга...</Text>
         </View>
-      </>
+        <Footer activeTab={activeTab} />
+      </View>
     );
   }
 
   if (error) {
     return (
-      <>
-        <View style={styles.containerLight}>
-          <Header title="Achievements" />
-          <View style={styles.errorContainer}>
-            <Text style={{ fontSize: 64 }}>⚠️</Text>
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={loadAchievements}>
-              <Text style={styles.retryButtonText}>Try Again</Text>
-            </TouchableOpacity>
-          </View>
-          <Footer activeTab={activeTab} />
+      <View style={styles.containerLight}>
+        <Header title="Achievements" />
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorIcon}>⚠️</Text>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadAchievements}>
+            <Text style={styles.retryButtonText}>Попробовать снова</Text>
+          </TouchableOpacity>
         </View>
-      </>
+        <Footer activeTab={activeTab} />
+      </View>
     );
   }
 
   return (
-    <>
-      <View style={styles.containerLight}>
-        <Header title="Achievements" />
+    <View style={styles.containerLight}>
+      <Header title="Achievements" />
 
-        <View style={styles.content}>
-          <FlatList
-            data={achievements}
-            renderItem={renderAchievementCard}
-            keyExtractor={(item) => item.id}
-            ListHeaderComponent={renderProgressSection()}
-            ListEmptyComponent={renderEmptyList}
-            contentContainerStyle={styles.achievementsContainer}
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-          />
-        </View>
-
-        <Footer activeTab={activeTab} />
+      <View style={styles.content}>
+        <ScrollView
+          contentContainerStyle={styles.achievementsContainer}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+        >
+          {renderProgressSection()}
+          {renderLeaderboardSection()}
+          {renderAchievementsSection()}
+        </ScrollView>
       </View>
-    </>
+
+      <Footer activeTab={activeTab} />
+    </View>
   );
 }
