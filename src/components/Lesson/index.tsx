@@ -15,7 +15,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { COLORS } from "appStyles";
-import { useRouter } from "expo-router";
 
 import { FillTaskInteraction } from "./FillTaskInteraction";
 import { styles } from "./styled";
@@ -723,7 +722,6 @@ const ResultsModal = ({
  
 const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkpoint" }) => {
   console.log("  Lesson mounted with ID:", id);
-  const router = useRouter();
   const navigation = useNavigation();
   const isCheckpointMode = mode === "checkpoint";
   const entityTitle = isCheckpointMode ? "контрольной точки" : "урока";
@@ -1862,7 +1860,7 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
           <Text style={styles.errorText}>{error}</Text>
-          <CustomButton text="Назад" handler={() => router.back()} backgroundColor={COLORS.BLACK} />
+          <CustomButton text="Назад" handler={() => navigation.goBack()} backgroundColor={COLORS.BLACK} />
         </View>
       </SafeAreaView>
     );
@@ -1873,7 +1871,7 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
           <Text>Нет слайдов</Text>
-          <CustomButton text="Назад" handler={() => router.back()} backgroundColor={COLORS.BLACK} />
+          <CustomButton text="Назад" handler={() => navigation.goBack()} backgroundColor={COLORS.BLACK} />
         </View>
       </SafeAreaView>
     );
