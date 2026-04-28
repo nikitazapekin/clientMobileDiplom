@@ -7,6 +7,9 @@ import type { MainTabParamList, RootStackParamList } from "./types";
 
 import { ROUTES } from "@/navigation/routes";
 import AchievementsScreen from "@/screens/Achievements";
+import ArticleScreen from "@/screens/Article";
+import ArticleEditorScreen from "@/screens/ArticleEditor";
+import ArticlesScreen from "@/screens/Articles";
 import AuthScreen from "@/screens/AuthScreen";
 import ChatScreen from "@/screens/Chat";
 import ChatsScreen from "@/screens/Chats";
@@ -15,6 +18,9 @@ import CodingTasksScreen from "@/screens/CodingTasks";
 import CodingTaskSolveScreen from "@/screens/CodingTaskSolve";
 import CourseScreen from "@/screens/Course";
 import CoursesScreen from "@/screens/Courses";
+import ForumScreen from "@/screens/Forum";
+import ForumEditorScreen from "@/screens/ForumEditor";
+import ForumQuestionScreen from "@/screens/ForumQuestion";
 import FriendsScreen from "@/screens/Friends";
 import FriendsProfileScreen from "@/screens/FriendsProfile";
 import LessonScreen from "@/screens/Lesson";
@@ -80,6 +86,12 @@ export default function AppNavigator() {
         <Stack.Screen name={ROUTES.STACK.FRIENDS_PROFILE} component={FriendsProfileScreen} />
         <Stack.Screen name={ROUTES.STACK.CHAT} component={ChatScreen} />
         <Stack.Screen name={ROUTES.STACK.SOLUTIONS} component={SolutionsScreen} />
+        <Stack.Screen name={ROUTES.STACK.FORUM} component={ForumScreen} />
+        <Stack.Screen name={ROUTES.STACK.FORUM_QUESTION} component={ForumQuestionScreen} />
+        <Stack.Screen name={ROUTES.STACK.FORUM_EDITOR} component={ForumEditorScreen} />
+        <Stack.Screen name={ROUTES.STACK.ARTICLES} component={ArticlesScreen} />
+        <Stack.Screen name={ROUTES.STACK.ARTICLE} component={ArticleScreen} />
+        <Stack.Screen name={ROUTES.STACK.ARTICLE_EDITOR} component={ArticleEditorScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

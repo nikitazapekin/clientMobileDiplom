@@ -28,7 +28,9 @@ type MenuRoute =
   | typeof ROUTES.STACK.COURSES
   | typeof ROUTES.STACK.MY_COURSES
   | typeof ROUTES.STACK.FRIENDS
-  | typeof ROUTES.STACK.PROFILE;
+  | typeof ROUTES.STACK.PROFILE
+  | typeof ROUTES.STACK.FORUM
+  | typeof ROUTES.STACK.ARTICLES;
 
 interface DrawerProfileState {
   avatarUri: string | null;
@@ -38,6 +40,8 @@ interface DrawerProfileState {
 }
 
 const MENU_ITEMS: { label: string; route: MenuRoute }[] = [
+  { label: "Форум", route: ROUTES.STACK.FORUM },
+  { label: "Статьи", route: ROUTES.STACK.ARTICLES },
   { label: "Друзья", route: ROUTES.STACK.FRIENDS },
   { label: "Мои курсы", route: ROUTES.STACK.MY_COURSES },
   { label: "Профиль", route: ROUTES.STACK.PROFILE },

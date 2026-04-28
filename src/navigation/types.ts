@@ -37,6 +37,12 @@ export type RootStackParamList = {
   };
 
   [ROUTES.STACK.SOLUTIONS]: { taskId: string; taskTitle: string };
+  [ROUTES.STACK.FORUM]: undefined;
+  [ROUTES.STACK.FORUM_QUESTION]: { questionId: string };
+  [ROUTES.STACK.FORUM_EDITOR]: { questionId?: string } | undefined;
+  [ROUTES.STACK.ARTICLES]: undefined;
+  [ROUTES.STACK.ARTICLE]: { articleId: string };
+  [ROUTES.STACK.ARTICLE_EDITOR]: { articleId?: string } | undefined;
 };
 
 export type MainTabParamList = {

@@ -20,6 +20,12 @@ export const ROUTES = {
     FRIENDS: "Friends",
     FRIENDS_PROFILE: "FriendsProfile",
     SOLUTIONS: "Solutions",
+    FORUM: "Forum",
+    FORUM_QUESTION: "ForumQuestion",
+    FORUM_EDITOR: "ForumEditor",
+    ARTICLES: "Articles",
+    ARTICLE: "Article",
+    ARTICLE_EDITOR: "ArticleEditor",
   },
   TABS: {
     HOME: "HomeTab",
