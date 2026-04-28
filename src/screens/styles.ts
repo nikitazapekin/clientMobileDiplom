@@ -256,6 +256,18 @@ export const styles = StyleSheet.create({
   leaderboardList: {
     gap: 10,
   },
+  leaderboardHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+    gap: 12,
+  },
+  leaderboardPageSummary: {
+    flex: 1,
+    fontSize: FONTS.SIZE.XS,
+    color: COLORS.GRAY_500,
+  },
   leaderboardRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -332,5 +344,38 @@ export const styles = StyleSheet.create({
     fontSize: FONTS.SIZE.XS,
     color: COLORS.GRAY_500,
     marginTop: 4,
+  },
+  leaderboardPagination: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 16,
+    gap: 12,
+  },
+  leaderboardPaginationButton: {
+    minWidth: 92,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: SIZES.RADIUS_MEDIUM,
+    backgroundColor: COLORS.PRIMARY,
+    alignItems: "center",
+  },
+  leaderboardPaginationButtonDisabled: {
+    backgroundColor: COLORS.GRAY_200,
+  },
+  leaderboardPaginationButtonText: {
+    color: COLORS.WHITE,
+    fontSize: FONTS.SIZE.XS,
+    fontWeight: "700",
+  },
+  leaderboardPaginationButtonTextDisabled: {
+    color: COLORS.GRAY_500,
+  },
+  leaderboardPaginationText: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: FONTS.SIZE.XS,
+    color: COLORS.GRAY_700,
+    fontWeight: "600",
   },
 });

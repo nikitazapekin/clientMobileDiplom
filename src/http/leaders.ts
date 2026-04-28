@@ -41,10 +41,13 @@ export class LeadersService {
     };
   }
 
-  static async getLeaderboard(): Promise<LeaderboardResponse> {
+  static async getLeaderboard(page: number = 1): Promise<LeaderboardResponse> {
     try {
       const token = await this.getToken();
-      const response = await $api.get('/leaders', this.getHeaders(token));
+      const response = await $api.get('/leaders', {
+        ...this.getHeaders(token),
+        params: { page },
+      });
 
       return response.data;
     } catch (error: unknown) {

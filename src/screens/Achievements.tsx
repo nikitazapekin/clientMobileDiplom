@@ -28,6 +28,8 @@ const RANK_COLORS: Record<number, { background: string; border: string }> = {
   3: { background: "#fff7ed", border: "#fdba74" },
 };
 
+const LEADERBOARD_PAGE_SIZE = 50;
+
 type ScreenError = {
   message?: string;
   response?: {
@@ -60,6 +62,7 @@ export default function AchievementsScreen() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(
     null,
   );
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -87,7 +90,7 @@ export default function AchievementsScreen() {
         await Promise.all([
           AchievementsService.getAchievementsByAuditoryId(auditoryId),
           AchievementsService.getAchievementProgress(auditoryId),
-          LeadersService.getLeaderboard(),
+          LeadersService.getLeaderboard(currentPage),
         ]);
 
       setAchievements(achievementsData);
@@ -105,7 +108,7 @@ export default function AchievementsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [currentPage]);
 
   useFocusEffect(
     useCallback(() => {
@@ -116,6 +119,22 @@ export default function AchievementsScreen() {
   const handleRefresh = () => {
     setRefreshing(true);
     void loadAchievements();
+  };
+
+  const handlePageChange = (nextPage: number) => {
+    if (!leaderboard) {
+      return;
+    }
+
+    if (nextPage < 1 || nextPage > leaderboard.totalPages) {
+      return;
+    }
+
+    if (nextPage === currentPage) {
+      return;
+    }
+
+    setCurrentPage(nextPage);
   };
 
   const getTierColor = (tier: string): string => {
@@ -320,12 +339,29 @@ export default function AchievementsScreen() {
       return null;
     }
 
+    const pageStart = (leaderboard.page - 1) * leaderboard.limit + 1;
+    const pageEnd = Math.min(
+      leaderboard.page * leaderboard.limit,
+      leaderboard.totalStudents,
+    );
+
     return (
       <View style={styles.progressSection}>
         <Text style={styles.progressTitle}>Рейтинг по XP</Text>
         <Text style={styles.sectionCaption}>
           Студенты отсортированы по общему опыту, заработанному за решенные задачи.
         </Text>
+
+        <View style={styles.leaderboardHeaderRow}>
+          <Text style={styles.leaderboardPageSummary}>
+            {leaderboard.totalStudents > 0
+              ? `Показано ${pageStart}-${pageEnd} из ${leaderboard.totalStudents}`
+              : "Пока нет студентов в рейтинге"}
+          </Text>
+          <Text style={styles.leaderboardPageSummary}>
+            По {LEADERBOARD_PAGE_SIZE} на страницу
+          </Text>
+        </View>
 
         {renderMyRankSection()}
 
@@ -340,6 +376,53 @@ export default function AchievementsScreen() {
             </Text>
           </View>
         )}
+
+        {leaderboard.totalPages > 1 ? (
+          <View style={styles.leaderboardPagination}>
+            <TouchableOpacity
+              style={[
+                styles.leaderboardPaginationButton,
+                leaderboard.page === 1 && styles.leaderboardPaginationButtonDisabled,
+              ]}
+              disabled={leaderboard.page === 1}
+              onPress={() => handlePageChange(leaderboard.page - 1)}
+            >
+              <Text
+                style={[
+                  styles.leaderboardPaginationButtonText,
+                  leaderboard.page === 1 &&
+                    styles.leaderboardPaginationButtonTextDisabled,
+                ]}
+              >
+                Назад
+              </Text>
+            </TouchableOpacity>
+
+            <Text style={styles.leaderboardPaginationText}>
+              Страница {leaderboard.page} из {leaderboard.totalPages}
+            </Text>
+
+            <TouchableOpacity
+              style={[
+                styles.leaderboardPaginationButton,
+                leaderboard.page === leaderboard.totalPages &&
+                  styles.leaderboardPaginationButtonDisabled,
+              ]}
+              disabled={leaderboard.page === leaderboard.totalPages}
+              onPress={() => handlePageChange(leaderboard.page + 1)}
+            >
+              <Text
+                style={[
+                  styles.leaderboardPaginationButtonText,
+                  leaderboard.page === leaderboard.totalPages &&
+                    styles.leaderboardPaginationButtonTextDisabled,
+                ]}
+              >
+                Вперед
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
       </View>
     );
   };
@@ -397,7 +480,7 @@ export default function AchievementsScreen() {
     </View>
   );
 
-  if (loading && !refreshing) {
+  if (loading && !refreshing && !leaderboard && achievements.length === 0) {
     return (
       <View style={styles.containerLight}>
         <Header title="Achievements" />

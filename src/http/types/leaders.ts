@@ -17,4 +17,7 @@ export interface LeaderboardResponse {
   leaders: LeaderboardEntry[];
   currentUser: LeaderboardEntry | null;
   totalStudents: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
