@@ -145,7 +145,7 @@ export const styles = StyleSheet.create({
     textAlign: "center",
   },
   emptyButton: {
-    backgroundColor: COLORS.GRAY_DARK,
+    backgroundColor: "#9F0FA7",
     borderRadius: 999,
     paddingHorizontal: 18,
     paddingVertical: 12,

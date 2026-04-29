@@ -178,12 +178,18 @@ const CodingTasksList = () => {
               }
             >
               <View style={s.taskHeader}>
-                <Text style={s.taskTitle} numberOfLines={1}>
-                  {isSolved ? "✅ " : ""}
+                <Text style={[s.taskTitle, isSolved && s.taskTitleSolved]} numberOfLines={1}>
                   {task.title}
                 </Text>
-                <View style={[s.badge, { backgroundColor: diffInfo.color }]}>
-                  <Text style={s.badgeText}>{diffInfo.label}</Text>
+                <View style={s.taskHeaderBadges}>
+                  {isSolved && (
+                    <View style={s.solvedBadge}>
+                      <Text style={s.solvedBadgeText}>Решено</Text>
+                    </View>
+                  )}
+                  <View style={[s.badge, { backgroundColor: diffInfo.color }]}>
+                    <Text style={s.badgeText}>{diffInfo.label}</Text>
+                  </View>
                 </View>
               </View>
               {(task.tags || []).length > 0 && (
@@ -300,18 +306,24 @@ const s = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 6,
     elevation: 1,
-    borderLeftWidth: 4,
-    borderLeftColor: "transparent",
+    borderWidth: 1,
+    borderColor: COLORS.GRAY_100,
   },
   taskCardSolved: {
-    borderLeftColor: "#4caf50",
-    opacity: 0.85,
+    backgroundColor: "#f6fbf7",
+    borderColor: "#cfe6d5",
   },
   taskHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 6,
+  },
+  taskHeaderBadges: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexShrink: 0,
   },
   taskTitle: {
     fontSize: 16,
@@ -320,6 +332,9 @@ const s = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
+  taskTitleSolved: {
+    color: COLORS.GRAY_700,
+  },
   badge: {
     paddingVertical: 3,
     paddingHorizontal: 10,
@@ -327,6 +342,18 @@ const s = StyleSheet.create({
   },
   badgeText: {
     color: COLORS.WHITE,
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
+  solvedBadge: {
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: "#e8f5ec",
+  },
+  solvedBadgeText: {
+    color: "#2f6b3f",
     fontSize: 11,
     fontWeight: "700",
     textTransform: "uppercase",

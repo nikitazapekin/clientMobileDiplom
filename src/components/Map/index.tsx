@@ -933,12 +933,7 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
         </View>
       </ScrollView>
 
-      <View style={styles.infoPanel}>
-        <Text style={styles.infoText}>
-          {mapSize.width}×{mapSize.height} | Эл: {elements.length} |
-          Эт: {Object.keys(lessonsData).length + Object.keys(checkpointsData).length}
-        </Text>
-      </View>
+      
 
       <Modal
         animationType="fade"
@@ -971,14 +966,15 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
               <CustomButton
                 handler={() => setModalVisible(false)}
                 text="Закрыть"
+                color="#000"
+                 backgroundColor="#D8D8D8"
                 maxWidth={120}
               />
               <CustomButton
                 handler={handleNavigate}
                 text={modalData?.type === "lesson" ? "Перейти к уроку" : "Перейти к контрольной точке"}
-                backgroundColor="#D8D8D8"
+                 backgroundColor="#9F0FA7"
                 maxWidth={120}
-                color="#000"
               />
             </View>
           </View>

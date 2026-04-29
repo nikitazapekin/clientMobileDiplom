@@ -373,12 +373,7 @@ const CourseInfo = ({ id }: CourseInfoProps) => {
         </Modal>
 
         <View style={styles.metaInfo}>
-          <Text style={styles.metaText}>Тип: {course.type}</Text>
-          <Text style={styles.metaText}>Язык: {course.language}</Text>
-          <Text style={styles.metaText}>
-            Статус: {course.status === 'published' ? 'Опубликован' :
-              course.status === 'draft' ? 'Черновик' : 'В архиве'}
-          </Text>
+           
           <Text style={styles.metaText}>
             Создан: {new Date(course.createdAt).toLocaleDateString('ru-RU')}
           </Text>
