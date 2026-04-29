@@ -147,7 +147,7 @@ const SolvedTaskCard = ({
 
   return (
     <TouchableOpacity
-      style={[styles.taskCard, styles.taskCardSolved]}
+      style={styles.taskCard}
       onPress={onPress}
     >
       <View style={styles.taskHeader}>
@@ -165,14 +165,16 @@ const SolvedTaskCard = ({
         <Text style={styles.taskMeta}>
           {(task.languages || []).join(", ")} | {task.testCases?.length ?? 0} тестов
         </Text>
-        <View style={styles.solvedDateBadge}>
-          <Text style={styles.solvedDateText}>{formatDate(solvedAt)}</Text>
-        </View>
       </View>
-      <View style={styles.taskFooter}>
+      <View style={[styles.taskFooter, styles.taskFooterBottom]}>
         <Text style={styles.authorText}>Автор: {task.authorName}</Text>
-        <View style={styles.xpBadge}>
-          <Text style={styles.xpBadgeText}>+{task.experienceReward} XP</Text>
+        <View style={styles.taskBadgesRow}>
+          <View style={styles.solvedDateBadge}>
+            <Text style={styles.solvedDateText}>{formatDate(solvedAt)}</Text>
+          </View>
+          <View style={styles.xpBadge}>
+            <Text style={styles.xpBadgeText}>+{task.experienceReward} XP</Text>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -706,14 +708,6 @@ const UserProfile = () => {
           </View>
         ) : null}
 
-        <View style={styles.statusContainer}>
-          <View style={[styles.statusBadge, profile.isActive ? styles.statusActive : styles.statusInactive]}>
-            <Text style={styles.statusText}>
-              {profile.isActive ? 'В сети' : 'Не в сети'}
-            </Text>
-          </View>
-        </View>
-
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={() => {
@@ -1008,6 +1002,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#fff',
     marginHorizontal: 20,
+    marginTop: 20,
     marginBottom: 30,
     padding: 15,
     borderRadius: 12,
@@ -1128,11 +1123,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 6,
     elevation: 1,
-    borderLeftWidth: 4,
-    borderLeftColor: "transparent",
-  },
-  taskCardSolved: {
-    borderLeftColor: "#4caf50",
     opacity: 0.85,
   },
   taskHeader: {
@@ -1170,9 +1160,18 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  taskFooterBottom: {
+    marginTop: 6,
+  },
   taskMeta: {
     fontSize: 12,
     color: '#999',
+  },
+  taskBadgesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginLeft: 12,
   },
   xpBadge: {
     paddingVertical: 3,
@@ -1188,7 +1187,8 @@ const styles = StyleSheet.create({
   authorText: {
     fontSize: 11,
     color: '#999',
-    marginTop: 6,
+    flex: 1,
+    marginRight: 12,
   },
   solvedDateBadge: {
     paddingVertical: 3,
