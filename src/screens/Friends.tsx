@@ -430,7 +430,13 @@ const FriendsScreen = () => {
       <View style={styles.container}>
         <View style={styles.tabContainer}>
           <TouchableOpacity
-            style={[styles.tabButton, isMyFriendsTab && styles.tabButtonActive]}
+            style={[styles.tabButton, isMyFriendsTab && styles.tabButtonActive,
+
+{
+      backgroundColor: "#9F0FA7"
+    }
+
+            ]}
             onPress={() => {
               setActiveTab('my-friends');
               setSearchQuery('');
@@ -439,7 +445,7 @@ const FriendsScreen = () => {
             }}
           >
             <Text style={[styles.tabButtonText, isMyFriendsTab && styles.tabButtonTextActive]}>
-            Мои друзья
+            Мои друзья  
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -618,7 +624,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabButtonActive: {
-    borderBottomColor: '#007AFF',
+    borderBottomColor: '#9F0FA7',
   },
   tabButtonText: {
     fontSize: 14,
@@ -626,7 +632,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   tabButtonTextActive: {
-    color: '#007AFF',
+    color: '#9F0FA7',
   },
   tabButtonWithBadge: {
     flexDirection: 'row',

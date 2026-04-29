@@ -547,12 +547,15 @@ const UserProfile = () => {
 
         
           <TouchableOpacity
-            style={styles.friendsButton}
+            style={[styles.friendsButton, {
+
+              backgroundColor: "#9F0FA7"
+            }]}
             onPress={() => {
               navigation.navigate(ROUTES.STACK.FRIENDS as any);
             }}
           >
-            <Text style={styles.friendsButtonText}>Мои друзья</Text>
+            <Text style={[styles.friendsButtonText,  ] }>Мои друзья  ввв</Text>
           </TouchableOpacity>
         </View>
 
