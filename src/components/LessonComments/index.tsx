@@ -20,14 +20,7 @@ import LessonCommentsService, { type LessonComment } from "@/http/lessonComments
 import { ProfileService } from "@/http/profile";
 
 const BRAND_COLOR = "#9F0FA7";
-const THUMB_ICON_URI =
-  "data:image/svg+xml;utf8," +
-  encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22" fill="none">
-      <rect x="1.2" y="7.2" width="4.2" height="8.8" rx="1.8" fill="#FBD7DE" stroke="${BRAND_COLOR}" stroke-width="1.5"/>
-      <path d="M7 16V9.3C7 8.8 7.16 8.31 7.47 7.93L10.05 4.67C10.71 3.83 12.05 4.17 12.23 5.23L12.48 6.8C12.55 7.2 12.89 7.5 13.29 7.5H18.33C19.37 7.5 20.11 8.51 19.8 9.5L18.05 15.1C17.78 15.96 16.99 16.55 16.09 16.55H7Z" fill="white" stroke="${BRAND_COLOR}" stroke-width="1.5" stroke-linejoin="round"/>
-    </svg>
-  `);
+const THUMB_ICON = require("../../../assets/dislike.png");
 
 interface LessonCommentsProps {
   visible: boolean;
@@ -139,9 +132,7 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
         setComments([]);
       } else {
         console.log("Setting comments:", data.comments.length, "items");
-        if (data.comments.length > 0) {
-          Alert.alert("Комментарии", `Загружено комментариев: ${data.comments.length}    `);
-        }
+       
         setComments(data.comments);
         await loadUserNames(data.comments);
       }
@@ -276,7 +267,7 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
   ) => (
     <TouchableOpacity style={styles.commentAction} onPress={onPress}>
       <Image
-        source={{ uri: THUMB_ICON_URI }}
+        source={THUMB_ICON}
         style={[styles.commentActionIcon, rotated && styles.commentActionIconRotated]}
         resizeMode="contain"
       />

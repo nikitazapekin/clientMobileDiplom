@@ -19,8 +19,8 @@ export const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 10,
+    paddingTop: 6,
+    paddingBottom: 6,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.GRAY_LIGHT,
     backgroundColor: COLORS.WHITE,
@@ -29,7 +29,7 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: 2,
   },
   title: {
     fontSize: 24,
@@ -39,7 +39,7 @@ export const styles = StyleSheet.create({
   },
   sourcesButton: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 5,
     borderRadius: 20,
     backgroundColor: COLORS.ACCENT,
     justifyContent: "center",
@@ -63,8 +63,8 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 12,
+    paddingTop: 8,
+    paddingBottom: 6,
     borderTopWidth: 1,
     borderTopColor: COLORS.GRAY_LIGHT,
     backgroundColor: COLORS.WHITE,
@@ -674,7 +674,7 @@ export const styles = StyleSheet.create({
 
   commentsButton: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 5,
     borderRadius: 20,
     backgroundColor: "#9F0FA7",
     justifyContent: "center",

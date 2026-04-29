@@ -276,7 +276,7 @@ const CodeTaskBlockView = ({
         value={codeValue}
         onChange={onCodeChange}
         language={block.language || "javascript"}
-        height={300}
+        height={400}
       />
 
       <View style={styles.buttonRow}>
