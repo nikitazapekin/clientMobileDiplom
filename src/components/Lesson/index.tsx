@@ -276,7 +276,7 @@ const CodeTaskBlockView = ({
         value={codeValue}
         onChange={onCodeChange}
         language={block.language || "javascript"}
-        height={200}
+        height={300}
       />
 
       <View style={styles.buttonRow}>
@@ -285,7 +285,7 @@ const CodeTaskBlockView = ({
           text="Проверить"
           handler={onCheck}
           disabled={isRunning}
-          backgroundColor={COLORS.BLACK}
+          backgroundColor="#9F0FA7"
           maxWidth={120}
         />
       </View>
@@ -423,7 +423,7 @@ const FillCodeTaskBlockView = ({
         <CustomButton
           text="Проверить"
           handler={onCheck}
-          backgroundColor={COLORS.BLACK}
+          backgroundColor="#9F0FA7"
           maxWidth={120}
         />
       </View>
@@ -1860,7 +1860,7 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
           <Text style={styles.errorText}>{error}</Text>
-          <CustomButton text="Назад" handler={() => navigation.goBack()} backgroundColor={COLORS.BLACK} />
+          <CustomButton text="Назад" handler={() => navigation.goBack()} backgroundColor="#9F0FA7" />
         </View>
       </SafeAreaView>
     );
@@ -1871,7 +1871,7 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
           <Text>Нет слайдов</Text>
-          <CustomButton text="Назад" handler={() => navigation.goBack()} backgroundColor={COLORS.BLACK} />
+          <CustomButton text="Назад" handler={() => navigation.goBack()} backgroundColor="#9F0FA7" />
         </View>
       </SafeAreaView>
     );
@@ -2012,13 +2012,13 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
           text="Назад"
           handler={goToPrev}
           disabled={currentIndex === 0}
-          backgroundColor={COLORS.BLACK}
+          backgroundColor="#9F0FA7"
           maxWidth={100}
         />
         <CustomButton
           text={currentIndex === slides.length - 1 ? "Завершить" : "Вперёд"}
           handler={goToNext}
-          backgroundColor={COLORS.BLACK}
+          backgroundColor="#9F0FA7"
           maxWidth={100}
         />
       </View>

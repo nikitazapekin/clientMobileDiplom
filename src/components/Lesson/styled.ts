@@ -18,7 +18,9 @@ export const styles = StyleSheet.create({
 
   },
   header: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.GRAY_LIGHT,
     backgroundColor: COLORS.WHITE,
@@ -27,7 +29,7 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 6,
   },
   title: {
     fontSize: 24,
@@ -37,7 +39,7 @@ export const styles = StyleSheet.create({
   },
   sourcesButton: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderRadius: 20,
     backgroundColor: COLORS.ACCENT,
     justifyContent: "center",
@@ -51,7 +53,6 @@ export const styles = StyleSheet.create({
   },
   progress: {
     fontSize: 14,
-
     textAlign: "right",
   },
   content: {
@@ -61,7 +62,9 @@ export const styles = StyleSheet.create({
   navigation: {
     flexDirection: "row",
     justifyContent: "space-between",
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 12,
     borderTopWidth: 1,
     borderTopColor: COLORS.GRAY_LIGHT,
     backgroundColor: COLORS.WHITE,
@@ -257,7 +260,8 @@ export const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: "row",
     justifyContent: "space-around",
-    marginVertical: 10,
+    marginTop: 12,
+    marginBottom: 8,
   },
   testResults: {
     marginTop: 10,
@@ -670,9 +674,9 @@ export const styles = StyleSheet.create({
 
   commentsButton: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderRadius: 20,
-    backgroundColor: COLORS.BLACK,
+    backgroundColor: "#9F0FA7",
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 10,

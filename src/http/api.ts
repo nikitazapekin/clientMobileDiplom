@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { type AxiosAdapter, type AxiosError, type AxiosHeaders, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 
-const DEFAULT_BASE_URL = 'https://lying-traveler-lyrics-evidence.trycloudflare.com';
+const DEFAULT_BASE_URL = 'https://jar-commissioner-suggesting-everyone.trycloudflare.com';
 const DEFAULT_TIMEOUT_MS = 45000;
 const REFRESH_TIMEOUT_MS = 15000;
 const DEFAULT_RETRY_COUNT = 2;

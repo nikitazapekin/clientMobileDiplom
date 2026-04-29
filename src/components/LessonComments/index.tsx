@@ -6,6 +6,7 @@ import { COLORS } from "appStyles";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Modal,
   ScrollView,
   Text,
@@ -17,6 +18,16 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import LessonCommentsService, { type LessonComment } from "@/http/lessonComments";
 import { ProfileService } from "@/http/profile";
+
+const BRAND_COLOR = "#9F0FA7";
+const THUMB_ICON_URI =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22" fill="none">
+      <rect x="1.2" y="7.2" width="4.2" height="8.8" rx="1.8" fill="#FBD7DE" stroke="${BRAND_COLOR}" stroke-width="1.5"/>
+      <path d="M7 16V9.3C7 8.8 7.16 8.31 7.47 7.93L10.05 4.67C10.71 3.83 12.05 4.17 12.23 5.23L12.48 6.8C12.55 7.2 12.89 7.5 13.29 7.5H18.33C19.37 7.5 20.11 8.51 19.8 9.5L18.05 15.1C17.78 15.96 16.99 16.55 16.09 16.55H7Z" fill="white" stroke="${BRAND_COLOR}" stroke-width="1.5" stroke-linejoin="round"/>
+    </svg>
+  `);
 
 interface LessonCommentsProps {
   visible: boolean;
@@ -257,6 +268,24 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
     return `${year}-${month}-${day}`;
   };
 
+  const renderVoteAction = (
+    count: number,
+    active: boolean,
+    onPress: () => void,
+    rotated = false
+  ) => (
+    <TouchableOpacity style={styles.commentAction} onPress={onPress}>
+      <Image
+        source={{ uri: THUMB_ICON_URI }}
+        style={[styles.commentActionIcon, rotated && styles.commentActionIconRotated]}
+        resizeMode="contain"
+      />
+      <Text style={active ? styles.commentActionTextLiked : styles.commentActionText}>
+        {count}
+      </Text>
+    </TouchableOpacity>
+  );
+
   if (!visible) return null;
 
   return (
@@ -302,22 +331,8 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
                     </View>
                     <Text style={styles.commentContent}>{comment.content}</Text>
                     <View style={styles.commentActions}>
-                      <TouchableOpacity
-                        style={styles.commentAction}
-                        onPress={() => handleToggleLike(comment.id)}
-                      >
-                        <Text style={comment.hasLiked ? styles.commentActionTextLiked : styles.commentActionText}>
-                          👍 {comment.likes}
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.commentAction}
-                        onPress={() => handleToggleDislike(comment.id)}
-                      >
-                        <Text style={comment.hasDisliked ? styles.commentActionTextLiked : styles.commentActionText}>
-                          👎 {comment.dislikes}
-                        </Text>
-                      </TouchableOpacity>
+                      {renderVoteAction(comment.likes, comment.hasLiked, () => handleToggleLike(comment.id), true)}
+                      {renderVoteAction(comment.dislikes, comment.hasDisliked, () => handleToggleDislike(comment.id))}
                       <TouchableOpacity
                         style={styles.commentAction}
                         onPress={() => setReplyingTo({ id: comment.id, authorName: userName })}
@@ -347,22 +362,8 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
                               </View>
                               <Text style={styles.commentContent}>{reply.content}</Text>
                               <View style={styles.commentActions}>
-                                <TouchableOpacity
-                                  style={styles.commentAction}
-                                  onPress={() => handleToggleLike(reply.id)}
-                                >
-                                  <Text style={reply.hasLiked ? styles.commentActionTextLiked : styles.commentActionText}>
-                                    👍 {reply.likes}
-                                  </Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                  style={styles.commentAction}
-                                  onPress={() => handleToggleDislike(reply.id)}
-                                >
-                                  <Text style={reply.hasDisliked ? styles.commentActionTextLiked : styles.commentActionText}>
-                                    👎 {reply.dislikes}
-                                  </Text>
-                                </TouchableOpacity>
+                                {renderVoteAction(reply.likes, reply.hasLiked, () => handleToggleLike(reply.id), true)}
+                                {renderVoteAction(reply.dislikes, reply.hasDisliked, () => handleToggleDislike(reply.id))}
                                 <TouchableOpacity
                                   style={styles.commentAction}
                                   onPress={() => setReplyingTo({ id: reply.id, authorName: replyUserName })}
@@ -467,7 +468,7 @@ const styles = StyleSheet.create({
   },
   commentsModalCloseText: {
     fontSize: 20,
-    color: COLORS.GRAY_LIGHT,
+    color: BRAND_COLOR,
   },
   commentItem: {
     padding: 12,
@@ -502,11 +503,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 15,
+    flexWrap: 'wrap',
   },
   commentAction: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
+  },
+  commentActionIcon: {
+    width: 20,
+    height: 20,
+  },
+  commentActionIconRotated: {
+    transform: [{ rotate: '180deg' }],
   },
   commentActionText: {
     fontSize: 13,
@@ -514,7 +523,7 @@ const styles = StyleSheet.create({
   },
   commentActionTextLiked: {
     fontSize: 13,
-    color: COLORS.BLACK,
+    color: BRAND_COLOR,
     fontWeight: '600',
   },
   noCommentsText: {
@@ -545,7 +554,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: COLORS.BLACK,
+    backgroundColor: BRAND_COLOR,
     alignItems: 'center',
   },
   commentSubmitButtonText: {
