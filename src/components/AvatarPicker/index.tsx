@@ -1,5 +1,3 @@
- 
-
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -20,6 +18,7 @@ interface AvatarPickerProps {
   visible: boolean;
   onClose: () => void;
   auditoryId: string;
+  hasAvatar: boolean;
   onAvatarUploaded: (avatarUrl: string) => void;
 }
 
@@ -27,10 +26,11 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
   visible,
   onClose,
   auditoryId,
+  hasAvatar,
   onAvatarUploaded,
 }) => {
   const [loading, setLoading] = useState(false);
- 
+
   const requestGalleryPermission = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
@@ -44,12 +44,12 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
             text: 'Настройки',
             onPress: () => {
               if (Platform.OS === 'ios') {
-                Linking.openURL('app-settings:');
+                void Linking.openURL('app-settings:');
               } else {
-                Linking.openSettings();
+                void Linking.openSettings();
               }
-            }
-          }
+            },
+          },
         ]
       );
 
@@ -58,7 +58,6 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
 
     return true;
   };
- 
   const requestCameraPermission = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
 
@@ -72,12 +71,12 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
             text: 'Настройки',
             onPress: () => {
               if (Platform.OS === 'ios') {
-                Linking.openURL('app-settings:');
+                void Linking.openURL('app-settings:');
               } else {
-                Linking.openSettings();
+                void Linking.openSettings();
               }
-            }
-          }
+            },
+          },
         ]
       );
 
@@ -89,19 +88,18 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
 
   const handleSelectFromGallery = async () => {
     try {
-      
       const hasPermission = await requestGalleryPermission();
 
       if (!hasPermission) return;
 
       console.log('Opening gallery...');
- 
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.7,
-        base64: false,
+        base64: true,
         allowsMultipleSelection: false,
       });
 
@@ -111,16 +109,23 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
         const asset = result.assets[0];
 
         setLoading(true);
- 
-        const file = {
-          uri: asset.uri,
-          type: 'image/jpeg',
-          name: `avatar_${Date.now()}.jpg`,
-        };
 
-        console.log('Uploading file:', file);
- 
-        const uploadResponse = await ProfileService.uploadAvatar(auditoryId, file);
+        if (!asset.base64) {
+          throw new Error('Не удалось получить изображение');
+        }
+
+        const mimeType = asset.mimeType || asset.type || 'image/jpeg';
+
+        console.log('Uploading avatar as base64:', {
+          mimeType,
+          base64Length: asset.base64.length,
+        });
+
+        const uploadResponse = await ProfileService.uploadAvatarBase64(
+          auditoryId,
+          asset.base64,
+          mimeType
+        );
 
         if (uploadResponse && uploadResponse.imageUrl) {
           onAvatarUploaded(uploadResponse.imageUrl);
@@ -138,18 +143,17 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
 
   const handleTakePhoto = async () => {
     try {
-     
       const hasPermission = await requestCameraPermission();
 
       if (!hasPermission) return;
 
       console.log('Opening camera...');
- 
+
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.7,
-        base64: false,
+        base64: true,
         cameraType: ImagePicker.CameraType.front,
       });
 
@@ -159,16 +163,23 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
         const asset = result.assets[0];
 
         setLoading(true);
- 
-        const file = {
-          uri: asset.uri,
-          type: 'image/jpeg',
-          name: `photo_${Date.now()}.jpg`,
-        };
 
-        console.log('Uploading file:', file);
- 
-        const uploadResponse = await ProfileService.uploadAvatar(auditoryId, file);
+        if (!asset.base64) {
+          throw new Error('Не удалось получить изображение');
+        }
+
+        const mimeType = asset.mimeType || asset.type || 'image/jpeg';
+
+        console.log('Uploading photo as base64:', {
+          mimeType,
+          base64Length: asset.base64.length,
+        });
+
+        const uploadResponse = await ProfileService.uploadAvatarBase64(
+          auditoryId,
+          asset.base64,
+          mimeType
+        );
 
         if (uploadResponse && uploadResponse.imageUrl) {
           onAvatarUploaded(uploadResponse.imageUrl);
@@ -183,7 +194,6 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
       setLoading(false);
     }
   };
-
   const handleRemoveAvatar = () => {
     Alert.alert(
       'Удалить аватар',
@@ -234,7 +244,6 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
                 style={styles.optionButton}
                 onPress={handleSelectFromGallery}
               >
-              
                 <Text style={styles.optionText}>Выбрать из галереи</Text>
               </TouchableOpacity>
 
@@ -242,19 +251,19 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
                 style={styles.optionButton}
                 onPress={handleTakePhoto}
               >
-               
                 <Text style={styles.optionText}>Сделать фото</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.optionButton, styles.removeButton]}
-                onPress={handleRemoveAvatar}
-              >
-               
-                <Text style={[styles.optionText, styles.removeText]}>
-                  Удалить аватар
-                </Text>
-              </TouchableOpacity>
+              {hasAvatar && (
+                <TouchableOpacity
+                  style={[styles.optionButton, styles.removeButton]}
+                  onPress={handleRemoveAvatar}
+                >
+                  <Text style={[styles.optionText, styles.removeText]}>
+                    Удалить аватар
+                  </Text>
+                </TouchableOpacity>
+              )}
 
               <TouchableOpacity
                 style={styles.cancelButton}

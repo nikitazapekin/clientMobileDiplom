@@ -530,10 +530,12 @@ const UserProfile = () => {
                 </Text>
               </View>
             )}
- 
-            <View style={styles.cameraBadge}>
-              <Text style={styles.cameraBadgeText}>📷</Text>
-            </View>
+
+            {!profile.avatar && (
+              <View style={styles.cameraBadge}>
+                <Text style={styles.cameraBadgeText}>+</Text>
+              </View>
+            )}
           </TouchableOpacity>
 
           <Text style={styles.name}>
@@ -555,7 +557,7 @@ const UserProfile = () => {
               navigation.navigate(ROUTES.STACK.FRIENDS as any);
             }}
           >
-            <Text style={[styles.friendsButtonText,  ] }>Мои друзья  ввв</Text>
+            <Text style={[styles.friendsButtonText,  ] }>Мои друзья</Text>
           </TouchableOpacity>
         </View>
 
@@ -741,6 +743,7 @@ const UserProfile = () => {
           visible={avatarPickerVisible}
           onClose={() => setAvatarPickerVisible(false)}
           auditoryId={auditoryId}
+          hasAvatar={Boolean(profile?.avatar)}
           onAvatarUploaded={handleAvatarUploaded}
         />
       )}
