@@ -68,6 +68,7 @@ export const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.GRAY_LIGHT,
     backgroundColor: COLORS.WHITE,
+   //backgroundColor: "red"
   },
   textBlock: {
     fontSize: 16,

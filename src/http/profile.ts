@@ -1,8 +1,6 @@
  
 
 import { Platform } from "react-native";
-import type { ImagePickerResponse } from "react-native-image-picker";
-import { launchCamera,launchImageLibrary } from "react-native-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import type {
@@ -516,107 +514,6 @@ static async getStudentCourseProgress(auditoryId?: string, courseId?: string) {
       }
 
       throw new Error(error.response?.data?.message || "Failed to delete student results");
-    }
-  }
-
- 
-  static async pickImageFromGalleryWithBase64(): Promise<{ base64: string; mimeType: string } | null> {
-    return new Promise((resolve, reject) => {
-      launchImageLibrary(
-        {
-          mediaType: 'photo',
-          quality: 0.7,
-          maxWidth: 500,
-          maxHeight: 500,
-          includeBase64: true,
-          selectionLimit: 1,
-        },
-        (response: ImagePickerResponse) => {
-          if (response.didCancel) {
-            resolve(null);
-          } else if (response.errorCode) {
-            reject(new Error(response.errorMessage || 'Failed to pick image'));
-          } else if (response.assets && response.assets[0]) {
-            const asset = response.assets[0];
-
-            if (asset.base64) {
-              resolve({
-                base64: asset.base64,
-                mimeType: asset.type || 'image/jpeg',
-              });
-            } else {
-              reject(new Error('No base64 data in response'));
-            }
-          }
-        }
-      );
-    });
-  }
- 
-  static async takePhotoWithCameraWithBase64(): Promise<{ base64: string; mimeType: string } | null> {
-    return new Promise((resolve, reject) => {
-      launchCamera(
-        {
-          mediaType: 'photo',
-          quality: 0.7,
-          maxWidth: 500,
-          maxHeight: 500,
-          includeBase64: true,
-          saveToPhotos: true,
-        },
-        (response: ImagePickerResponse) => {
-          if (response.didCancel) {
-            resolve(null);
-          } else if (response.errorCode) {
-            reject(new Error(response.errorMessage || 'Failed to take photo'));
-          } else if (response.assets && response.assets[0]) {
-            const asset = response.assets[0];
-
-            if (asset.base64) {
-              resolve({
-                base64: asset.base64,
-                mimeType: asset.type || 'image/jpeg',
-              });
-            } else {
-              reject(new Error('No base64 data in response'));
-            }
-          }
-        }
-      );
-    });
-  }
- 
-  static async uploadAvatarWithBase64(
-    auditoryId: string,
-    imageSource: 'gallery' | 'camera'
-  ): Promise<AvatarResponse> {
-    try {
-    
-      const imageData = imageSource === 'gallery'
-        ? await this.pickImageFromGalleryWithBase64()
-        : await this.takePhotoWithCameraWithBase64();
-
-      if (!imageData) {
-        throw new Error('No image selected');
-      }
-
-      console.log('Selected image with base64:', {
-        mimeType: imageData.mimeType,
-        base64Length: imageData.base64.length
-      });
- 
-      const response = await this.uploadAvatarBase64(
-        auditoryId,
-        imageData.base64,
-        imageData.mimeType
-      );
-
-      console.log('Upload successful:', response);
-
-      return response;
-    } catch (error: any) {
-      console.error('Upload avatar with base64 error:', error.message);
-      throw error;
     }
   }
 }
