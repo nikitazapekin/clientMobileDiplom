@@ -6,34 +6,35 @@ import { createStackNavigator } from "@react-navigation/stack";
 import type { MainTabParamList, RootStackParamList } from "./types";
 
 import { ROUTES } from "@/navigation/routes";
-import AchievementsScreen from "@/screens/Achievements";
-import ArticleScreen from "@/screens/Article";
-import ArticleEditorScreen from "@/screens/ArticleEditor";
-import ArticlesScreen from "@/screens/Articles";
-import AuthScreen from "@/screens/AuthScreen";
-import ChatScreen from "@/screens/Chat";
-import ChatsScreen from "@/screens/Chats";
-import CheckpointScreen from "@/screens/Checkpoint";
-import CodingTasksScreen from "@/screens/CodingTasks";
-import CodingTaskSolveScreen from "@/screens/CodingTaskSolve";
-import CourseScreen from "@/screens/Course";
-import CoursesScreen from "@/screens/Courses";
-import ForumScreen from "@/screens/Forum";
-import ForumEditorScreen from "@/screens/ForumEditor";
-import ForumQuestionScreen from "@/screens/ForumQuestion";
-import FriendsScreen from "@/screens/Friends";
-import FriendsProfileScreen from "@/screens/FriendsProfile";
-import LessonScreen from "@/screens/Lesson";
-import MapScreen from "@/screens/Map";
-import MyCoursesScreen from "@/screens/MyCourses";
-import ProfileScreen from "@/screens/Profile";
-import RegisterScreen from "@/screens/Register";
-import SandboxScreen from "@/screens/Sandbox";
-import SolutionsScreen from "@/screens/Solutions";
-import WelcomeScreen from "@/screens/Welcome";
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
+
+const getAchievementsScreen = () => require("../screens/Achievements").default;
+const getArticleScreen = () => require("../screens/Article").default;
+const getArticleEditorScreen = () => require("../screens/ArticleEditor").default;
+const getArticlesScreen = () => require("../screens/Articles").default;
+const getAuthScreen = () => require("../screens/AuthScreen").default;
+const getChatScreen = () => require("../screens/Chat").default;
+const getChatsScreen = () => require("../screens/Chats").default;
+const getCheckpointScreen = () => require("../screens/Checkpoint").default;
+const getCodingTasksScreen = () => require("../screens/CodingTasks").default;
+const getCodingTaskSolveScreen = () => require("../screens/CodingTaskSolve").default;
+const getCourseScreen = () => require("../screens/Course").default;
+const getCoursesScreen = () => require("../screens/Courses").default;
+const getForumScreen = () => require("../screens/Forum").default;
+const getForumEditorScreen = () => require("../screens/ForumEditor").default;
+const getForumQuestionScreen = () => require("../screens/ForumQuestion").default;
+const getFriendsScreen = () => require("../screens/Friends").default;
+const getFriendsProfileScreen = () => require("../screens/FriendsProfile").default;
+const getLessonScreen = () => require("../screens/Lesson").default;
+const getMapScreen = () => require("../screens/Map").default;
+const getMyCoursesScreen = () => require("../screens/MyCourses").default;
+const getProfileScreen = () => require("../screens/Profile").default;
+const getRegisterScreen = () => require("../screens/Register").default;
+const getSandboxScreen = () => require("../screens/Sandbox").default;
+const getSolutionsScreen = () => require("../screens/Solutions").default;
+const getWelcomeScreen = () => require("../screens/Welcome").default;
 
 function MainTabs() {
   return (
@@ -43,11 +44,11 @@ function MainTabs() {
         tabBarStyle: { display: "none" },
       }}
     >
-      <Tab.Screen name={ROUTES.SCREENS.COURSES} component={CoursesScreen} />
-      <Tab.Screen name={ROUTES.SCREENS.ACHIEVEMENTS} component={AchievementsScreen} />
-      <Tab.Screen name={ROUTES.SCREENS.CHATS} component={ChatsScreen} />
-      <Tab.Screen name={ROUTES.SCREENS.SANDBOX} component={SandboxScreen} />
-      <Tab.Screen name={ROUTES.SCREENS.PROFILE} component={ProfileScreen} />
+      <Tab.Screen name={ROUTES.SCREENS.COURSES} getComponent={getCoursesScreen} />
+      <Tab.Screen name={ROUTES.SCREENS.ACHIEVEMENTS} getComponent={getAchievementsScreen} />
+      <Tab.Screen name={ROUTES.SCREENS.CHATS} getComponent={getChatsScreen} />
+      <Tab.Screen name={ROUTES.SCREENS.SANDBOX} getComponent={getSandboxScreen} />
+      <Tab.Screen name={ROUTES.SCREENS.PROFILE} getComponent={getProfileScreen} />
     </Tab.Navigator>
   );
 }
@@ -61,37 +62,37 @@ export default function AppNavigator() {
         }}
         initialRouteName={ROUTES.STACK.WELCOME}
       >
-        <Stack.Screen name={ROUTES.STACK.WELCOME} component={WelcomeScreen} />
-        <Stack.Screen name={ROUTES.STACK.AUTH} component={AuthScreen} />
-        <Stack.Screen name={ROUTES.STACK.REGISTER} component={RegisterScreen} />
+        <Stack.Screen name={ROUTES.STACK.WELCOME} getComponent={getWelcomeScreen} />
+        <Stack.Screen name={ROUTES.STACK.AUTH} getComponent={getAuthScreen} />
+        <Stack.Screen name={ROUTES.STACK.REGISTER} getComponent={getRegisterScreen} />
         <Stack.Screen name={ROUTES.STACK.MAIN} component={MainTabs} />
-        <Stack.Screen name={ROUTES.STACK.COURSES} component={CoursesScreen} />
-        <Stack.Screen name={ROUTES.STACK.MY_COURSES} component={MyCoursesScreen} />
-        <Stack.Screen name={ROUTES.STACK.COURSE} component={CourseScreen} />
-        <Stack.Screen name={ROUTES.STACK.MAP} component={MapScreen} />
-        <Stack.Screen name={ROUTES.STACK.LESSON} component={LessonScreen} />
-        <Stack.Screen name={ROUTES.STACK.CHECKPOINT} component={CheckpointScreen} />
+        <Stack.Screen name={ROUTES.STACK.COURSES} getComponent={getCoursesScreen} />
+        <Stack.Screen name={ROUTES.STACK.MY_COURSES} getComponent={getMyCoursesScreen} />
+        <Stack.Screen name={ROUTES.STACK.COURSE} getComponent={getCourseScreen} />
+        <Stack.Screen name={ROUTES.STACK.MAP} getComponent={getMapScreen} />
+        <Stack.Screen name={ROUTES.STACK.LESSON} getComponent={getLessonScreen} />
+        <Stack.Screen name={ROUTES.STACK.CHECKPOINT} getComponent={getCheckpointScreen} />
 
-        <Stack.Screen name={ROUTES.STACK.ACHIEVEMENTS} component={AchievementsScreen} />
+        <Stack.Screen name={ROUTES.STACK.ACHIEVEMENTS} getComponent={getAchievementsScreen} />
 
-        <Stack.Screen name={ROUTES.STACK.CODING_SOLVE} component={CodingTaskSolveScreen} />
+        <Stack.Screen name={ROUTES.STACK.CODING_SOLVE} getComponent={getCodingTaskSolveScreen} />
 
-        <Stack.Screen name={ROUTES.STACK.PROFILE} component={ProfileScreen} />
+        <Stack.Screen name={ROUTES.STACK.PROFILE} getComponent={getProfileScreen} />
 
-        <Stack.Screen name={ROUTES.STACK.CHATS} component={ChatsScreen} />
+        <Stack.Screen name={ROUTES.STACK.CHATS} getComponent={getChatsScreen} />
 
-        <Stack.Screen name={ROUTES.STACK.SANDBOX} component={CodingTasksScreen} />
+        <Stack.Screen name={ROUTES.STACK.SANDBOX} getComponent={getCodingTasksScreen} />
 
-        <Stack.Screen name={ROUTES.STACK.FRIENDS} component={FriendsScreen} />
-        <Stack.Screen name={ROUTES.STACK.FRIENDS_PROFILE} component={FriendsProfileScreen} />
-        <Stack.Screen name={ROUTES.STACK.CHAT} component={ChatScreen} />
-        <Stack.Screen name={ROUTES.STACK.SOLUTIONS} component={SolutionsScreen} />
-        <Stack.Screen name={ROUTES.STACK.FORUM} component={ForumScreen} />
-        <Stack.Screen name={ROUTES.STACK.FORUM_QUESTION} component={ForumQuestionScreen} />
-        <Stack.Screen name={ROUTES.STACK.FORUM_EDITOR} component={ForumEditorScreen} />
-        <Stack.Screen name={ROUTES.STACK.ARTICLES} component={ArticlesScreen} />
-        <Stack.Screen name={ROUTES.STACK.ARTICLE} component={ArticleScreen} />
-        <Stack.Screen name={ROUTES.STACK.ARTICLE_EDITOR} component={ArticleEditorScreen} />
+        <Stack.Screen name={ROUTES.STACK.FRIENDS} getComponent={getFriendsScreen} />
+        <Stack.Screen name={ROUTES.STACK.FRIENDS_PROFILE} getComponent={getFriendsProfileScreen} />
+        <Stack.Screen name={ROUTES.STACK.CHAT} getComponent={getChatScreen} />
+        <Stack.Screen name={ROUTES.STACK.SOLUTIONS} getComponent={getSolutionsScreen} />
+        <Stack.Screen name={ROUTES.STACK.FORUM} getComponent={getForumScreen} />
+        <Stack.Screen name={ROUTES.STACK.FORUM_QUESTION} getComponent={getForumQuestionScreen} />
+        <Stack.Screen name={ROUTES.STACK.FORUM_EDITOR} getComponent={getForumEditorScreen} />
+        <Stack.Screen name={ROUTES.STACK.ARTICLES} getComponent={getArticlesScreen} />
+        <Stack.Screen name={ROUTES.STACK.ARTICLE} getComponent={getArticleScreen} />
+        <Stack.Screen name={ROUTES.STACK.ARTICLE_EDITOR} getComponent={getArticleEditorScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
