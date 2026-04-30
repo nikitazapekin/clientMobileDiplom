@@ -542,6 +542,7 @@ export const styles = StyleSheet.create({
     backgroundColor: COLORS.WHITE,
     borderRadius: 10,
     padding: 20,
+    alignSelf: 'center',
   },
 
   resultsSummary: {
@@ -570,7 +571,12 @@ export const styles = StyleSheet.create({
   },
 
   resultsList: {
+    flexGrow: 0,
     maxHeight: 300,
+  },
+
+  resultsListContent: {
+    paddingBottom: 4,
   },
 
   resultsListTitle: {
@@ -584,29 +590,34 @@ export const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 8,
     borderRadius: 6,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#F3F4F6',
   },
 
   resultPassed: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#4caf50',
+    backgroundColor: '#E8F5E9',
   },
 
   resultFailed: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#f44336',
+    backgroundColor: '#FFEBEE',
   },
 
   resultTitle: {
     fontWeight: '500',
     marginBottom: 5,
+    flexShrink: 1,
+    flexWrap: 'wrap',
   },
 
   resultDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 4,
+    width: '100%',
+  },
+
+  resultDetailText: {
     fontSize: 14,
     color: '#666',
+    flexShrink: 1,
+    flexWrap: 'wrap',
   },
 
   modalFooter: {

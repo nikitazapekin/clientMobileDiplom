@@ -615,7 +615,7 @@ const ResultsModal = ({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
+      <View style={styles.modalOverlay}>
         <View style={styles.resultsModalContent}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{title || "Результаты урока"}</Text>
@@ -682,7 +682,11 @@ const ResultsModal = ({
             </View>
           )}
 
-          <ScrollView style={styles.resultsList}>
+          <ScrollView
+            style={styles.resultsList}
+            contentContainerStyle={styles.resultsListContent}
+            showsVerticalScrollIndicator
+          >
             <Text style={styles.resultsListTitle}>Детали по заданиям:</Text>
             {results.map((result) => (
               <View
@@ -694,10 +698,10 @@ const ResultsModal = ({
               >
                 <Text style={styles.resultTitle}>{result.title}</Text>
                 <View style={styles.resultDetails}>
-                  <Text>
+                  <Text style={styles.resultDetailText}>
                     Тесты: {result.testCasesPassed}/{result.testCasesTotal}
                   </Text>
-                  <Text>
+                  <Text style={styles.resultDetailText}>
                     Ограничения: {result.constraintsPassed ? "Огрничение пройдено" : "Огрничение не пройдено"}
                   </Text>
                 </View>
@@ -709,12 +713,12 @@ const ResultsModal = ({
             <CustomButton
               text="Закрыть"
               handler={onClose}
-              backgroundColor={COLORS.BLACK}
+              backgroundColor="#9F0FA7"
               maxWidth={200}
             />
           </View>
         </View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 };
