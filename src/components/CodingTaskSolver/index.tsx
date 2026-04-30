@@ -28,10 +28,6 @@ import CodeEditor from "@/components/CodeEditor";
 import type { ArgumentSchema, TestCaseArgument } from "@/components/Lesson/types";
 import { type CodeLanguage,CodeService } from "@/http/codeService";
 import {
-  CodeWithTimeService,
-  type ExecuteCodeWithTimeResponse,
-} from "@/http/codeWithTimeService";
-import {
   type CodeTask,
   CodingTasksService,
   type SubmitSolutionResult,
@@ -178,8 +174,6 @@ const hasConsoleUsage = (code: string, language: CodeLanguage): boolean => {
   return false;
 };
 
-const TIMED_EXECUTION_LANGUAGES: CodeLanguage[] = ["javascript", "python", "csharp", "java"];
-
 const calculateComplexity = (code: string): number => {
   let complexity = 1;
   const complexityKeywords = [
@@ -316,139 +310,6 @@ const evaluateCodeConstraints = (
   }
 
   return { passed: errors.length === 0, errors };
-};
-
-const parseExecutionMarkers = (output: string) => {
-  const lines = output.split(/\r?\n/);
-  const logs: string[] = [];
-  const results: string[] = [];
-  let inLogs = false;
-  let inResult = false;
-  let currentLogs: string[] = [];
-  let currentResult: string[] = [];
-
-  const pushLogs = () => {
-    if (currentLogs.length) {
-      logs.push(currentLogs.join("\n"));
-      currentLogs = [];
-    }
-  };
-
-  const pushResult = () => {
-    if (currentResult.length) {
-      results.push(currentResult.join("\n").trim());
-      currentResult = [];
-    }
-  };
-
-  for (const line of lines) {
-    if (line.includes("===LOGS_START")) {
-      inLogs = true;
-      currentLogs = [];
-      continue;
-    }
-
-    if (line.includes("===LOGS_END")) {
-      inLogs = false;
-      pushLogs();
-      continue;
-    }
-
-    if (line.includes("===RESULT_START")) {
-      inResult = true;
-      currentResult = [];
-      continue;
-    }
-
-    if (line.includes("===RESULT_END")) {
-      inResult = false;
-      pushResult();
-      continue;
-    }
-
-    if (inLogs) {
-      currentLogs.push(line);
-    } else if (inResult) {
-      currentResult.push(line);
-    }
-  }
-
-  pushLogs();
-  pushResult();
-
-  return { logs, results, hasMarkers: logs.length > 0 || results.length > 0 };
-};
-
-const formatExecutionResponse = (response: ExecuteCodeWithTimeResponse): string => {
-  const parts: string[] = [];
-
-  if (response.error) {
-    parts.push(`Ошибка: ${response.error}`);
-  }
-
-  const output = response.output ?? "";
-  const parsed = parseExecutionMarkers(output);
-
-  if (parsed.hasMarkers) {
-    if (parsed.logs.length) {
-      parts.push(
-        parsed.logs
-          .map((log, idx) => `Логи ${idx + 1}:\n${log}`)
-          .join("\n\n")
-      );
-    }
-
-    if (parsed.results.length) {
-      parts.push(
-        parsed.results
-          .map((result, idx) => `Результат ${idx + 1}:\n${result}`)
-          .join("\n\n")
-      );
-    }
-  } else if (output.trim()) {
-    parts.push(output.trim());
-  } else if (!response.error) {
-    parts.push("Нет вывода");
-  }
-
-  parts.push(`Время выполнения: ${response.executionTimeMs}мс`);
-
-  return parts.filter(Boolean).join("\n\n");
-};
-
-const formatBasicExecutionResponse = (response: { output?: string; error?: string }): string => {
-  const parts: string[] = [];
-
-  if (response.error) {
-    parts.push(`Ошибка: ${response.error}`);
-  }
-
-  const output = response.output ?? "";
-  const parsed = parseExecutionMarkers(output);
-
-  if (parsed.hasMarkers) {
-    if (parsed.logs.length) {
-      parts.push(
-        parsed.logs
-          .map((log, idx) => `Логи ${idx + 1}:\n${log}`)
-          .join("\n\n")
-      );
-    }
-
-    if (parsed.results.length) {
-      parts.push(
-        parsed.results
-          .map((result, idx) => `Результат ${idx + 1}:\n${result}`)
-          .join("\n\n")
-      );
-    }
-  } else if (output.trim()) {
-    parts.push(output.trim());
-  } else if (!response.error) {
-    parts.push("Нет вывода");
-  }
-
-  return parts.filter(Boolean).join("\n\n");
 };
 
 type TaskTestCase = CodeTask["testCases"][number] & {
@@ -636,7 +497,6 @@ const CodingTaskSolver = ({ id }: Props) => {
   const [selectedLang, setSelectedLang] = useState<CodeLanguage>("javascript");
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(true);
-  const [runLoading, setRunLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [consoleOutput, setConsoleOutput] = useState("");
   const [constraintErrors, setConstraintErrors] = useState<string[]>([]);
@@ -688,31 +548,6 @@ const CodingTaskSolver = ({ id }: Props) => {
     setCode(task?.startCodes?.[lang] || "");
     setConsoleOutput("");
     setResult(null);
-  };
-
-  const handleRun = async () => {
-    if (!task) return;
-
-    setRunLoading(true);
-    setConsoleOutput("");
-    try {
-      if (TIMED_EXECUTION_LANGUAGES.includes(selectedLang)) {
-        const res = await CodeWithTimeService.executeCodeWithTime({
-          language: selectedLang as "javascript" | "python" | "csharp" | "java",
-          code,
-        });
-
-        setConsoleOutput(formatExecutionResponse(res));
-      } else {
-        const res = await CodeService.executeCode({ language: selectedLang, code });
-
-        setConsoleOutput(formatBasicExecutionResponse(res));
-      }
-    } catch (error: any) {
-      setConsoleOutput(`Ошибка выполнения: ${error?.message || "Не удалось выполнить код"}`);
-    } finally {
-      setRunLoading(false);
-    }
   };
 
   const handleSubmit = async () => {
@@ -884,9 +719,7 @@ const CodingTaskSolver = ({ id }: Props) => {
             value={code}
             onChange={setCode}
             language={selectedLang}
-            height={300}
-            onRun={handleRun}
-            runLoading={runLoading}
+            height={400}
           />
         </View>
       </View>
@@ -981,10 +814,6 @@ const CodingTaskSolver = ({ id }: Props) => {
                     <Text style={st.summaryLabel}>Уровень</Text>
                     <Text style={st.summaryValue}>{result.newLevel}</Text>
                   </View>
-                  <View style={st.summaryItem}>
-                    <Text style={st.summaryLabel}>Время</Text>
-                    <Text style={st.summaryValue}>{result.executionTimeMs}мс</Text>
-                  </View>
                 </View>
 
                 {result.constraintErrors && result.constraintErrors.length > 0 && (
@@ -1035,7 +864,7 @@ const CodingTaskSolver = ({ id }: Props) => {
                       key={r.index}
                       style={[
                         st.resultItem,
-                        { borderLeftColor: r.passed ? "#4caf50" : "#f44336" },
+                        r.passed ? st.resultItemPassed : st.resultItemFailed,
                       ]}
                     >
                       <View style={st.resultHeader}>
@@ -1246,8 +1075,6 @@ const st = StyleSheet.create({
     borderRadius: 12,
     padding: SIZES.SPACING_MD,
     marginBottom: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: "#ff9800",
   },
   constraintsTitle: { fontSize: 14, fontWeight: "600", color: "#e65100", marginBottom: 6 },
   constraintItem: { fontSize: 13, color: COLORS.GRAY_700, marginBottom: 4 },
@@ -1299,8 +1126,6 @@ const st = StyleSheet.create({
     borderRadius: 10,
     padding: 12,
     marginBottom: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: "#f44336",
   },
   constraintErrorsTitle: { fontSize: 12, fontWeight: "600", color: "#c62828", marginBottom: 6 },
   constraintErrorText: { fontSize: 12, color: "#4b2c20", lineHeight: 18 },
@@ -1375,7 +1200,12 @@ const st = StyleSheet.create({
     marginBottom: 8,
     borderRadius: 8,
     backgroundColor: COLORS.GRAY_50,
-    borderLeftWidth: 4,
+  },
+  resultItemPassed: {
+    backgroundColor: "#E8F5E9",
+  },
+  resultItemFailed: {
+    backgroundColor: "#FFEBEE",
   },
   resultHeader: {
     flexDirection: "row",
