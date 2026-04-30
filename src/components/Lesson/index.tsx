@@ -1846,7 +1846,7 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
         <View style={styles.centerContent}>
           <ActivityIndicator size="large" color={COLORS.BLACK} />
           <Text style={styles.loadingText}>Загрузка {entityTitle}...</Text>
@@ -1857,7 +1857,7 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
 
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
         <View style={styles.centerContent}>
           <Text style={styles.errorText}>{error}</Text>
           <CustomButton text="Назад" handler={() => navigation.goBack()} backgroundColor="#9F0FA7" />
@@ -1868,7 +1868,7 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
 
   if (slides.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
         <View style={styles.centerContent}>
           <Text>Нет слайдов</Text>
           <CustomButton text="Назад" handler={() => navigation.goBack()} backgroundColor="#9F0FA7" />
@@ -1884,7 +1884,7 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
     .map((block) => ({ url: block.url, note: block.note }));
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <Text style={styles.title}>{currentSlide.title}</Text>
@@ -1918,7 +1918,7 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
         scrollEnabled={!isFillTaskDragging}
       >
         {sortBlocks(currentSlide.blocks).map((block) => {
-          console.log("🔍 Rendering block type:", block.type);
+          console.log(" Rendering block type:", block.type);
 
           switch (block.type) {
             case "text":

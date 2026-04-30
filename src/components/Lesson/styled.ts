@@ -6,11 +6,13 @@ export const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.WHITE,
+    
   },
   centerContent: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+ 
   },
   loadingText: {
     marginTop: 10,
@@ -19,7 +21,7 @@ export const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 6,
+    //paddingTop: 6,
     paddingBottom: 6,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.GRAY_LIGHT,
@@ -29,7 +31,7 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 2,
+  //  marginBottom: 2,
   },
   title: {
     fontSize: 24,
@@ -38,7 +40,7 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   sourcesButton: {
-    paddingHorizontal: 12,
+     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 20,
     backgroundColor: COLORS.ACCENT,
@@ -57,7 +59,7 @@ export const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: 20, // огрнаничител
   },
   navigation: {
     flexDirection: "row",
@@ -68,7 +70,6 @@ export const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.GRAY_LIGHT,
     backgroundColor: COLORS.WHITE,
-   //backgroundColor: "red"
   },
   textBlock: {
     fontSize: 16,
