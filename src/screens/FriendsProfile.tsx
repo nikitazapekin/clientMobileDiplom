@@ -361,12 +361,15 @@ const FriendsProfileScreen = () => {
         setCodingLoading(false);
       }
  
-      const [friendshipStatus, pendingRequests] = await Promise.all([
+      const [friendshipStatus, pendingRequests, friendsData] = await Promise.all([
         FriendsService.checkFriendship(myAuditoryId, auditoryId).catch(() => ({ isFriend: false })),
         FriendsService.getPendingFriendRequests(myAuditoryId).catch(() => []),
+        FriendsService.getFriendsByAuditoryId(myAuditoryId).catch(() => []),
       ]);
 
-      setIsFriend(friendshipStatus.isFriend);
+      const isFriendByList = friendsData.some((friend) => friend.friendId === auditoryId);
+
+      setIsFriend(friendshipStatus.isFriend || isFriendByList);
  
       const requestFromUser = pendingRequests.find(req => req.senderId === profileData.clientId);
       if (requestFromUser) {
@@ -771,14 +774,6 @@ const FriendsProfileScreen = () => {
         </View>
       </View>
 
-    
-      <View style={styles.statusContainer}>
-        <View style={[styles.statusBadge, profile.isActive ? styles.statusActive : styles.statusInactive]}>
-          <Text style={styles.statusText}>
-            {profile.isActive ? 'В сети' : 'Не в сети'}
-          </Text>
-        </View>
-      </View>
     </ScrollView>
  
     <AllSolvedTasksModal
@@ -1074,8 +1069,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   taskCardSolved: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#4caf50',
   },
   taskHeader: {
     flexDirection: 'row',

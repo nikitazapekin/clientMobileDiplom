@@ -253,16 +253,12 @@ export class FriendsService {
  
   static async checkPendingRequest(senderAuditoryId: string, receiverAuditoryId: string): Promise<{ hasRequest: boolean }> {
     try {
-      const token = await this.getToken();
-      const response = await $api.get(
-        '/friend-requests/check',
-        {
-          params: { senderAuditoryId, receiverAuditoryId },
-          ...this.getHeaders(token),
-        }
+      const sentRequests = await this.getSentFriendRequests(senderAuditoryId);
+      const hasRequest = sentRequests.some(
+        (request) => request.receiverId === receiverAuditoryId && request.status === 'pending'
       );
 
-      return response.data;
+      return { hasRequest };
     } catch (error: any) {
       console.error('Check pending request error:', error.response?.data || error.message);
       throw new Error(error.response?.data?.message || 'Failed to check pending request');

@@ -203,7 +203,7 @@ const FriendsScreen = () => {
   const handleAcceptRequest = async (requestId: string) => {
     try {
       await FriendsService.acceptFriendRequest(requestId);
-      Alert.alert('Success', 'Friend request accepted!');
+      Alert.alert('Success', 'Запрос принят!!');
       await loadFriends();
     } catch (err: unknown) {
       Alert.alert('Error', getErrorMessage(err, 'Failed to accept friend request'));
@@ -213,17 +213,17 @@ const FriendsScreen = () => {
   const handleRejectRequest = async (requestId: string) => {
     try {
       await FriendsService.rejectFriendRequest(requestId);
-      Alert.alert('Success', 'Friend request rejected');
+      Alert.alert('Success', 'Зарос отклонен!');
       await loadFriends();
     } catch (err: unknown) {
-      Alert.alert('Error', getErrorMessage(err, 'Failed to reject friend request'));
+      Alert.alert('Error', getErrorMessage(err, 'Не удалось отклонить запрос'));
     }
   };
 
   const handleRemoveFriend = async (friendAuditoryId: string) => {
     Alert.alert(
-      'Remove Friend',
-      'Are you sure you want to remove this friend?',
+      'Удалить из друзей',
+      'Вы уверены?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -234,7 +234,7 @@ const FriendsScreen = () => {
 
             try {
               await FriendsService.removeFriend(userAuditoryId, friendAuditoryId);
-              Alert.alert('Success', 'Friend removed');
+              Alert.alert('Success', 'Друг удален');
               await loadFriends();
             } catch (err: unknown) {
               Alert.alert('Error', getErrorMessage(err, 'Failed to remove friend'));
@@ -265,15 +265,15 @@ const FriendsScreen = () => {
       const pendingRequest = await FriendsService.checkPendingRequest(userAuditoryId, friendAuditoryId);
 
       if (pendingRequest.hasRequest) {
-        Alert.alert('Info', 'Friend request already sent');
+        Alert.alert('Info', 'Запрос уже отправлен');
 
         return;
       }
 
       await FriendsService.sendFriendRequest(userAuditoryId, friendAuditoryId);
-      Alert.alert('Success', 'Friend request sent!');
+      Alert.alert('Success', 'Запрос  отправлен!');
     } catch (err: unknown) {
-      Alert.alert('Error', getErrorMessage(err, 'Failed to send friend request'));
+      Alert.alert('Error', getErrorMessage(err, 'Не удалось отправить заявку'));
     }
   };
 
