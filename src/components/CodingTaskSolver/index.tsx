@@ -516,7 +516,7 @@ const formatTestLogs = (
 ): string => {
   const input = getDisplayInput(testCase, argumentScheme, language);
 
-  return `📋 Логи теста #${testIndex + 1} (вход: ${input}):`;
+  return `Логи теста #${testIndex + 1} (вход: ${input}):`;
 };
 
 const collectCheckLogs = async (

@@ -217,6 +217,24 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  fillTaskSuccessHint: {
+    marginTop: 6,
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#4B5563',
+  },
+  fillTaskErrorTitle: {
+    marginTop: 10,
+    color: COLORS.ERROR,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  fillTaskErrorHint: {
+    marginTop: 6,
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#6B7280',
+  },
   fillTaskOptionBank: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -358,17 +376,19 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.GRAY_LIGHT,
     borderRadius: 8,
+    backgroundColor: COLORS.WHITE,
   },
   selectedOption: {
-
-    backgroundColor: "#F3E5F5",
+    backgroundColor: "#F8FAFC",
+    borderColor: "#9F0FA7",
   },
   optionRadio: {
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-
+    borderColor: "#9CA3AF",
+    backgroundColor: COLORS.WHITE,
     marginRight: 10,
     justifyContent: "center",
     alignItems: "center",
@@ -377,7 +397,7 @@ export const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-
+    backgroundColor: "#9F0FA7",
   },
   optionText: {
     fontSize: 16,
@@ -386,7 +406,7 @@ export const styles = StyleSheet.create({
   },
   correctText: {
     marginTop: 10,
-
+    color: '#1D7C35',
     fontSize: 16,
     fontWeight: "600",
   },
@@ -395,6 +415,12 @@ export const styles = StyleSheet.create({
     color: COLORS.ERROR,
     fontSize: 16,
     fontWeight: "600",
+  },
+  incorrectHintText: {
+    marginTop: 6,
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#6B7280',
   },
   modalOverlay: {
     flex: 1,

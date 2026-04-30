@@ -67,6 +67,36 @@ const sortBlocks = (blocks: any[]) => {
   return [...blocks].sort((a, b) => (a.order || 0) - (b.order || 0));
 };
 
+const INCORRECT_THEORY_MESSAGES = [
+  "Ты почти попал, но не совсем так. Подумай ещё!",
+  "Неплохо, но это не тот вариант. Попробуй ещё раз мысленно пройтись по теории.",
+  "Ответ близко, но есть неточность. Посмотри на формулировку ещё раз.",
+  "Не совсем верно. Сверь выбор с ключевой идеей этого задания.",
+];
+
+const INCORRECT_FILL_TASK_MESSAGES = [
+  "Ты близко, но решение пока не совпало. Проверь порядок и сами вставки ещё раз.",
+  "Почти получилось. Посмотри внимательнее, все ли фрагменты стоят на своих местах.",
+  "Есть небольшая ошибка в сборке кода. Попробуй ещё раз сопоставить варианты со слотами.",
+  "Не совсем так. Ещё раз проверь, какой фрагмент должен стоять в каждом белом поле.",
+];
+
+const getIncorrectTheoryMessage = (blockId: string, selectedIndex: number) => {
+  const hash = `${blockId}-${selectedIndex}`
+    .split("")
+    .reduce((sum, char) => sum + char.charCodeAt(0), 0);
+
+  return INCORRECT_THEORY_MESSAGES[hash % INCORRECT_THEORY_MESSAGES.length];
+};
+
+const getIncorrectFillTaskMessage = (blockId: string, totalCases: number) => {
+  const hash = `${blockId}-${totalCases}`
+    .split("")
+    .reduce((sum, char) => sum + char.charCodeAt(0), 0);
+
+  return INCORRECT_FILL_TASK_MESSAGES[hash % INCORRECT_FILL_TASK_MESSAGES.length];
+};
+
 const TextBlockView = ({ block }: { block: TextBlock }) => {
   return <Text style={styles.textBlock}>{block.content}</Text>;
 };
@@ -383,6 +413,9 @@ const FillCodeTaskBlockView = ({
   const normalizedBlock = normalizeFillTaskBlock(block);
   const inputIds = extractFillTaskInputs(normalizedBlock.templateCode || "");
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+  const incorrectMessage = !validationResult?.passed && error
+    ? getIncorrectFillTaskMessage(block.id, validationResult?.totalCases ?? 0)
+    : "";
 
   useEffect(() => {
     if (
@@ -429,16 +462,23 @@ const FillCodeTaskBlockView = ({
       </View>
 
       {validationResult?.passed && (
-        <Text style={styles.fillTaskSuccess}>
-          Верно. Подошёл вариант{" "}
-          {validationResult.matchedCaseIndex !== null ? validationResult.matchedCaseIndex + 1 : 1}.
-        </Text>
+        <>
+          <Text style={styles.fillTaskSuccess}>Верно!</Text>
+          <Text style={styles.fillTaskSuccessHint}>
+            Подошёл вариант{" "}
+            {validationResult.matchedCaseIndex !== null ? validationResult.matchedCaseIndex + 1 : 1}.
+          </Text>
+        </>
       )}
 
-      {error ? (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
+      {!validationResult?.passed && error ? (
+        <>
+          <Text style={styles.fillTaskErrorTitle}>Неверно</Text>
+          <Text style={styles.fillTaskErrorHint}>{incorrectMessage}</Text>
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        </>
       ) : null}
     </View>
   );
@@ -1767,10 +1807,16 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
   }, [fillTaskAnswers]);
  
   const TheoryQuestionBlockViewWithHandler = ({ block, slideId }: { block: TheoryQuestionBlock; slideId: string }) => {
+    const savedAnswer = theoryAnswers[slideId]?.[block.id];
     const [selected, setSelected] = useState<number | undefined>(
-      theoryAnswers[slideId]?.[block.id]?.selectedIndex
+      savedAnswer?.selectedIndex
     );
-    const [showResult, setShowResult] = useState(false);
+    const [showResult, setShowResult] = useState(Boolean(savedAnswer));
+    const [incorrectMessage, setIncorrectMessage] = useState(
+      savedAnswer && !savedAnswer.isCorrect
+        ? getIncorrectTheoryMessage(block.id, savedAnswer.selectedIndex)
+        : ""
+    );
 
     const handleSubmit = () => {
       if (selected === undefined) return;
@@ -1778,6 +1824,7 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
       const isCorrect = selected === block.correctIndex;
 
       setShowResult(true);
+      setIncorrectMessage(isCorrect ? "" : getIncorrectTheoryMessage(block.id, selected));
 
       
       handleTheoryAnswer(slideId, block.id, selected, isCorrect);
@@ -1834,15 +1881,20 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
             text="Ответить"
             handler={handleSubmit}
             disabled={selected === undefined}
-            backgroundColor={COLORS.BLACK}
+            backgroundColor="#9F0FA7"
             maxWidth={120}
           />
         )}
 
         {showResult && (
-          <Text style={selected === block.correctIndex ? styles.correctText : styles.incorrectText}>
-            {selected === block.correctIndex ? " Правильно!" : " Неправильно"}
-          </Text>
+          <>
+            <Text style={selected === block.correctIndex ? styles.correctText : styles.incorrectText}>
+              {selected === block.correctIndex ? "Правильно!" : "Неправильно"}
+            </Text>
+            {selected !== block.correctIndex && (
+              <Text style={styles.incorrectHintText}>{incorrectMessage}</Text>
+            )}
+          </>
         )}
       </View>
     );
