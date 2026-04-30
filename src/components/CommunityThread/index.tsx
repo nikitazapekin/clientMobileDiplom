@@ -1,13 +1,17 @@
 import React from "react";
 import {
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { COLORS, FONTS, SIZES } from "appStyles";
+import { COLORS, FONTS } from "appStyles";
 
 import type { CommunityComment } from "@/http/types/community";
+
+const BRAND_COLOR = "#9F0FA7";
+const THUMB_ICON = require("../../../assets/dislike.png");
 
 interface CommunityThreadProps {
   comments: CommunityComment[];
@@ -50,48 +54,37 @@ function CommentNode({
 }) {
   const isOwn = currentUserId === comment.authorId;
 
-  return (
-    <View style={[styles.commentCard, depth > 0 && styles.replyCard, { marginLeft: depth * 14 }]}>
-      <View style={styles.commentHeader}>
-        <View style={styles.authorBadge}>
-          <Text style={styles.authorInitial}>
-            {(comment.authorName || "?").trim().charAt(0).toUpperCase()}
-          </Text>
-        </View>
+  const renderVoteAction = (
+    count: number,
+    active: boolean,
+    onPress: () => void,
+    rotated = false,
+  ) => (
+    <TouchableOpacity activeOpacity={0.82} onPress={onPress} style={styles.commentAction}>
+      <Image
+        source={THUMB_ICON}
+        style={[styles.commentActionIcon, rotated && styles.commentActionIconRotated]}
+        resizeMode="contain"
+      />
+      <Text style={active ? styles.commentActionTextActive : styles.commentActionText}>
+        {count}
+      </Text>
+    </TouchableOpacity>
+  );
 
-        <View style={styles.commentMeta}>
-          <Text style={styles.authorName}>{comment.authorName}</Text>
-          <Text style={styles.commentDate}>{formatDate(comment.createdAt)}</Text>
-        </View>
+  return (
+    <View style={depth > 0 ? styles.replyContainer : undefined}>
+      <View style={[styles.commentCard, depth > 0 && styles.replyCard]}>
+      <View style={styles.commentHeader}>
+        <Text style={styles.authorName}>{comment.authorName}</Text>
+        <Text style={styles.commentDate}>{formatDate(comment.createdAt)}</Text>
       </View>
 
       <Text style={styles.commentText}>{comment.content}</Text>
 
       <View style={styles.actionsRow}>
-        <TouchableOpacity
-          activeOpacity={0.82}
-          onPress={() => onLike(comment.id)}
-          style={[styles.reactionButton, comment.hasLiked && styles.reactionButtonActive]}
-        >
-          <Text style={[styles.reactionButtonText, comment.hasLiked && styles.reactionButtonTextActive]}>
-            Лайк {comment.likes}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          activeOpacity={0.82}
-          onPress={() => onDislike(comment.id)}
-          style={[styles.reactionButton, comment.hasDisliked && styles.reactionButtonDanger]}
-        >
-          <Text
-            style={[
-              styles.reactionButtonText,
-              comment.hasDisliked && styles.reactionButtonDangerText,
-            ]}
-          >
-            Дизлайк {comment.dislikes}
-          </Text>
-        </TouchableOpacity>
+        {renderVoteAction(comment.likes, comment.hasLiked, () => onLike(comment.id), true)}
+        {renderVoteAction(comment.dislikes, comment.hasDisliked, () => onDislike(comment.id))}
 
         <TouchableOpacity activeOpacity={0.82} onPress={() => onReply(comment)} style={styles.linkButton}>
           <Text style={styles.linkButtonText}>Ответить</Text>
@@ -135,6 +128,7 @@ function CommentNode({
           ))}
         </View>
       ) : null}
+      </View>
     </View>
   );
 }
@@ -193,96 +187,81 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   commentCard: {
-    backgroundColor: COLORS.WHITE,
-    borderColor: COLORS.GRAY_200,
-    borderRadius: 18,
+    backgroundColor: "#F9F9F9",
+    borderColor: COLORS.GRAY_LIGHT,
+    borderRadius: 8,
     borderWidth: 1,
-    padding: 14,
+    padding: 12,
   },
   replyCard: {
-    backgroundColor: "#FBFCF8",
+    marginTop: 8,
   },
   commentHeader: {
     alignItems: "center",
     flexDirection: "row",
-    marginBottom: 10,
-  },
-  authorBadge: {
-    alignItems: "center",
-    backgroundColor: COLORS.PRIMARY,
-    borderRadius: SIZES.RADIES_CIRCLE,
-    height: 36,
-    justifyContent: "center",
-    marginRight: 10,
-    width: 36,
-  },
-  authorInitial: {
-    color: COLORS.WHITE,
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  commentMeta: {
-    flex: 1,
+    justifyContent: "space-between",
+    marginBottom: 8,
   },
   authorName: {
-    color: COLORS.GRAY_DARK,
-    fontSize: FONTS.SIZE.SM,
-    fontWeight: "700",
+    color: COLORS.BLACK,
+    fontSize: 14,
+    fontWeight: "600",
   },
   commentDate: {
-    color: COLORS.GRAY_500,
+    color: "#999",
     fontSize: 12,
-    marginTop: 2,
   },
   commentText: {
-    color: COLORS.GRAY_800,
-    fontSize: FONTS.SIZE.SM,
+    color: COLORS.BLACK,
+    fontSize: 15,
     lineHeight: 22,
   },
   actionsRow: {
+    alignItems: "center",
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
-    marginTop: 14,
+    gap: 15,
+    marginTop: 10,
   },
-  reactionButton: {
-    backgroundColor: COLORS.GRAY_100,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  commentAction: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 5,
   },
-  reactionButtonActive: {
-    backgroundColor: "#EAF7E1",
+  commentActionIcon: {
+    height: 20,
+    width: 20,
   },
-  reactionButtonDanger: {
-    backgroundColor: "#FCEEEE",
+  commentActionIconRotated: {
+    transform: [{ rotate: "180deg" }],
   },
-  reactionButtonText: {
-    color: COLORS.GRAY_700,
+  commentActionText: {
+    color: "#666",
+    fontSize: 13,
+  },
+  commentActionTextActive: {
+    color: BRAND_COLOR,
     fontSize: 13,
     fontWeight: "600",
-  },
-  reactionButtonTextActive: {
-    color: COLORS.PRIMARY,
-  },
-  reactionButtonDangerText: {
-    color: COLORS.ERROR,
   },
   linkButton: {
-    justifyContent: "center",
-    paddingHorizontal: 6,
-    paddingVertical: 8,
+    alignItems: "center",
+    flexDirection: "row",
   },
   linkButtonText: {
-    color: COLORS.ACCENT,
+    color: "#666",
     fontSize: 13,
-    fontWeight: "600",
+  },
+  replyContainer: {
+    borderLeftColor: COLORS.GRAY_LIGHT,
+    borderLeftWidth: 2,
+    marginTop: 10,
+    paddingLeft: 15,
   },
   dangerText: {
     color: COLORS.ERROR,
   },
   repliesWrap: {
-    gap: 10,
-    marginTop: 12,
+    marginTop: 2,
   },
 });

@@ -25,6 +25,8 @@ import type { CommunityComment, ForumQuestionStatus } from "@/http/types/communi
 import { ROUTES } from "@/navigation/routes";
 import type { RootStackNavigationProp, RootStackParamList } from "@/navigation/types";
 
+const BRAND_COLOR = "#9F0FA7";
+
 type ForumQuestionRoute = RouteProp<
   RootStackParamList,
   typeof ROUTES.STACK.FORUM_QUESTION
@@ -383,7 +385,7 @@ export default function ForumQuestionScreen() {
 
 const styles = StyleSheet.create({
   screen: {
-    backgroundColor: "#F3F6ED",
+ 
     flex: 1,
   },
   flex: {
@@ -509,13 +511,13 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   successButton: {
-    backgroundColor: "#EAF7E1",
+    backgroundColor: BRAND_COLOR,
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
   successButtonText: {
-    color: COLORS.PRIMARY,
+    color: COLORS.WHITE,
     fontSize: 13,
     fontWeight: "800",
   },
@@ -574,7 +576,7 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     alignItems: "center",
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: BRAND_COLOR,
     borderRadius: 16,
     paddingVertical: 14,
   },
