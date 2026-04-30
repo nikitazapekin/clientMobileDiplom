@@ -82,7 +82,7 @@ export default function ArticlesScreen() {
         }
       >
         <View style={styles.heroCard}>
-          <Text style={styles.heroEyebrow}>Articles</Text>
+          <Text style={styles.heroEyebrow}>Статьи</Text>
          
           <Text style={styles.heroText}>
             Публикуй свои статьи и делитесь ими с другими пользователями!
@@ -183,9 +183,7 @@ export default function ArticlesScreen() {
 
                 <View style={styles.cardFooter}>
                   <Text style={styles.authorText}>{article.authorName}</Text>
-                  <Text style={styles.metaText}>
-                    {article.commentsCount} комментариев · {article.likes} лайков
-                  </Text>
+                   
                 </View>
               </TouchableOpacity>
             ))}
@@ -197,10 +195,20 @@ export default function ArticlesScreen() {
     </View>
   );
 }
-
+/*
+    backgroundColor: COLORS.GRAY_DARK,
+    borderRadius: 28,
+    marginBottom: 16,
+    overflow: "hidden",
+    padding: 20,
+  },
+  heroEyebrow: {
+    color: "#C3D4B6",
+    fontSize: 12,
+    */
 const styles = StyleSheet.create({
   screen: {
-    backgroundColor: "#F4F6F1",
+  
     flex: 1,
   },
   content: {
@@ -208,15 +216,16 @@ const styles = StyleSheet.create({
     paddingBottom: 110,
   },
   heroCard: {
-    backgroundColor: "#FFF7EB",
-    borderColor: "#F0D8A6",
+   
+    
     borderRadius: 28,
     borderWidth: 1,
     marginBottom: 16,
     padding: 20,
+     backgroundColor: COLORS.GRAY_DARK,
   },
   heroEyebrow: {
-    color: "#A96900",
+ color: "white",
     fontSize: 12,
     fontWeight: "800",
     letterSpacing: 1,
@@ -224,13 +233,14 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   heroTitle: {
-    color: COLORS.GRAY_DARK,
+   
     fontSize: FONTS.SIZE.LG,
     fontWeight: "800",
     lineHeight: 30,
+    color: "white",
   },
   heroText: {
-    color: COLORS.GRAY_700,
+    color: "white",
     fontSize: FONTS.SIZE.SM,
     lineHeight: 22,
     marginTop: 10,
@@ -238,7 +248,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     alignSelf: "flex-start",
-    backgroundColor: COLORS.GRAY_DARK,
+    backgroundColor:"#9F0FA7",
     borderRadius: 999,
     paddingHorizontal: 18,
     paddingVertical: 12,
@@ -269,12 +279,13 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     alignItems: "center",
-    backgroundColor: "#EEF7E8",
+   
     borderRadius: 14,
     paddingVertical: 12,
+    backgroundColor: "#9F0FA7", 
   },
   secondaryButtonText: {
-    color: COLORS.PRIMARY,
+    color: "white",
     fontSize: 14,
     fontWeight: "800",
   },
@@ -324,13 +335,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   reactionBadge: {
-    backgroundColor: "#FBF1D8",
+    backgroundColor: "#9F0FA7",
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 7,
   },
   reactionBadgeText: {
-    color: "#A96900",
+    color: "white",
     fontSize: 12,
     fontWeight: "800",
   },

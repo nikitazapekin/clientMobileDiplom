@@ -160,7 +160,7 @@ export default function ForumEditorScreen() {
 
 const styles = StyleSheet.create({
   screen: {
-    backgroundColor: "#F3F6ED",
+ 
     flex: 1,
   },
   content: {
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     alignItems: "center",
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: "#9F0FA7",
     borderRadius: 18,
     marginTop: 4,
     paddingVertical: 15,

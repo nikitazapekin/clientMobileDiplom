@@ -2,6 +2,7 @@ import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   RefreshControl,
@@ -27,6 +28,8 @@ import { ROUTES } from "@/navigation/routes";
 import type { RootStackNavigationProp, RootStackParamList } from "@/navigation/types";
 
 type ArticleRoute = RouteProp<RootStackParamList, typeof ROUTES.STACK.ARTICLE>;
+const BRAND_COLOR = "#9F0FA7";
+const THUMB_ICON = require("../../assets/dislike.png");
 
 const formatDate = (value: string) =>
   new Date(value).toLocaleString("ru-RU", {
@@ -219,15 +222,15 @@ export default function ArticleScreen() {
                         Alert.alert("Ошибка", err.message || "Не удалось поставить лайк");
                       }
                     }}
-                    style={[styles.reactionButton, article.hasLiked && styles.reactionButtonActive]}
+                    style={styles.reactionAction}
                   >
-                    <Text
-                      style={[
-                        styles.reactionButtonText,
-                        article.hasLiked && styles.reactionButtonTextActive,
-                      ]}
-                    >
-                      Лайк {article.likes}
+                    <Image
+                      source={THUMB_ICON}
+                      style={[styles.reactionActionIcon, styles.reactionActionIconRotated]}
+                      resizeMode="contain"
+                    />
+                    <Text style={article.hasLiked ? styles.reactionActionTextActive : styles.reactionActionText}>
+                      {article.likes}
                     </Text>
                   </TouchableOpacity>
 
@@ -241,18 +244,19 @@ export default function ArticleScreen() {
                         Alert.alert("Ошибка", err.message || "Не удалось поставить дизлайк");
                       }
                     }}
-                    style={[
-                      styles.reactionButton,
-                      article.hasDisliked && styles.reactionButtonDanger,
-                    ]}
+                    style={styles.reactionAction}
                   >
+                    <Image
+                      source={THUMB_ICON}
+                      style={styles.reactionActionIcon}
+                      resizeMode="contain"
+                    />
                     <Text
-                      style={[
-                        styles.reactionButtonText,
-                        article.hasDisliked && styles.reactionButtonDangerText,
-                      ]}
+                      style={
+                        article.hasDisliked ? styles.reactionActionTextActive : styles.reactionActionText
+                      }
                     >
-                      Дизлайк {article.dislikes}
+                      {article.dislikes}
                     </Text>
                   </TouchableOpacity>
 
@@ -377,7 +381,7 @@ export default function ArticleScreen() {
 
 const styles = StyleSheet.create({
   screen: {
-    backgroundColor: "#F4F6F1",
+  
     flex: 1,
   },
   flex: {
@@ -441,31 +445,29 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    gap: 15,
     marginTop: 16,
   },
-  reactionButton: {
-    backgroundColor: COLORS.GRAY_100,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+  reactionAction: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 5,
   },
-  reactionButtonActive: {
-    backgroundColor: "#EAF7E1",
+  reactionActionIcon: {
+    height: 20,
+    width: 20,
   },
-  reactionButtonDanger: {
-    backgroundColor: "#FCEEEE",
+  reactionActionIconRotated: {
+    transform: [{ rotate: "180deg" }],
   },
-  reactionButtonText: {
-    color: COLORS.GRAY_700,
+  reactionActionText: {
+    color: "#666",
     fontSize: 13,
-    fontWeight: "700",
   },
-  reactionButtonTextActive: {
-    color: COLORS.PRIMARY,
-  },
-  reactionButtonDangerText: {
-    color: COLORS.ERROR,
+  reactionActionTextActive: {
+    color: BRAND_COLOR,
+    fontSize: 13,
+    fontWeight: "600",
   },
   authorText: {
     color: COLORS.GRAY_DARK,
@@ -554,7 +556,7 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     alignItems: "center",
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: "#9F0FA7",
     borderRadius: 16,
     paddingVertical: 14,
   },

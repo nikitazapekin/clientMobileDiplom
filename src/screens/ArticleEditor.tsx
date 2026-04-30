@@ -159,7 +159,7 @@ export default function ArticleEditorScreen() {
 
 const styles = StyleSheet.create({
   screen: {
-    backgroundColor: "#F4F6F1",
+ 
     flex: 1,
   },
   content: {
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     alignItems: "center",
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: "#9F0FA7",
     borderRadius: 18,
     marginTop: 6,
     paddingVertical: 15,

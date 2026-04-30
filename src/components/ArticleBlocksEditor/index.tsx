@@ -428,13 +428,13 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   secondaryButton: {
-    backgroundColor: "#EEF7E8",
+    backgroundColor: "#9F0FA7",
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
   secondaryButtonText: {
-    color: COLORS.PRIMARY,
+    color: "white",
     fontSize: 13,
     fontWeight: "700",
   },
