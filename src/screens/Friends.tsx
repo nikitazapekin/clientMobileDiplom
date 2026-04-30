@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   RefreshControl,
   StyleSheet,
   Text,
@@ -29,6 +30,33 @@ type TabType = 'my-friends' | 'find-friends' | 'requests';
 
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
+
+const normalizeAvatarUri = (imageUrl?: string | null, mimeType?: string | null): string | null => {
+  if (!imageUrl) {
+    return null;
+  }
+
+  if (imageUrl.startsWith('data:')) {
+    return imageUrl;
+  }
+
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+
+  return mimeType ? `data:${mimeType};base64,${imageUrl}` : null;
+};
+
+const getAvatarUri = (item: Record<string, any>): string | null => {
+  return (
+    normalizeAvatarUri(item.avatar?.imageUrl, item.avatar?.mimeType) ||
+    normalizeAvatarUri(item.avatarUrl, item.avatarMimeType) ||
+    normalizeAvatarUri(item.friendAvatar?.imageUrl, item.friendAvatar?.mimeType) ||
+    normalizeAvatarUri(item.friendAvatarUrl, item.friendAvatarMimeType) ||
+    normalizeAvatarUri(item.senderAvatar?.imageUrl, item.senderAvatar?.mimeType) ||
+    normalizeAvatarUri(item.senderAvatarUrl, item.senderAvatarMimeType)
+  );
+};
 
 const FriendsScreen = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -249,6 +277,20 @@ const FriendsScreen = () => {
     }
   };
 
+  const renderAvatar = (item: Record<string, any>, fallbackLetter?: string) => {
+    const avatarUri = getAvatarUri(item);
+
+    if (avatarUri) {
+      return <Image source={{ uri: avatarUri }} style={styles.avatarImage} />;
+    }
+
+    return (
+      <View style={styles.avatarFallback}>
+        <Text style={styles.avatarText}>{fallbackLetter || '?'}</Text>
+      </View>
+    );
+  };
+
   const renderFriendCard = ({ item }: { item: FriendResponse }) => {
     const fullName = `${item.friendFirstName || ''} ${item.friendMiddleName || ''} ${item.friendLastName || ''}`.trim();
 
@@ -259,11 +301,7 @@ const FriendsScreen = () => {
         onLongPress={() => handleRemoveFriend(item.friendId)}
       >
         <View style={styles.avatarContainer}>
-          {item.friendFirstName?.[0] ? (
-            <Text style={styles.avatarText}>{item.friendFirstName[0].toUpperCase()}</Text>
-          ) : (
-            <Text style={styles.avatarText}>?</Text>
-          )}
+          {renderAvatar(item as Record<string, any>, item.friendFirstName?.[0]?.toUpperCase())}
         </View>
         <View style={styles.friendInfo}>
           <Text style={styles.friendName}>{fullName || 'Unknown'}</Text>
@@ -281,11 +319,7 @@ const FriendsScreen = () => {
     return (
       <View style={styles.requestCard}>
         <View style={styles.avatarContainer}>
-          {item.senderFirstName?.[0] ? (
-            <Text style={styles.avatarText}>{item.senderFirstName[0].toUpperCase()}</Text>
-          ) : (
-            <Text style={styles.avatarText}>?</Text>
-          )}
+          {renderAvatar(item as Record<string, any>, item.senderFirstName?.[0]?.toUpperCase())}
         </View>
         <View style={styles.requestInfo}>
           <Text style={styles.requestName}>{fullName || 'Unknown'}</Text>
@@ -321,11 +355,7 @@ const FriendsScreen = () => {
           onPress={() => handleFriendPress(item.friendId)}
         >
           <View style={styles.avatarContainer}>
-            {item.friendFirstName?.[0] ? (
-              <Text style={styles.avatarText}>{item.friendFirstName[0].toUpperCase()}</Text>
-            ) : (
-              <Text style={styles.avatarText}>?</Text>
-            )}
+            {renderAvatar(item as Record<string, any>, item.friendFirstName?.[0]?.toUpperCase())}
           </View>
           <View style={styles.friendInfo}>
             <Text style={styles.userName}>{fullName || 'Unknown'}</Text>
@@ -353,11 +383,7 @@ const FriendsScreen = () => {
           onPress={() => handleFriendPress(item.friendId)}
         >
           <View style={styles.avatarContainer}>
-            {item.friendFirstName?.[0] ? (
-              <Text style={styles.avatarText}>{item.friendFirstName[0].toUpperCase()}</Text>
-            ) : (
-              <Text style={styles.avatarText}>?</Text>
-            )}
+            {renderAvatar(item as Record<string, any>, item.friendFirstName?.[0]?.toUpperCase())}
           </View>
           <View style={styles.friendInfo}>
             <Text style={styles.friendName}>{fullName || 'Unknown'}</Text>
@@ -430,13 +456,7 @@ const FriendsScreen = () => {
       <View style={styles.container}>
         <View style={styles.tabContainer}>
           <TouchableOpacity
-            style={[styles.tabButton, isMyFriendsTab && styles.tabButtonActive,
-
-{
-      backgroundColor: "#9F0FA7"
-    }
-
-            ]}
+            style={[styles.tabButton, isMyFriendsTab && styles.tabButtonActive]}
             onPress={() => {
               setActiveTab('my-friends');
               setSearchQuery('');
@@ -702,10 +722,20 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
+    marginRight: 12,
+    overflow: 'hidden',
+  },
+  avatarFallback: {
+    flex: 1,
+    borderRadius: 25,
     backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 25,
   },
   avatarText: {
     fontSize: 20,
