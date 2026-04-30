@@ -90,7 +90,7 @@ export default function ForumScreen() {
         }
       >
         <View style={styles.heroCard}>
-          <Text style={styles.heroEyebrow}>Student forum</Text>
+          <Text style={styles.heroEyebrow}>Форум</Text>
           <Text style={styles.heroTitle}>Вопросы по курсам, коду и заданиям</Text>
           <Text style={styles.heroText}>
             Ищи по названию и тегам, фильтруй открытые вопросы и публикуй свои разборы.
@@ -274,13 +274,13 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     alignSelf: "flex-start",
-    backgroundColor: COLORS.SECONDARY,
+    backgroundColor: "#9F0FA7",
     borderRadius: 999,
     paddingHorizontal: 18,
     paddingVertical: 12,
   },
   primaryButtonText: {
-    color: COLORS.GRAY_DARK,
+    color: "white",
     fontSize: 14,
     fontWeight: "800",
   },
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   segmentButtonActive: {
-    backgroundColor: "#EAF7E1",
+    backgroundColor: "#9F0FA7",
   },
   segmentText: {
     color: COLORS.GRAY_700,
@@ -323,16 +323,16 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   segmentTextActive: {
-    color: COLORS.PRIMARY,
+    color: "white",
   },
   secondaryButton: {
     alignItems: "center",
-    backgroundColor: "#EEF7E8",
+    backgroundColor: "#9F0FA7",
     borderRadius: 14,
     paddingVertical: 12,
   },
   secondaryButtonText: {
-    color: COLORS.PRIMARY,
+    color: "white",
     fontSize: 14,
     fontWeight: "800",
   },

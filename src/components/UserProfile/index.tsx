@@ -712,12 +712,12 @@ const UserProfile = () => {
           style={styles.logoutButton}
           onPress={() => {
             Alert.alert(
-              'Logout',
-              'Are you sure you want to logout?',
+              'Выйти',
+              'Вы действительно хотите выйти?',
               [
-                { text: 'Cancel', style: 'cancel' },
+                { text: 'Отмена', style: 'cancel' },
                 {
-                  text: 'Logout',
+                  text: 'Выйти',
                   style: 'destructive',
                   onPress: async () => {
                     await AsyncStorage.removeItem('accessToken');
