@@ -416,7 +416,7 @@ export default function ChatScreen() {
           style={chatStyles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Text style={chatStyles.backButtonText}>← Назад</Text>
+          <Text style={chatStyles.backButtonText}> Назад</Text>
         </TouchableOpacity>
         <View style={chatStyles.participant}>
           <View style={chatStyles.avatar}>
