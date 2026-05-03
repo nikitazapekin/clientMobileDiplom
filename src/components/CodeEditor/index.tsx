@@ -161,6 +161,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 }) => {
   const inputRef = useRef<TextInput>(null);
   const highlightScrollRef = useRef<ScrollView>(null);
+  const horizontalScrollRef = useRef<ScrollView>(null);
   const [selection, setSelection] = useState({ start: 0, end: 0 });
   const selectionRef = useRef(selection);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
@@ -169,6 +170,8 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   const [isFocused, setIsFocused] = useState(false);
   const [cursorVisible, setCursorVisible] = useState(true);
   const [characterWidth, setCharacterWidth] = useState(FONT_SIZE * 0.6);
+  const [lineLayouts, setLineLayouts] = useState<Record<number, { y: number; height: number }>>({});
+  const [viewportWidth, setViewportWidth] = useState(0);
 
   useEffect(() => {
     selectionRef.current = selection;
@@ -368,7 +371,40 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     }
   }, []);
 
+  const handleViewportLayout = useCallback((event: LayoutChangeEvent) => {
+    const { width } = event.nativeEvent.layout;
+
+    if (width > 0) {
+      setViewportWidth(width);
+    }
+  }, []);
+
+  const handleLineLayout = useCallback((lineIndex: number, event: LayoutChangeEvent) => {
+    const { y, height } = event.nativeEvent.layout;
+
+    setLineLayouts(prev => {
+      const currentLayout = prev[lineIndex];
+
+      if (currentLayout && currentLayout.y === y && currentLayout.height === height) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [lineIndex]: { y, height },
+      };
+    });
+  }, []);
+
   const cursorLocation = getCursorLocation(value, selection.start);
+  const activeLineLayout = lineLayouts[cursorLocation.line];
+  const longestLineLength = value
+    .split('\n')
+    .reduce((maxLength, line) => Math.max(maxLength, line.length), 1);
+  const contentWidth = Math.max(
+    viewportWidth,
+    LINE_NUMBER_WIDTH + PADDING_HORIZONTAL * 2 + longestLineLength * characterWidth
+  );
   const shouldRenderCursor =
     isFocused &&
     !readOnly &&
@@ -376,7 +412,9 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     selection.start === selection.end;
   const cursorStyle = {
     left: LINE_NUMBER_WIDTH + PADDING_HORIZONTAL + cursorLocation.column * characterWidth,
-    top: PADDING_VERTICAL + cursorLocation.line * LINE_HEIGHT + (LINE_HEIGHT - CURSOR_HEIGHT) / 2,
+    top:
+      (activeLineLayout?.y ?? PADDING_VERTICAL + cursorLocation.line * LINE_HEIGHT) +
+      ((activeLineLayout?.height ?? LINE_HEIGHT) - CURSOR_HEIGHT) / 2,
   };
 
   const renderHighlightedCode = useCallback(() => {
@@ -505,13 +543,17 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
       }
 
       return (
-        <View key={`line-${lineIndex}`} style={styles.lineContainer}>
+        <View
+          key={`line-${lineIndex}`}
+          style={styles.lineContainer}
+          onLayout={event => handleLineLayout(lineIndex, event)}
+        >
           <Text style={styles.lineNumber}>{lineIndex + 1}</Text>
           <View style={styles.lineContent}>{tokens}</View>
         </View>
       );
     });
-  }, [value, language]);
+  }, [value, language, handleLineLayout]);
 
   const textInputProps: ExtendedTextInputProps = {
     style: styles.hiddenInput,
@@ -576,36 +618,50 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         style={styles.editorTouchable}
         onPress={() => inputRef.current?.focus()}
       >
-        <View style={styles.editorContainer}>
-
+        <View style={styles.editorContainer} onLayout={handleViewportLayout}>
           <ScrollView
-            ref={highlightScrollRef}
-            style={styles.highlightScroll}
-            contentContainerStyle={styles.highlightContent}
-            showsVerticalScrollIndicator={false}
-            showsHorizontalScrollIndicator={false}
-            scrollEnabled={false}
-            pointerEvents="none"
+            ref={horizontalScrollRef}
+            horizontal={true}
+            style={styles.horizontalScroll}
+            contentContainerStyle={[styles.horizontalContent, { width: contentWidth }]}
+            showsHorizontalScrollIndicator={true}
+            bounces={false}
+            alwaysBounceHorizontal={false}
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled={true}
           >
-            <View style={styles.editor}>
-              {renderHighlightedCode()}
-              {shouldRenderCursor && (
-                <View style={[styles.cursor, cursorStyle]} />
-              )}
+            <View style={[styles.editorCanvas, { width: contentWidth }]}>
+              <ScrollView
+                ref={highlightScrollRef}
+                style={styles.highlightScroll}
+                contentContainerStyle={styles.highlightContent}
+                showsVerticalScrollIndicator={false}
+                showsHorizontalScrollIndicator={false}
+                scrollEnabled={false}
+                pointerEvents="none"
+              >
+                <View style={[styles.editor, { width: contentWidth }]}>
+                  {renderHighlightedCode()}
+                  {shouldRenderCursor && (
+                    <View style={[styles.cursor, cursorStyle]} />
+                  )}
+                </View>
+              </ScrollView>
+
+              <TextInput
+                ref={inputRef}
+                {...textInputProps}
+                style={[styles.hiddenInput, { width: contentWidth }]}
+              />
+              <Text
+                style={styles.measureText}
+                onLayout={handleCharacterMeasure}
+                pointerEvents="none"
+              >
+                {CURSOR_SAMPLE}
+              </Text>
             </View>
           </ScrollView>
-
-          <TextInput
-            ref={inputRef}
-            {...textInputProps}
-          />
-          <Text
-            style={styles.measureText}
-            onLayout={handleCharacterMeasure}
-            pointerEvents="none"
-          >
-            {CURSOR_SAMPLE}
-          </Text>
         </View>
       </TouchableOpacity>
 
@@ -694,6 +750,16 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
   },
+  horizontalScroll: {
+    flex: 1,
+  },
+  horizontalContent: {
+    minWidth: '100%',
+  },
+  editorCanvas: {
+    flex: 1,
+    position: 'relative',
+  },
   highlightScroll: {
     position: 'absolute',
     top: 0,
@@ -729,7 +795,8 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: LINE_HEIGHT,
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
+    overflow: 'hidden',
     alignItems: 'flex-start',
   },
 
@@ -753,7 +820,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     left: 0,
-    right: 0,
     bottom: 0,
 
     padding: 0,
@@ -768,7 +834,7 @@ const styles = StyleSheet.create({
         letterSpacing: LETTER_SPACING,
         fontWeight: '400',
         includeFontPadding: false,
-        textAlignVertical: 'center',
+        textAlignVertical: 'top',
       },
       android: {
         fontFamily: FONT_FAMILY,
@@ -777,7 +843,7 @@ const styles = StyleSheet.create({
         letterSpacing: LETTER_SPACING,
         fontWeight: '400',
         includeFontPadding: false,
-        textAlignVertical: 'center',
+        textAlignVertical: 'top',
       },
     }),
 
