@@ -1,15 +1,22 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
+import type {
+  LayoutChangeEvent,
   NativeSyntheticEvent,
+  StyleProp,
+  TextInputKeyPressEventData,
+  TextInputProps,
+  TextInputScrollEventData,
+  TextInputSelectionChangeEventData,
+  ViewStyle,
+} from 'react-native';
+import {
   Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TextInputScrollEventData,
   TouchableOpacity,
   View,
-  TextInputProps,
 } from 'react-native';
 
 type CodeLanguage =
@@ -32,7 +39,7 @@ interface CodeEditorProps {
   height?: number;
   onRun?: () => void;
   runLoading?: boolean;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
 }
 
 const KEYWORDS: Record<CodeLanguage, string[]> = {
@@ -116,25 +123,27 @@ const COLORS = {
   autocompleteBorder: '#374151',
   autocompleteSelected: '#2D3748',
 };
- 
+
 const FONT_FAMILY = Platform.select({
-  ios: 'Courier', 
+  ios: 'Courier',
   android: 'monospace',
   default: 'monospace',
 });
 
 const FONT_SIZE = 14;
 const LINE_HEIGHT = 20;
+const CURSOR_HEIGHT = 18;
 const PADDING_VERTICAL = 8;
 const PADDING_HORIZONTAL = 8;
 const LINE_NUMBER_WIDTH = 40;
- 
+const CURSOR_SAMPLE = 'MMMMMMMMMM';
+
 const LETTER_SPACING = Platform.select({
   ios: -0.3,
   android: -0.2,
   default: -0.2,
 });
- 
+
 type ExtendedTextInputProps = Omit<TextInputProps, 'ref'> & {
   includeFontPadding?: boolean;
   importantForAutofill?: 'auto' | 'no' | 'noExcludeDescendants' | 'yes' | 'yesExcludeDescendants';
@@ -153,14 +162,18 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   const inputRef = useRef<TextInput>(null);
   const highlightScrollRef = useRef<ScrollView>(null);
   const [selection, setSelection] = useState({ start: 0, end: 0 });
+  const selectionRef = useRef(selection);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<string[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState(0);
-  const [cursorPosition, setCursorPosition] = useState({ line: 0, column: 0 });
-  const [cursorVisible, setCursorVisible] = useState(true);
   const [isFocused, setIsFocused] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
- 
+  const [cursorVisible, setCursorVisible] = useState(true);
+  const [characterWidth, setCharacterWidth] = useState(FONT_SIZE * 0.6);
+
+  useEffect(() => {
+    selectionRef.current = selection;
+  }, [selection]);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setCursorVisible(prev => !prev);
@@ -168,7 +181,20 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 
     return () => clearInterval(interval);
   }, []);
- 
+
+  const setTrackedSelection = useCallback((nextSelection: { start: number; end: number }) => {
+    selectionRef.current = nextSelection;
+    setSelection(nextSelection);
+  }, []);
+
+  const syncSelectionToInput = useCallback((nextSelection: { start: number; end: number }) => {
+    setTrackedSelection(nextSelection);
+
+    setTimeout(() => {
+      inputRef.current?.setNativeProps({ selection: nextSelection });
+    }, 0);
+  }, [setTrackedSelection]);
+
   const getCurrentWord = useCallback((text: string, pos: number) => {
     const beforeCursor = text.slice(0, pos);
     const afterCursor = text.slice(pos);
@@ -178,7 +204,17 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 
     return (beforeMatch ? beforeMatch[0] : '') + (afterMatch ? afterMatch[0] : '');
   }, []);
- 
+
+  const getCursorLocation = useCallback((text: string, offset: number) => {
+    const textBeforeCursor = text.slice(0, offset);
+    const lines = textBeforeCursor.split('\n');
+
+    return {
+      line: lines.length - 1,
+      column: lines[lines.length - 1].length,
+    };
+  }, []);
+
   useEffect(() => {
     const word = getCurrentWord(value, selection.start);
 
@@ -197,11 +233,12 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
       setShowAutocomplete(false);
     }
   }, [value, selection.start, language, readOnly, isFocused, getCurrentWord]);
- 
+
   const insertSnippet = useCallback((snippet: string) => {
-    const beforeCursor = value.slice(0, selection.start);
-    const afterCursor = value.slice(selection.end);
-    const word = getCurrentWord(value, selection.start);
+    const currentSelection = selectionRef.current;
+    const beforeCursor = value.slice(0, currentSelection.start);
+    const afterCursor = value.slice(currentSelection.end);
+    const word = getCurrentWord(value, currentSelection.start);
 
     const newText = beforeCursor.slice(0, -word.length) + snippet + afterCursor;
 
@@ -209,11 +246,50 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
 
     const newPosition = beforeCursor.length - word.length + snippet.length;
 
-    setSelection({ start: newPosition, end: newPosition });
+    syncSelectionToInput({ start: newPosition, end: newPosition });
     setShowAutocomplete(false);
-  }, [value, selection, onChange]);
- 
-  const handleKeyPress = useCallback((e: any) => {
+  }, [value, onChange, getCurrentWord, syncSelectionToInput]);
+
+  const handleChangeText = useCallback((nextValue: string) => {
+    const currentSelection = selectionRef.current;
+    const beforeCursor = value.slice(0, currentSelection.start);
+    const afterCursor = value.slice(currentSelection.end);
+    const canResolveInsertedText =
+      nextValue.startsWith(beforeCursor) &&
+      nextValue.endsWith(afterCursor) &&
+      nextValue.length >= beforeCursor.length + afterCursor.length;
+
+    if (!canResolveInsertedText) {
+      onChange(nextValue);
+
+      return;
+    }
+
+    const insertedText = nextValue.slice(
+      beforeCursor.length,
+      nextValue.length - afterCursor.length
+    );
+
+    if (insertedText !== '\n') {
+      onChange(nextValue);
+
+      return;
+    }
+
+    const currentLine = beforeCursor.slice(beforeCursor.lastIndexOf('\n') + 1);
+    const currentIndent = currentLine.match(/^\s*/)?.[0] ?? '';
+    const trimmedLine = currentLine.trimEnd();
+    const shouldIncreaseIndent =
+      /[[{(]\s*$/.test(trimmedLine) || trimmedLine.endsWith(':');
+    const newIndent = shouldIncreaseIndent ? `${currentIndent}  ` : currentIndent;
+    const nextText = `${beforeCursor}\n${newIndent}${afterCursor}`;
+    const nextCursorPosition = beforeCursor.length + 1 + newIndent.length;
+
+    onChange(nextText);
+    syncSelectionToInput({ start: nextCursorPosition, end: nextCursorPosition });
+  }, [value, onChange, syncSelectionToInput]);
+
+  const handleKeyPress = useCallback((e: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
     const { key } = e.nativeEvent;
 
     if (showAutocomplete) {
@@ -244,63 +320,65 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
       }
     }
 
-    if (key === 'Enter') {
+    if (key === 'Tab') {
       e.preventDefault();
-
-      const lines = value.split('\n');
-      const textBeforeCursor = value.slice(0, selection.start);
-      const currentLineIndex = textBeforeCursor.split('\n').length - 1;
-      const currentLine = lines[currentLineIndex] || '';
-
-      const indentMatch = currentLine.match(/^\s*/);
-      const currentIndent = indentMatch ? indentMatch[0] : '';
-
-      const shouldIncreaseIndent = /[{([][^}\])]*$/.test(currentLine.trim()) ||
-                                   currentLine.trim().endsWith(':');
-
-      const newIndent = shouldIncreaseIndent ? currentIndent + '  ' : currentIndent;
-
-      const newText = value.slice(0, selection.start) + '\n' + newIndent + value.slice(selection.end);
+      const currentSelection = selectionRef.current;
+      const newText =
+        value.slice(0, currentSelection.start) +
+        '  ' +
+        value.slice(currentSelection.end);
 
       onChange(newText);
-
-      setTimeout(() => {
-        const newPosition = selection.start + 1 + newIndent.length;
-        setSelection({ start: newPosition, end: newPosition });
-      }, 0);
+      syncSelectionToInput({
+        start: currentSelection.start + 2,
+        end: currentSelection.start + 2,
+      });
     }
-    else if (key === 'Tab') {
-      e.preventDefault();
-      const newText = value.slice(0, selection.start) + '  ' + value.slice(selection.end);
+  }, [
+    value,
+    showAutocomplete,
+    autocompleteSuggestions,
+    selectedSuggestion,
+    insertSnippet,
+    onChange,
+    syncSelectionToInput,
+  ]);
 
-      onChange(newText);
-      setTimeout(() => {
-        setSelection({ start: selection.start + 2, end: selection.start + 2 });
-      }, 0);
-    }
-  }, [value, selection, showAutocomplete, autocompleteSuggestions, selectedSuggestion]);
- 
-  const handleSelectionChange = useCallback((event: any) => {
+  const handleSelectionChange = useCallback((event: NativeSyntheticEvent<TextInputSelectionChangeEventData>) => {
     const { selection } = event.nativeEvent;
-    setSelection(selection);
 
-    const textBeforeCursor = value.slice(0, selection.start);
-    const lines = textBeforeCursor.split('\n');
-    const line = lines.length - 1;
-    const column = lines[lines.length - 1].length;
+    setCursorVisible(true);
+    setTrackedSelection(selection);
+  }, [setTrackedSelection]);
 
-    setCursorPosition({ line, column });
-  }, [value]);
- 
   const handleScroll = useCallback((event: NativeSyntheticEvent<TextInputScrollEventData>) => {
     const offsetY = event.nativeEvent.contentOffset.y;
-    setScrollY(offsetY);
+
     highlightScrollRef.current?.scrollTo({
       y: offsetY,
       animated: false,
     });
   }, []);
- 
+
+  const handleCharacterMeasure = useCallback((event: LayoutChangeEvent) => {
+    const width = event.nativeEvent.layout.width / CURSOR_SAMPLE.length;
+
+    if (width > 0) {
+      setCharacterWidth(width);
+    }
+  }, []);
+
+  const cursorLocation = getCursorLocation(value, selection.start);
+  const shouldRenderCursor =
+    isFocused &&
+    !readOnly &&
+    cursorVisible &&
+    selection.start === selection.end;
+  const cursorStyle = {
+    left: LINE_NUMBER_WIDTH + PADDING_HORIZONTAL + cursorLocation.column * characterWidth,
+    top: PADDING_VERTICAL + cursorLocation.line * LINE_HEIGHT + (LINE_HEIGHT - CURSOR_HEIGHT) / 2,
+  };
+
   const renderHighlightedCode = useCallback(() => {
     if (!value) {
       return (
@@ -310,9 +388,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
             <Text style={[styles.codeText, { color: COLORS.comment }]}>
               Введите код...
             </Text>
-            {isFocused && cursorVisible && cursorPosition.line === 0 && cursorPosition.column === 0 && (
-              <View style={[styles.cursor, { marginLeft: 0 }]} />
-            )}
           </View>
         </View>
       );
@@ -429,30 +504,25 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         i++;
       }
 
-      const isCursorLine = lineIndex === cursorPosition.line;
-      const showCursor = isCursorLine && isFocused && cursorVisible;
-
       return (
         <View key={`line-${lineIndex}`} style={styles.lineContainer}>
           <Text style={styles.lineNumber}>{lineIndex + 1}</Text>
-          <View style={styles.lineContent}>
-            {tokens}
-            {showCursor && cursorPosition.column === line.length && (
-              <View style={[styles.cursor, { marginLeft: 0 }]} />
-            )}
-          </View>
+          <View style={styles.lineContent}>{tokens}</View>
         </View>
       );
     });
-  }, [value, language, cursorPosition, cursorVisible, isFocused]);
- 
+  }, [value, language]);
+
   const textInputProps: ExtendedTextInputProps = {
     style: styles.hiddenInput,
     value,
-    onChangeText: onChange,
+    onChangeText: handleChangeText,
     onSelectionChange: handleSelectionChange,
     onKeyPress: handleKeyPress,
-    onFocus: () => setIsFocused(true),
+    onFocus: () => {
+      setCursorVisible(true);
+      setIsFocused(true);
+    },
     onBlur: () => setIsFocused(false),
     onScroll: handleScroll,
     multiline: true,
@@ -470,10 +540,12 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     maxFontSizeMultiplier: 1,
     textContentType: "none",
     importantForAutofill: "no",
+    caretHidden: true,
   };
- 
+
   if (Platform.OS === 'android') {
     textInputProps.includeFontPadding = false;
+    textInputProps.cursorColor = COLORS.text;
   }
 
   return (
@@ -505,7 +577,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         onPress={() => inputRef.current?.focus()}
       >
         <View style={styles.editorContainer}>
-        
+
           <ScrollView
             ref={highlightScrollRef}
             style={styles.highlightScroll}
@@ -517,14 +589,23 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
           >
             <View style={styles.editor}>
               {renderHighlightedCode()}
+              {shouldRenderCursor && (
+                <View style={[styles.cursor, cursorStyle]} />
+              )}
             </View>
           </ScrollView>
 
-        
           <TextInput
             ref={inputRef}
             {...textInputProps}
           />
+          <Text
+            style={styles.measureText}
+            onLayout={handleCharacterMeasure}
+            pointerEvents="none"
+          >
+            {CURSOR_SAMPLE}
+          </Text>
         </View>
       </TouchableOpacity>
 
@@ -627,27 +708,31 @@ const styles = StyleSheet.create({
   },
   editor: {
     paddingVertical: PADDING_VERTICAL,
+    position: 'relative',
   },
   lineContainer: {
     flexDirection: 'row',
     paddingHorizontal: PADDING_HORIZONTAL,
     minHeight: LINE_HEIGHT,
+    alignItems: 'flex-start',
   },
   lineNumber: {
     width: LINE_NUMBER_WIDTH,
     color: COLORS.lineNumber,
     fontFamily: FONT_FAMILY,
     fontSize: FONT_SIZE,
+    lineHeight: LINE_HEIGHT,
     textAlign: 'right',
     paddingRight: 8,
   },
   lineContent: {
     flex: 1,
+    minHeight: LINE_HEIGHT,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
-  
+
   codeText: {
     fontFamily: FONT_FAMILY,
     fontSize: FONT_SIZE,
@@ -658,10 +743,11 @@ const styles = StyleSheet.create({
     textAlignVertical: 'center',
   },
   cursor: {
+    position: 'absolute',
     width: 2,
-    height: 18,
+    height: CURSOR_HEIGHT,
     backgroundColor: COLORS.text,
-    opacity: 0.8,
+    zIndex: 3,
   },
   hiddenInput: {
     position: 'absolute',
@@ -669,11 +755,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    
+
     padding: 0,
     margin: 0,
     borderWidth: 0,
-   
+
     ...Platform.select({
       ios: {
         fontFamily: FONT_FAMILY,
@@ -694,22 +780,19 @@ const styles = StyleSheet.create({
         textAlignVertical: 'center',
       },
     }),
-     
+
     paddingLeft: LINE_NUMBER_WIDTH + PADDING_HORIZONTAL,
     paddingTop: PADDING_VERTICAL,
     paddingBottom: PADDING_VERTICAL,
     paddingRight: PADDING_HORIZONTAL,
-    
- 
+
     color: 'transparent',
-    
+
     backgroundColor: 'transparent',
-    opacity: 0,
-    
- 
+
     zIndex: 2,
-    
- 
+    opacity: 0,
+
     textShadowColor: 'transparent',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 0,
@@ -718,6 +801,16 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowColor: 'transparent',
     elevation: 0,
+  },
+  measureText: {
+    position: 'absolute',
+    opacity: 0,
+    fontFamily: FONT_FAMILY,
+    fontSize: FONT_SIZE,
+    lineHeight: LINE_HEIGHT,
+    letterSpacing: LETTER_SPACING,
+    fontWeight: '400',
+    includeFontPadding: false,
   },
   autocompleteContainer: {
     position: 'absolute',
