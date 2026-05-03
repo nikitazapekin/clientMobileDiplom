@@ -16,13 +16,13 @@ import {
   buildCSharpTestSuite,
   buildJavaTestSuite,
   buildTestCode,
-  extractFunctionName,
   formatArgsForDynamicLang,
   formatArgsForGolang,
   formatArgsForJavaOrCSharp,
   formatArgsForRust,
   generateObjectClasses,
   getDisplayInput,
+  resolveTargetFunctionName,
 } from "@/code";
 import CodeEditor from "@/components/CodeEditor";
 import type { ArgumentSchema, TestCaseArgument } from "@/components/Lesson/types";
@@ -391,7 +391,7 @@ const collectCheckLogs = async (
     return "";
   }
 
-  const funcName = extractFunctionName(userCode, language);
+  const funcName = resolveTargetFunctionName(task.functionName, userCode, language);
 
   if (!funcName) {
     return "";
@@ -659,6 +659,11 @@ const CodingTaskSolver = ({ id }: Props) => {
       <View style={st.descriptionCard}>
         <Text style={st.descTitle}>Описание</Text>
         <Text style={st.descText}>{task.description}</Text>
+        {task.functionName ? (
+          <Text style={[st.descText, { marginTop: 10 }]}>
+            Целевая функция: {task.functionName}
+          </Text>
+        ) : null}
       </View>
 
       {visibleTestCases.length > 0 && (
@@ -760,10 +765,10 @@ const CodingTaskSolver = ({ id }: Props) => {
         <TouchableOpacity
           style={st.solutionsBtn}
           onPress={() =>
-            navigation.navigate("Solutions" as never, {
+            (navigation as any).navigate("Solutions", {
               taskId: task.id,
               taskTitle: task.title,
-            } as never)
+            })
           }
         >
           <Text style={st.solutionsBtnText}>Посмотреть решения других студентов</Text>

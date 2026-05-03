@@ -108,6 +108,7 @@ export interface CodeTaskBlock extends BaseBlock {
   runnable: boolean;
   language: CodeLanguage;
   description?: string;
+  functionName?: string;
   startCode?: string;
   testCases?: Array<{ input: string; expectedOutput: ExpectedOutputValue; args?: TestCaseArgument[] }>;
   expectedOutput?: ExpectedOutputValue;

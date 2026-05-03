@@ -40,7 +40,6 @@ import {
   checkConstraints,
   compareOutputs,
   extractFillTaskInputs,
-  extractFunctionName,
   formatArgsForDynamicLang,
   formatArgsForGolang,
   formatArgsForJavaOrCSharp,
@@ -52,6 +51,7 @@ import {
   hasExpectedOutputValue,
   normalizeFillTaskBlock,
   normalizeOutputValue,
+  resolveTargetFunctionName,
   renderArgumentScheme,
   stringifyOutputValue,
   validateFillTaskAnswers
@@ -285,6 +285,9 @@ const CodeTaskBlockView = ({
       {block.description && (
         <Text style={styles.taskDescription}>{block.description}</Text>
       )}
+      {block.functionName ? (
+        <Text style={styles.taskDescription}>Целевая функция: {block.functionName}</Text>
+      ) : null}
 
       {block.argumentScheme && block.argumentScheme.length > 0 && (
         <View style={styles.argumentSchemeInfo}>
@@ -375,7 +378,7 @@ const CodeTaskBlockView = ({
             >
               <View style={styles.constraintHeader}>
                 <Text style={styles.constraintName}>{constraint.name}</Text>
-                <Text>{constraint.passed ? "Огрничение пройдено" : "Огрничение не пройдено"}</Text>
+                <Text>{constraint.passed ? "Огрничения пройдены" : "Ограничения не пройдены"}</Text>
               </View>
               <Text>Ожидалось: {constraint.expected}</Text>
               <Text>Получено: {constraint.actual}</Text>
@@ -1170,7 +1173,12 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
     setSourcesModalVisible(true);
   }, []);
 
-  const runCode = useCallback(async (blockId: string, language: CodeLanguage, code: string) => {
+  const runCode = useCallback(async (
+    blockId: string,
+    language: CodeLanguage,
+    code: string,
+    functionName?: string
+  ) => {
     setCodeRunLoading(prev => ({ ...prev, [blockId]: true }));
     setCodeRunOutput(prev => ({ ...prev, [blockId]: "" }));
 
@@ -1178,7 +1186,7 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
       let codeToRun = code;
  
       if (language === "java") {
-        const funcName = extractFunctionName(code, language);
+        const funcName = resolveTargetFunctionName(functionName, code, language);
 
         if (funcName) {
           codeToRun = addJavaMainMethod(code, funcName, "5");
@@ -1264,7 +1272,11 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
       return;
     }
 
-    const funcName = extractFunctionName(userCode, block.language || "javascript");
+    const funcName = resolveTargetFunctionName(
+      block.functionName,
+      userCode,
+      block.language || "javascript"
+    );
 
     if (!funcName) {
       setTestErrors(prev => ({
@@ -2000,7 +2012,12 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
                   onRun={() => {
                     const code = testAnswers[currentSlide.id] || block.startCode || "";
 
-                    runCode(block.id, block.language || "javascript", code);
+                    runCode(
+                      block.id,
+                      block.language || "javascript",
+                      code,
+                      block.functionName
+                    );
                   }}
                   onCheck={() => checkCodeTask(block, currentSlide.id)}
                   isRunning={codeRunLoading[block.id]}

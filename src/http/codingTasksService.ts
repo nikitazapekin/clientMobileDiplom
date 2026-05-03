@@ -33,6 +33,7 @@ export interface CodeTask {
   id: string;
   title: string;
   description: string;
+  functionName?: string | null;
   tags?: string[];
   languages: string[];
   startCodes: Record<string, string>;

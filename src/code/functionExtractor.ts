@@ -149,3 +149,17 @@ export const extractFunctionName = (code: string, lang: CodeLanguage): string | 
     return null;
   }
 };
+
+export const resolveTargetFunctionName = (
+  explicitFunctionName: string | null | undefined,
+  code: string,
+  lang: CodeLanguage
+): string | null => {
+  const normalizedFunctionName = explicitFunctionName?.trim();
+
+  if (normalizedFunctionName) {
+    return normalizedFunctionName;
+  }
+
+  return extractFunctionName(code, lang);
+};
