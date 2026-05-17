@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -14,6 +13,7 @@ import { COLORS, FONTS } from "appStyles";
 
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import Loader from "@/components/Loader";
 import forumService from "@/http/forum";
 import type { ForumQuestion, ForumQuestionStatus } from "@/http/types/community";
 import { ROUTES } from "@/navigation/routes";
@@ -152,7 +152,7 @@ export default function ForumScreen() {
 
         {loading ? (
           <View style={styles.stateCard}>
-            <ActivityIndicator color={COLORS.PRIMARY} size="large" />
+            <Loader />
           </View>
         ) : error ? (
           <View style={styles.stateCard}>

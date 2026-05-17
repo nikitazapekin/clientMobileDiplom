@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   ScrollView,
   StyleSheet,
@@ -15,6 +14,7 @@ import { COLORS, FONTS } from "appStyles";
 
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import Loader from "@/components/Loader";
 import forumService from "@/http/forum";
 import { ROUTES } from "@/navigation/routes";
 import type { RootStackNavigationProp, RootStackParamList } from "@/navigation/types";
@@ -103,7 +103,7 @@ export default function ForumEditorScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         {loading ? (
           <View style={styles.stateCard}>
-            <ActivityIndicator color={COLORS.PRIMARY} size="large" />
+            <Loader />
           </View>
         ) : (
           <View style={styles.formCard}>

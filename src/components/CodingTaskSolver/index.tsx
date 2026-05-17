@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { COLORS, SIZES } from "appStyles";
+import Loader from "../Loader";
 import {st} from "./styles"
 import {
   buildCSharpTestSuite,
@@ -615,7 +616,7 @@ const CodingTaskSolver = ({ id }: Props) => {
   if (loading || !task) {
     return (
       <View style={st.center}>
-        <ActivityIndicator size="large" color={COLORS.ACCENT} />
+        <Loader />
       </View>
     );
   }

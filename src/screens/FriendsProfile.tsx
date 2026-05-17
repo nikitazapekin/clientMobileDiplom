@@ -22,6 +22,7 @@ import { ProfileService } from '../http/profile';
 import { CertificateService } from '../http/certificate';
 import type { CertificateResponse } from '../http/certificate';
 import { CodingTasksService, type CodeTask, type StudentLevel } from '../http/codingTasksService';
+import Loader from '../components/Loader';
 import { ROUTES } from '@/navigation/routes';
 import type { RootStackParamList } from '@/navigation/types';
 import type { FullClientInfo } from '../http/types/profile';
@@ -501,8 +502,7 @@ const FriendsProfileScreen = () => {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading profile...</Text>
+        <Loader />
       </View>
     );
   }

@@ -4,7 +4,6 @@ import { COLORS } from "appStyles";
 
 import { styles } from "./styles";
 import {
-  ActivityIndicator,
   Alert,
   Image,
   Modal,
@@ -15,6 +14,7 @@ import {
   View
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Loader from "../Loader";
 
 import LessonCommentsService, { type LessonComment } from "@/http/lessonComments";
 import { ProfileService } from "@/http/profile";
@@ -300,8 +300,7 @@ export const LessonComments: React.FC<LessonCommentsProps> = ({
 
           {commentsLoading ? (
             <View style={[styles.centerContent, { paddingVertical: 40 }]}>
-              <ActivityIndicator size="large" color="#000" />
-              <Text style={styles.loadingText}>Загрузка комментариев...</Text>
+              <Loader />
             </View>
           ) : comments.length === 0 ? (
             <Text style={styles.noCommentsText}>

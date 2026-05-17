@@ -21,6 +21,7 @@ import ArticleContentRenderer from "@/components/ArticleContentRenderer";
 import CommunityThread from "@/components/CommunityThread";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import Loader from "@/components/Loader";
 import articlesService from "@/http/articles";
 import AuthService from "@/http/auth";
 import type { CommunityComment } from "@/http/types/community";
@@ -184,7 +185,7 @@ export default function ArticleScreen() {
         >
           {loading ? (
             <View style={styles.stateCard}>
-              <ActivityIndicator color={COLORS.PRIMARY} size="large" />
+              <Loader />
             </View>
           ) : error || !article ? (
             <View style={styles.stateCard}>
@@ -295,7 +296,7 @@ export default function ArticleScreen() {
 
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Обсуждение</Text>
-                {actionLoading ? <ActivityIndicator color={COLORS.PRIMARY} /> : null}
+                {actionLoading ? <ActivityIndicator color="#9f0fa7" /> : null}
               </View>
 
               <CommunityThread

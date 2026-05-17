@@ -19,6 +19,7 @@ import { COLORS, FONTS } from "appStyles";
 import CommunityThread from "@/components/CommunityThread";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import Loader from "@/components/Loader";
 import AuthService from "@/http/auth";
 import forumService from "@/http/forum";
 import type { CommunityComment, ForumQuestionStatus } from "@/http/types/community";
@@ -216,7 +217,7 @@ export default function ForumQuestionScreen() {
         >
           {loading ? (
             <View style={styles.stateCard}>
-              <ActivityIndicator color={COLORS.PRIMARY} size="large" />
+              <Loader />
             </View>
           ) : error || !question ? (
             <View style={styles.stateCard}>
@@ -307,7 +308,7 @@ export default function ForumQuestionScreen() {
 
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Ответы</Text>
-                {actionLoading ? <ActivityIndicator color={COLORS.PRIMARY} /> : null}
+                {actionLoading ? <ActivityIndicator color="#9f0fa7" /> : null}
               </View>
 
               <CommunityThread

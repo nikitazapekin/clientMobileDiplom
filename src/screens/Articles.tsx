@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -14,6 +13,7 @@ import { COLORS, FONTS } from "appStyles";
 
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import Loader from "@/components/Loader";
 import articlesService from "@/http/articles";
 import type { Article } from "@/http/types/community";
 import { ROUTES } from "@/navigation/routes";
@@ -125,7 +125,7 @@ export default function ArticlesScreen() {
 
         {loading ? (
           <View style={styles.stateCard}>
-            <ActivityIndicator color={COLORS.PRIMARY} size="large" />
+            <Loader />
           </View>
         ) : error ? (
           <View style={styles.stateCard}>

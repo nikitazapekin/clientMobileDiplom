@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Modal,
   Pressable,
@@ -16,6 +15,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { COLORS } from "appStyles";
 
 import Course from "../Course";
+import Loader from "../Loader";
 
 import { styles } from "./styled";
 
@@ -281,7 +281,6 @@ export default function CoursesList({ mode = "all" }: CoursesListProps) {
     mode === "subscribed"
       ? "Все подписки студента в одном месте: открывайте курсы, продолжайте обучение и быстро возвращайтесь к нужным материалам."
       : "Здесь собраны все доступные курсы. Открывайте программы, изучайте описание и подписывайтесь на интересующие направления.";
-  const loadingText = mode === "subscribed" ? "Загружаем ваши курсы..." : "Загружаем каталог курсов...";
   const secondaryLabel = mode === "subscribed" ? "Активных" : "Опубликовано";
   const emptyTitle = isSearchActive
     ? "Ничего не найдено"
@@ -325,8 +324,7 @@ export default function CoursesList({ mode = "all" }: CoursesListProps) {
   if (loading && courses.length === 0) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator color={COLORS.ACCENT} size="large" />
-        <Text style={styles.loadingText}>{loadingText}</Text>
+        <Loader />
       </View>
     );
   }

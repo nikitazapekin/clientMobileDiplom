@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import { COLORS, SIZES } from "appStyles";
+import Loader from "../Loader";
 
 import { type CodeTask, CodingTasksService, type StudentLevel } from "@/http/codingTasksService";
 import { ROUTES } from "@/navigation/routes";
@@ -87,7 +87,7 @@ const CodingTasksList = () => {
   if (loading) {
     return (
       <View style={s.center}>
-        <ActivityIndicator size="large" color={COLORS.ACCENT} />
+        <Loader />
       </View>
     );
   }

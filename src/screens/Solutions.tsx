@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   ScrollView,
   StyleSheet,
@@ -14,6 +13,7 @@ import { COLORS, SIZES } from "appStyles";
 import type { TabName } from "../components/Footer";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
+import Loader from "../components/Loader";
 
 import { styles as screenStyles } from "./styles";
 
@@ -292,7 +292,7 @@ const SolutionsScreen = ({ route }: Props) => {
 
           {loading ? (
             <View style={st.center}>
-              <ActivityIndicator size="large" color={COLORS.ACCENT} />
+              <Loader />
             </View>
           ) : (
             <ScrollView style={st.list} contentContainerStyle={st.listContent}>

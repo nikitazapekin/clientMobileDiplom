@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
   Image,
@@ -17,6 +16,7 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 
 import Footer, { type TabName } from '../components/Footer';
 import Header from '../components/Header';
+import Loader from '../components/Loader';
 import { type FriendRequestResponse,type FriendResponse, FriendsService } from '../http/friends';
 
 import { styles as shellStyles } from './styles';
@@ -435,8 +435,7 @@ const FriendsScreen = () => {
     if (loading && !refreshing) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.loadingText}>Loading...</Text>
+          <Loader />
         </View>
       );
     }

@@ -25,6 +25,7 @@ import type { CertificateResponse } from '../../http/certificate';
 import type { FullClientInfo, StudentResultResponse } from '../../http/types/profile';
 import { CodingTasksService, type CodeTask, type StudentLevel } from '../../http/codingTasksService';
 import AvatarPicker from '../AvatarPicker';
+import Loader from '../Loader';
 import { COLORS, SIZES } from 'appStyles';
 import { ROUTES } from '@/navigation/routes';
 import type { RootStackParamList } from '@/navigation/types';
@@ -473,8 +474,7 @@ const UserProfile = () => {
   if (loading && !refreshing) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Загрузка...</Text>
+        <Loader />
       </View>
     );
   }

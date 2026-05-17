@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   ScrollView,
   StyleSheet,
@@ -16,6 +15,7 @@ import { COLORS, FONTS } from "appStyles";
 import ArticleBlocksEditor from "@/components/ArticleBlocksEditor";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import Loader from "@/components/Loader";
 import articlesService from "@/http/articles";
 import type { ArticleBlock } from "@/http/types/community";
 import { ROUTES } from "@/navigation/routes";
@@ -107,7 +107,7 @@ export default function ArticleEditorScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         {loading ? (
           <View style={styles.stateCard}>
-            <ActivityIndicator color={COLORS.PRIMARY} size="large" />
+            <Loader />
           </View>
         ) : (
           <View style={styles.formCard}>

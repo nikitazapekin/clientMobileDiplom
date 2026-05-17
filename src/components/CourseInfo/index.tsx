@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Image, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Image, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { styles } from "./styles";
 import Button from "../Button";
+import Loader from "../Loader";
 
 import Certificate from "../../assets/utils/Certificate.png";
 import CourseService from "@/http/courses";
@@ -204,7 +205,7 @@ const CourseInfo = ({ id }: CourseInfoProps) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#9F0FA7" />
+        <Loader />
       </View>
     );
 
@@ -255,8 +256,7 @@ const CourseInfo = ({ id }: CourseInfoProps) => {
             <View style={styles.actionsContainer}>
               {subscriptionChecking ? (
                 <View style={styles.subscriptionLoadingContainer}>
-                  <ActivityIndicator size="small" color="#9F0FA7" />
-                  <Text style={styles.subscriptionLoadingText}>Проверяем подписку...</Text>
+                  <Loader size="small" />
                 </View>
               ) : isSubscribed ? (
                 <>

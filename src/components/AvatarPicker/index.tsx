@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Linking,
   Modal,
@@ -13,6 +12,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { styles } from './styles';
 import { ProfileService } from '../../http/profile';
+import Loader from '../Loader';
 
 interface AvatarPickerProps {
   visible: boolean;
@@ -235,8 +235,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
 
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#007AFF" />
-              <Text style={styles.loadingText}>Загрузка...</Text>
+              <Loader />
             </View>
           ) : (
             <>

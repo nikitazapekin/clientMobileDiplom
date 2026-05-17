@@ -14,6 +14,7 @@ import type { RouteProp } from "@react-navigation/native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { COLORS } from "appStyles";
 
+import Loader from "../components/Loader";
 import type { Message } from "../http/chat";
 import chatService from "../http/chat";
 import type { ROUTES } from "../navigation/routes";
@@ -435,7 +436,7 @@ export default function ChatScreen() {
       >
         {loading ? (
           <View style={chatStyles.emptyContainer}>
-            <Text style={chatStyles.emptyText}>Загрузка...</Text>
+            <Loader />
           </View>
         ) : messages.length === 0 ? (
           <View style={chatStyles.emptyContainer}>

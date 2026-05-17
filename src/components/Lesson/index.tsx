@@ -17,6 +17,7 @@ import { useNavigation } from "@react-navigation/native";
 import { COLORS } from "appStyles";
 
 import { FillTaskInteraction } from "./FillTaskInteraction";
+import Loader from "../Loader";
 import { styles } from "./styled";
 import type { ArgumentSchema, CodeLanguage, ConstraintResult,TestCaseArgument } from "./types";
 import type {
@@ -1916,8 +1917,7 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
     return (
       <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color={COLORS.BLACK} />
-          <Text style={styles.loadingText}>Загрузка {entityTitle}...</Text>
+          <Loader />
         </View>
       </SafeAreaView>
     );

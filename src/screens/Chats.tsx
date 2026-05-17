@@ -15,6 +15,7 @@ import { COLORS } from "appStyles";
 import type { TabName } from "../components/Footer";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
+import Loader from "../components/Loader";
 import type { Conversation, User } from "../http/chat";
 import chatService from "../http/chat";
 import { ROUTES } from "../navigation/routes";
@@ -354,7 +355,7 @@ export default function ChatsScreen() {
         <View style={chatStyles.content}>
           {loading ? (
             <View style={chatStyles.emptyContainer}>
-              <Text style={chatStyles.emptyText}>Загрузка...</Text>
+              <Loader />
             </View>
           ) : isSearching ? (
             <FlatList

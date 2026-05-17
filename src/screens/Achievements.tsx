@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   RefreshControl,
   ScrollView,
@@ -15,6 +14,7 @@ import { COLORS } from "appStyles";
 import type { TabName } from "../components/Footer";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
+import Loader from "../components/Loader";
 import { AchievementsService } from "../http/achievements";
 import { LeadersService } from "../http/leaders";
 import type { Achievement, AchievementProgress } from "../http/types/achievements";
@@ -485,8 +485,7 @@ export default function AchievementsScreen() {
       <View style={styles.containerLight}>
         <Header title="Achievements" />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.PRIMARY} />
-          <Text style={styles.statusText}>Загрузка достижений и рейтинга...</Text>
+          <Loader />
         </View>
         <Footer activeTab={activeTab} />
       </View>

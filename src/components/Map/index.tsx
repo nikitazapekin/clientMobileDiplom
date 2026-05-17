@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Dimensions,
   Image,
@@ -16,6 +15,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
 import CustomButton from "../Button";
+import Loader from "../Loader";
 
 import { styles } from "./styled";
 
@@ -872,8 +872,7 @@ const Map: React.FC<MapProps> = ({ courseId, courseName = "Курс", onElementP
   if (isLoading && !elements.length) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#9F0FA7" />
-        <Text style={styles.loadingText}>Загрузка карты...</Text>
+        <Loader />
       </View>
     );
   }
