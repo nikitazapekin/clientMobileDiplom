@@ -92,9 +92,7 @@ export default function ForumScreen() {
         <View style={styles.heroCard}>
           <Text style={styles.heroEyebrow}>Форум</Text>
           <Text style={styles.heroTitle}>Вопросы по курсам, коду и заданиям</Text>
-          <Text style={styles.heroText}>
-            Ищи по названию и тегам, фильтруй открытые вопросы и публикуй свои разборы.
-          </Text>
+         
 
           <TouchableOpacity
             activeOpacity={0.88}
@@ -237,7 +235,7 @@ export default function ForumScreen() {
 
 const styles = StyleSheet.create({
   screen: {
-    backgroundColor: "#F3F6ED",
+ 
     flex: 1,
   },
   content: {
@@ -252,7 +250,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   heroEyebrow: {
-    color: "#C3D4B6",
+    color: "#fff",
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 1,
@@ -264,6 +262,7 @@ const styles = StyleSheet.create({
     fontSize: FONTS.SIZE.LG,
     fontWeight: "800",
     lineHeight: 30,
+    marginBottom: 20
   },
   heroText: {
     color: "#DFE7D8",

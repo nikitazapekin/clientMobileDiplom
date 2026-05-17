@@ -68,8 +68,21 @@ const sortBlocks = (blocks: any[]) => {
   return [...blocks].sort((a, b) => (a.order || 0) - (b.order || 0));
 };
 
+type LessonTaskResult = {
+  id: string;
+  slideId: string;
+  slideTitle: string;
+  title: string;
+  taskNumber: number;
+  passed: boolean;
+  kind: "code" | "fill" | "theory";
+  testCasesPassed?: number;
+  testCasesTotal?: number;
+  constraintsPassed?: boolean;
+};
+
 const INCORRECT_THEORY_MESSAGES = [
-  "Ты почти попал, но не совсем так. Подумай ещё!",
+  "Ты почти попал, но не совсем так.",
   "Неплохо, но это не тот вариант. Попробуй ещё раз мысленно пройтись по теории.",
   "Ответ близко, но есть неточность. Посмотри на формулировку ещё раз.",
   "Не совсем верно. Сверь выбор с ключевой идеей этого задания.",
@@ -417,6 +430,7 @@ const FillCodeTaskBlockView = ({
   const normalizedBlock = normalizeFillTaskBlock(block);
   const inputIds = extractFillTaskInputs(normalizedBlock.templateCode || "");
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+  const isLocked = validationResult !== undefined;
   const incorrectMessage = !validationResult?.passed && error
     ? getIncorrectFillTaskMessage(block.id, validationResult?.totalCases ?? 0)
     : "";
@@ -446,6 +460,7 @@ const FillCodeTaskBlockView = ({
         answers={answers}
         options={normalizedBlock.options}
         selectedOptionId={selectedOptionId}
+        disabled={isLocked}
         onSelectedOptionChange={setSelectedOptionId}
         onAssign={onAssignAnswer}
         onDragStateChange={onDragStateChange}
@@ -559,12 +574,16 @@ const ResultsModal = ({
   onClose: () => void;
   title?: string;
   results: {
+    id: string;
     slideId: string;
+    slideTitle: string;
     title: string;
+    taskNumber: number;
     passed: boolean;
-    testCasesPassed: number;
-    testCasesTotal: number;
-    constraintsPassed: boolean;
+    kind: "code" | "fill" | "theory";
+    testCasesPassed?: number;
+    testCasesTotal?: number;
+    constraintsPassed?: boolean;
   }[];
   totalTasks: number;
   completedTasks: number;
@@ -734,20 +753,31 @@ const ResultsModal = ({
             <Text style={styles.resultsListTitle}>Детали по заданиям:</Text>
             {results.map((result) => (
               <View
-                key={result.slideId}
+                key={result.id}
                 style={[
                   styles.resultItem,
                   result.passed ? styles.resultPassed : styles.resultFailed
                 ]}
               >
-                <Text style={styles.resultTitle}>{result.title}</Text>
+                <Text style={styles.resultTitle}>
+                  {result.taskNumber}. {result.title}
+                </Text>
                 <View style={styles.resultDetails}>
-                  <Text style={styles.resultDetailText}>
-                    Тесты: {result.testCasesPassed}/{result.testCasesTotal}
-                  </Text>
-                  <Text style={styles.resultDetailText}>
-                    Ограничения: {result.constraintsPassed ? "Огрничение пройдено" : "Огрничение не пройдено"}
-                  </Text>
+                  <Text style={styles.resultDetailText}>{result.slideTitle}</Text>
+                  {result.kind === "code" ? (
+                    <>
+                      <Text style={styles.resultDetailText}>
+                        Тесты: {result.testCasesPassed ?? 0}/{result.testCasesTotal ?? 0}
+                      </Text>
+                      <Text style={styles.resultDetailText}>
+                        Ограничения: {result.constraintsPassed ? "пройдены" : "не пройдены"}
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={styles.resultDetailText}>
+                      {result.passed ? "Решено" : "Не решено"}
+                    </Text>
+                  )}
                 </View>
               </View>
             ))}
@@ -785,7 +815,7 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
   const [clientId, setClientId] = useState<string | null>(null);
 
   const [lessonResults, setLessonResults] = useState<{
-    results: any[];
+    results: LessonTaskResult[];
     totalTasks: number;
     completedTasks: number;
     totalTestCases: number;
@@ -989,7 +1019,7 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
  
   const calculateResults = useCallback(async () => {
     const testSlides = slides.filter((s) => s.type === "test");
-    const results: any[] = [];
+    const results: LessonTaskResult[] = [];
  
     let totalCodeTasks = 0;
     let passedCodeTasks = 0;
@@ -998,6 +1028,7 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
     let totalTheoryQuestions = 0;
     let correctTheoryAnswers = 0;
     let allConstraintsPassed = true;
+    let taskNumber = 0;
 
     testSlides.forEach((slide) => {
       const slideTestResult = testResults[slide.id];
@@ -1023,12 +1054,10 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
           slideCodePassed = slideTestCasesPassed === slideTestCasesTotal && slideTestCasesTotal > 0;
 
           if (slideCodePassed) {
-            passedCodeTasks++;
+            passedCodeTasks += codeTasks.length;
           }
         }
       }
-
-      let slideFillPassed = true;
 
       if (fillCodeTasks.length > 0) {
         totalFillTasks += fillCodeTasks.length;
@@ -1036,7 +1065,6 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
         const currentPassedFillTasks = fillCodeTasks.filter((task) => fillTaskResults[task.id]?.passed);
 
         passedFillTasks += currentPassedFillTasks.length;
-        slideFillPassed = currentPassedFillTasks.length === fillCodeTasks.length;
         slideTestCasesPassed += currentPassedFillTasks.length;
         slideTestCasesTotal += fillCodeTasks.length;
       }
@@ -1061,16 +1089,48 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
         allConstraintsPassed = allConstraintsPassed && slideConstraintsPassed;
       }
 
-      results.push({
-        slideId: slide.id,
-        title: slide.title,
-        passed: (codeTasks.length === 0 || slideCodePassed) &&
-                (fillCodeTasks.length === 0 || slideFillPassed) &&
-                (theoryQuestions.length === 0 || (theoryQuestions.length > 0 &&
-                 theoryQuestions.every(q => theoryAnswers[slide.id]?.[q.id]?.isCorrect))),
-        testCasesPassed: slideTestCasesPassed,
-        testCasesTotal: slideTestCasesTotal,
-        constraintsPassed: slideConstraintResult ? slideConstraintResult.every(c => c.passed) : true,
+      sortBlocks(slide.blocks).forEach((block) => {
+        if (block.type === "codeTask") {
+          taskNumber += 1;
+          results.push({
+            id: `${slide.id}-${block.id}`,
+            slideId: slide.id,
+            slideTitle: slide.title,
+            title: "Кодовая задача",
+            taskNumber,
+            passed: slideCodePassed,
+            kind: "code",
+            testCasesPassed: slideTestCasesPassed,
+            testCasesTotal: slideTestCasesTotal,
+            constraintsPassed: slideConstraintResult ? slideConstraintResult.every(c => c.passed) : true,
+          });
+        }
+
+        if (block.type === "fillCodeTask") {
+          taskNumber += 1;
+          results.push({
+            id: `${slide.id}-${block.id}`,
+            slideId: slide.id,
+            slideTitle: slide.title,
+            title: "Задание с вставкой кода",
+            taskNumber,
+            passed: Boolean(fillTaskResults[block.id]?.passed),
+            kind: "fill",
+          });
+        }
+
+        if (block.type === "theoryQuestion") {
+          taskNumber += 1;
+          results.push({
+            id: `${slide.id}-${block.id}`,
+            slideId: slide.id,
+            slideTitle: slide.title,
+            title: "Задание с выбором ответа",
+            taskNumber,
+            passed: Boolean(theoryAnswers[slide.id]?.[block.id]?.isCorrect),
+            kind: "theory",
+          });
+        }
       });
     });
  
@@ -1757,10 +1817,6 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
     setFillTaskErrors(prev => ({ ...prev, [block.id]: "" }));
 
     if (inputIds.length === 0) {
-      setFillTaskResults(prev => ({
-        ...prev,
-        [block.id]: { passed: false, matchedCaseIndex: null, totalCases: 0 }
-      }));
       setFillTaskErrors(prev => ({
         ...prev,
         [block.id]: "В задаче не найдено ни одного слота вида [[slot]] или [input]."
@@ -1770,10 +1826,6 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
     }
 
     if (!normalizedBlock.testCases || normalizedBlock.testCases.length === 0) {
-      setFillTaskResults(prev => ({
-        ...prev,
-        [block.id]: { passed: false, matchedCaseIndex: null, totalCases: 0 }
-      }));
       setFillTaskErrors(prev => ({
         ...prev,
         [block.id]: "Для этой задачи не настроены варианты проверки."
@@ -1783,14 +1835,6 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
     }
 
     if (inputIds.some((inputId) => (answers[inputId] ?? "").trim() === "")) {
-      setFillTaskResults(prev => ({
-        ...prev,
-        [block.id]: {
-          passed: false,
-          matchedCaseIndex: null,
-          totalCases: normalizedBlock.testCases.length
-        }
-      }));
       setFillTaskErrors(prev => ({
         ...prev,
         [block.id]: "Заполните все белые поля в коде."
@@ -2035,6 +2079,10 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
                   block={block}
                   answers={fillTaskAnswers[block.id] || {}}
                   onAssignAnswer={(slotId, optionId) => {
+                    if (fillTaskResults[block.id] !== undefined) {
+                      return;
+                    }
+
                     setFillTaskAnswers(prev => ({
                       ...prev,
                       [block.id]: {
@@ -2043,13 +2091,6 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
                       }
                     }));
                     setFillTaskErrors(prev => ({ ...prev, [block.id]: "" }));
-                    setFillTaskResults(prev => {
-                      const next = { ...prev };
-
-                      delete next[block.id];
-
-                      return next;
-                    });
                   }}
                   onCheck={() => checkFillTask(block)}
                   validationResult={fillTaskResults[block.id]}
@@ -2102,14 +2143,14 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
         sources={currentSources}
       />
 
-        <ResultsModal
-          visible={resultsModalVisible}
-          onClose={() => {
-            setResultsModalVisible(false);
-            navigation.goBack();
-          }}
-          title={isCheckpointMode ? "Результаты контрольной точки" : "Результаты урока"}
-          results={lessonResults.results}
+      <ResultsModal
+        visible={resultsModalVisible}
+        onClose={() => {
+          setResultsModalVisible(false);
+          navigation.goBack();
+        }}
+        title={isCheckpointMode ? "Результаты контрольной точки" : "Результаты урока"}
+        results={lessonResults.results}
         totalTasks={lessonResults.totalTasks}
         completedTasks={lessonResults.completedTasks}
         totalTestCases={lessonResults.totalTestCases}

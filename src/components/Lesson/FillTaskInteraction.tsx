@@ -20,6 +20,7 @@ interface FillTaskInteractionProps {
   answers: Record<string, string>;
   options: FillCodeTaskOption[];
   selectedOptionId: string | null;
+  disabled?: boolean;
   onSelectedOptionChange: (optionId: string | null) => void;
   onAssign: (slotId: string, optionId: string | null) => void;
   onDragStateChange?: (dragging: boolean) => void;
@@ -47,6 +48,7 @@ interface DraggableOptionChipProps {
   option: FillCodeTaskOption;
   selected: boolean;
   dragging: boolean;
+  disabled?: boolean;
   onPress: () => void;
   onDragStart: (option: FillCodeTaskOption, node: View | null, pageX: number, pageY: number) => void;
   onDragMove: (pageX: number, pageY: number) => void;
@@ -78,6 +80,7 @@ function DraggableOptionChip({
   option,
   selected,
   dragging,
+  disabled = false,
   onPress,
   onDragStart,
   onDragMove,
@@ -90,8 +93,12 @@ function DraggableOptionChip({
       PanResponder.create({
         onStartShouldSetPanResponder: () => false,
         onMoveShouldSetPanResponder: (_, gestureState) =>
-          Math.abs(gestureState.dx) > 4 || Math.abs(gestureState.dy) > 4,
+          !disabled && (Math.abs(gestureState.dx) > 4 || Math.abs(gestureState.dy) > 4),
         onPanResponderGrant: (event) => {
+          if (disabled) {
+            return;
+          }
+
           onDragStart(
             option,
             optionRef.current,
@@ -110,7 +117,7 @@ function DraggableOptionChip({
         },
         onPanResponderTerminationRequest: () => false,
       }),
-    [onDragEnd, onDragMove, onDragStart, option]
+    [disabled, onDragEnd, onDragMove, onDragStart, option]
   );
 
   return (
@@ -125,7 +132,8 @@ function DraggableOptionChip({
           styles.fillTaskOptionChip,
           selected && styles.fillTaskOptionChipActive,
         ]}
-        onPress={onPress}
+        onPress={disabled ? undefined : onPress}
+        disabled={disabled}
       >
         <Text style={styles.fillTaskOptionChipText}>
           {option.value || "(пустое значение)"}
@@ -140,6 +148,7 @@ export function FillTaskInteraction({
   answers,
   options,
   selectedOptionId,
+  disabled = false,
   onSelectedOptionChange,
   onAssign,
   onDragStateChange,
@@ -278,6 +287,10 @@ export function FillTaskInteraction({
                       isFilled && styles.fillTaskCodeSlotFilled,
                     ]}
                     onPress={() => {
+                      if (disabled) {
+                        return;
+                      }
+
                       if (selectedOptionId) {
                         onAssign(slotId, selectedOptionId);
 
@@ -307,6 +320,7 @@ export function FillTaskInteraction({
             option={option}
             selected={selectedOptionId === option.id}
             dragging={dragInfo?.optionId === option.id}
+            disabled={disabled}
             onPress={() =>
               onSelectedOptionChange(
                 selectedOptionId === option.id ? null : option.id

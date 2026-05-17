@@ -11,12 +11,12 @@ export const st = StyleSheet.create({
   metaRow: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
   taskTags: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
   taskTag: {
-    backgroundColor: "#FFF6DA",
+    backgroundColor: "#FAFAFA",
     borderRadius: 999,
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 6,
   },
-  taskTagText: { color: "#836400", fontSize: 11, fontWeight: "600" },
+  taskTagText: { color: COLORS.GRAY_700, fontSize: 11, fontWeight: "600" },
   badge: { paddingVertical: 3, paddingHorizontal: 10, borderRadius: 10 },
   badgeText: { color: "#fff", fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
   xpBadge: { paddingVertical: 3, paddingHorizontal: 8, borderRadius: 10, backgroundColor: "#667eea" },
@@ -57,12 +57,12 @@ export const st = StyleSheet.create({
   hiddenExamplesText: { fontSize: 12, color: COLORS.GRAY_400, marginTop: 4 },
 
   constraintsCard: {
-    backgroundColor: "#fff8e1",
+    backgroundColor: "#FAFAFA",
     borderRadius: 12,
     padding: SIZES.SPACING_MD,
     marginBottom: 12,
   },
-  constraintsTitle: { fontSize: 14, fontWeight: "600", color: "#e65100", marginBottom: 6 },
+  constraintsTitle: { fontSize: 14, fontWeight: "600", color: COLORS.GRAY_700, marginBottom: 6 },
   constraintItem: { fontSize: 13, color: COLORS.GRAY_700, marginBottom: 4 },
 
   langSection: { marginBottom: 12 },
@@ -129,15 +129,13 @@ export const st = StyleSheet.create({
   },
 
   solutionsBtn: {
-    backgroundColor: COLORS.WHITE,
-    borderRadius: 10,
+    backgroundColor: "#FAFAFA",
+    borderRadius: 999,
     padding: 14,
-    borderWidth: 2,
-    borderColor: COLORS.ACCENT,
     alignItems: "center",
     marginBottom: 12,
   },
-  solutionsBtnText: { color: COLORS.ACCENT, fontWeight: "600", fontSize: 14 },
+  solutionsBtnText: { color: COLORS.GRAY_700, fontWeight: "600", fontSize: 14 },
 
   showResultLink: {
     color: COLORS.ACCENT,
