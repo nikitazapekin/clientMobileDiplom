@@ -25,7 +25,7 @@ export  const s = StyleSheet.create({
     marginBottom: 8,
   },
   levelLabel: { fontSize: 14, color: COLORS.GRAY_500, fontWeight: "600" },
-  levelValue: { fontSize: 28, fontWeight: "700", color: COLORS.ACCENT },
+  levelValue: { fontSize: 28, fontWeight: "700", color: COLORS.PRIMARY },
   xpBar: {
     height: 8,
     backgroundColor: COLORS.GRAY_200,
@@ -35,7 +35,7 @@ export  const s = StyleSheet.create({
   },
   xpFill: {
     height: "100%",
-    backgroundColor: COLORS.ACCENT,
+    backgroundColor: COLORS.PRIMARY,
     borderRadius: 4,
   },
   xpText: { fontSize: 12, color: COLORS.GRAY_500, textAlign: "right" },

@@ -484,7 +484,7 @@ export  const styles = StyleSheet.create({
   expValue: {
     fontSize: 24,
     fontWeight: "700",
-    color: '#9F0FA7',
+    color: COLORS.PRIMARY,
   },
   expSeparator: {
     fontSize: 18,
@@ -493,7 +493,7 @@ export  const styles = StyleSheet.create({
   },
   expTotal: {
     fontSize: 18,
-    color: '#666',
+    color: COLORS.PRIMARY,
   },
   expLabel: {
     fontSize: 14,
