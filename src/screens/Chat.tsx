@@ -33,7 +33,8 @@ const chatStyles = StyleSheet.create({
   backButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#4a90e2',
+    //backgroundColor: '#4a90e2',
+    backgroundColor: "#9f0fa7",
     borderRadius: 8,
   },
   backButtonText: {
@@ -78,7 +79,7 @@ const chatStyles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: COLORS.GRAY,
+    color: COLORS.GRAY_DARK,
   },
   dateSeparator: {
     alignSelf: 'center',
@@ -125,7 +126,7 @@ const chatStyles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
   },
   otherMessageTime: {
-    color: COLORS.GRAY,
+    color: COLORS.GRAY_DARK,
   },
   readMark: {
     fontSize: 10,
@@ -151,7 +152,8 @@ const chatStyles = StyleSheet.create({
   sendButton: {
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: '#4a90e2',
+    //backgroundColor: '#4a90e2',
+    backgroundColor: "#9f0fa7",
     borderRadius: 24,
   },
   sendButtonText: {
@@ -310,7 +312,7 @@ export default function ChatScreen() {
       setNewMessage("");
     } catch (error) {
       console.error('Failed to send message:', error);
-      alert('Не удалось отправить сообщение');
+    
     } finally {
       setSending(false);
     }
@@ -456,7 +458,7 @@ export default function ChatScreen() {
           value={newMessage}
           onChangeText={setNewMessage}
           placeholder="Введите сообщение..."
-          placeholderTextColor={COLORS.GRAY}
+          placeholderTextColor={COLORS.GRAY_DARK}
         />
         <TouchableOpacity
           style={[

@@ -5,16 +5,16 @@ export enum AchievementType {
 
 export enum AchievementTier {
  
-  NOVICE = 'novice',
-  ADVANCED = 'advanced',
-  EXPERT = 'expert',
-  MASTER = 'master',
+  NOVICE = 'Новичок',
+  ADVANCED = 'Продвинутый',
+  EXPERT = 'Эксперт',
+  MASTER = 'Мастер',
 
   
-  BEGINNER = 'beginner',
-  INTERMEDIATE = 'intermediate',
-  PROFESSIONAL = 'professional',
-  LEGENDARY = 'legendary',
+  BEGINNER = 'Новичок',
+  INTERMEDIATE = 'Средний уровень',
+  PROFESSIONAL = 'Профессионал',
+  LEGENDARY = 'Легенда',
 }
 
 export interface Achievement {
