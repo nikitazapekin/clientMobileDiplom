@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from "react";
 import {
   Image,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { styles } from "./styles";
 import { useNavigation } from "@react-navigation/native";
-import { COLORS } from "appStyles";
+
+import { styles } from "./styles";
 
 import { BASE_URL } from "@/http/api";
 import CourseService from "@/http/courses";
@@ -23,13 +22,8 @@ import type { RootStackNavigationProp } from "@/navigation/types";
 interface CourseProps {
   item: CourseResponse | StudentCourseResponse;
   onPress?: () => void;
+  stats?: CourseStatsResponse | null;
 }
-
-const STATUS_LABELS = {
-  archived: "Архив",
-  draft: "Черновик",
-  published: "Опубликован",
-} as const;
 
 const getValidImageSrc = (logo: string): string | null => {
   if (!logo || typeof logo !== "string" || !logo.trim()) {
@@ -59,29 +53,21 @@ const getValidImageSrc = (logo: string): string | null => {
   return null;
 };
 
-const formatDate = (value?: string | null) => {
-  if (!value) {
-    return null;
-  }
-
-  return new Date(value).toLocaleDateString("ru-RU", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-};
-
-const hasSubscriptionDate = (
-  item: CourseResponse | StudentCourseResponse,
-): item is StudentCourseResponse => "subscribedAt" in item;
-
-export default function Course({ item, onPress }: CourseProps) {
+export default function Course({ item, onPress, stats: providedStats }: CourseProps) {
   const navigation = useNavigation<RootStackNavigationProp>();
   const imageSrc = getValidImageSrc(item.logo);
-  const [stats, setStats] = useState<CourseStatsResponse | null>(null);
+  const [stats, setStats] = useState<CourseStatsResponse | null>(providedStats ?? null);
 
   useEffect(() => {
     let isActive = true;
+
+    if (providedStats !== undefined) {
+      setStats(providedStats);
+
+      return () => {
+        isActive = false;
+      };
+    }
 
     const loadCourseStats = async () => {
       try {
@@ -105,7 +91,7 @@ export default function Course({ item, onPress }: CourseProps) {
     return () => {
       isActive = false;
     };
-  }, [item.id]);
+  }, [item.id, providedStats]);
 
   const handlePress = () => {
     if (onPress) {
@@ -116,8 +102,6 @@ export default function Course({ item, onPress }: CourseProps) {
 
     navigation.navigate(ROUTES.STACK.COURSE, { id: item.id });
   };
-
-  const subscribedAt = hasSubscriptionDate(item) ? formatDate(item.subscribedAt) : null;
 
   return (
     <TouchableOpacity activeOpacity={0.85} onPress={handlePress} style={styles.course}>
@@ -140,7 +124,6 @@ export default function Course({ item, onPress }: CourseProps) {
           <Text numberOfLines={2} style={styles.courseTitle}>
             {item.title}
           </Text>
-          
         </View>
 
         <Text numberOfLines={3} style={styles.courseDescription}>
@@ -170,11 +153,7 @@ export default function Course({ item, onPress }: CourseProps) {
             ))}
           </View>
         ) : null}
-
-     
       </View>
     </TouchableOpacity>
   );
 }
-
- 

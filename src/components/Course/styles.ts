@@ -1,7 +1,7 @@
 
+import { StyleSheet } from "react-native";
+import { COLORS } from "appStyles";
 
-import { Dimensions, Platform, StatusBar, StyleSheet } from "react-native";
-import { COLORS, FONTS, SIZES } from "appStyles";
 export const styles = StyleSheet.create({
   course: {
     backgroundColor: COLORS.WHITE,
@@ -105,13 +105,13 @@ export const styles = StyleSheet.create({
     marginBottom: 12,
   },
   tag: {
-    backgroundColor: "#FFF6DA",
+    backgroundColor: "#FAFAFA",
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
   tagText: {
-    color: "#836400",
+    color: COLORS.GRAY_700,
     fontSize: 11,
     fontWeight: "600",
   },
