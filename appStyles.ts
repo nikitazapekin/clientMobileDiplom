@@ -10,7 +10,7 @@ export const COLORS = {
   GRAY_TEXT: "#222121", 
   WHITE: "#ffffff",  
   BLACK: "#000000",  
-
+ RED_DARK: "#6b0505", 
   TURQUOISE_LIGHT: "#f0f0f0", // используем GRAY_LIGHT как замену
   TURQUOISE_DARK: "#d8d8d8", // используем GRAY_BORDER как замену
 

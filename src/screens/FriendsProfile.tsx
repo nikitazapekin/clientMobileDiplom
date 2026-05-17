@@ -82,7 +82,7 @@ const CircularProgress = ({
           cx={center}
           cy={center}
           r={radius}
-          stroke={COLORS.ACCENT}
+          stroke={COLORS.PRIMARY}
           strokeWidth={strokeWidth}
           fill="none"
           strokeDasharray={circumference}
@@ -564,14 +564,11 @@ const FriendsProfileScreen = () => {
     if (requestSent) {
       return (
         <View style={styles.buttonContainer}>
-          <View style={[styles.requestStatusContainer, styles.sentStatusContainer]}>
-            <Text style={styles.requestStatusText}> Заявка отправлена</Text>
-          </View>
           <TouchableOpacity
             style={[styles.actionButton, styles.cancelButton]}
             onPress={handleCancelRequest}
           >
-            <Text style={styles.actionButtonText}> Отозвать</Text>
+            <Text style={styles.actionButtonText}> Отменить заявку</Text>
           </TouchableOpacity>
         </View>
       );
@@ -878,6 +875,7 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingHorizontal: 20,
     gap: 10,
+    marginBottom: 8,
   },
   actionButton: {
     paddingVertical: 12,
@@ -907,7 +905,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#dc3545',
   },
   cancelButton: {
-    backgroundColor: '#6c757d',
+    backgroundColor: '#880000',
   },
   requestStatusContainer: {
     backgroundColor: '#ffc107',

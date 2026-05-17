@@ -805,7 +805,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   addFriendButton: {
-    backgroundColor: '#28a745',
+    backgroundColor: '#9f0fa7',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,

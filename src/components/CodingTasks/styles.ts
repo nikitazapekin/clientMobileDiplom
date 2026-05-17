@@ -148,13 +148,13 @@ export  const s = StyleSheet.create({
     marginBottom: 10,
   },
   taskTag: {
-    backgroundColor: "#FFF6DA",
+    backgroundColor: "#FAFAFA",
     borderRadius: 999,
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 6,
   },
   taskTagText: {
-    color: "#836400",
+    color: COLORS.GRAY_700,
     fontSize: 11,
     fontWeight: "600",
   },

@@ -460,12 +460,12 @@ export  const styles = StyleSheet.create({
     paddingVertical: 3,
     paddingHorizontal: 8,
     borderRadius: 10,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#FAFAFA",
   },
   solvedDateText: {
-    color: '#666',
+    color: COLORS.GRAY_700,
     fontSize: 10,
-    fontWeight: "500",
+    fontWeight: "600",
   },
 
   levelSection: {
