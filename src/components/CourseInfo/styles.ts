@@ -148,6 +148,7 @@ export  const styles = {
     borderRadius: 8,
   },
   actionsContainer: {
+    marginTop: 16,
     marginBottom: 16,
   },
   subscriptionLoadingContainer: {
@@ -168,9 +169,7 @@ export  const styles = {
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#9F0FA7',
-    backgroundColor: 'transparent',
+    backgroundColor: '#FAFAFA',
   },
   secondaryActionButtonDisabled: {
     opacity: 0.6,
@@ -178,7 +177,7 @@ export  const styles = {
   secondaryActionButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#9F0FA7',
+    color: '#333',
   },
   actionErrorText: {
     marginTop: 12,

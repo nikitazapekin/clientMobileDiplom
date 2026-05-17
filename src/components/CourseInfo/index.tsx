@@ -252,6 +252,63 @@ const CourseInfo = ({ id }: CourseInfoProps) => {
               Количество студентов: {courseStats?.studentCount ?? "..."}
             </Text>
 
+            <View style={styles.actionsContainer}>
+              {subscriptionChecking ? (
+                <View style={styles.subscriptionLoadingContainer}>
+                  <ActivityIndicator size="small" color="#9F0FA7" />
+                  <Text style={styles.subscriptionLoadingText}>Проверяем подписку...</Text>
+                </View>
+              ) : isSubscribed ? (
+                <>
+                  <Button
+                    text="Перейти на карту"
+                    handler={handleGoToMap}
+                    color="#fff"
+                    backgroundColor="#9F0FA7"
+                    fullWidth
+                    disabled={actionLoading !== null}
+                  />
+                  <TouchableOpacity
+                    style={[
+                      styles.secondaryActionButton,
+                      actionLoading !== null && styles.secondaryActionButtonDisabled,
+                    ]}
+                    onPress={() => {
+                      void handleUnsubscribe();
+                    }}
+                    disabled={actionLoading !== null}
+                  >
+                    <Text style={styles.secondaryActionButtonText}>
+                      {actionLoading === "unsubscribe"
+                        ? "Отписываем..."
+                        : "Отписаться от курса"}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <Button
+                  text={
+                    actionLoading === "subscribe"
+                      ? "Добавляем..."
+                      : userId
+                        ? "Добавить в мои курсы"
+                        : "Войдите, чтобы подписаться"
+                  }
+                  handler={() => {
+                    void handleSubscribe();
+                  }}
+                  color="#fff"
+                  backgroundColor="#9F0FA7"
+                  fullWidth
+                  disabled={actionLoading !== null || !userId}
+                />
+              )}
+
+              {subscriptionError ? (
+                <Text style={styles.actionErrorText}>{subscriptionError}</Text>
+              ) : null}
+            </View>
+
             <View style={styles.tagsContainer}>
               {course.tags?.map((tag, index) => (
                 <View key={index} style={styles.tag}>
@@ -280,61 +337,6 @@ const CourseInfo = ({ id }: CourseInfoProps) => {
             style={styles.certificateImage}
             resizeMode="contain"
           />
-        </View>
-
-        <View style={styles.actionsContainer}>
-          {subscriptionChecking ? (
-            <View style={styles.subscriptionLoadingContainer}>
-              <ActivityIndicator size="small" color="#9F0FA7" />
-              <Text style={styles.subscriptionLoadingText}>Проверяем подписку...</Text>
-            </View>
-          ) : isSubscribed ? (
-            <>
-              <Button
-                text="Перейти на карту"
-                handler={handleGoToMap}
-                color="#fff"
-                backgroundColor="#9F0FA7"
-                disabled={actionLoading !== null}
-              />
-              <TouchableOpacity
-                style={[
-                  styles.secondaryActionButton,
-                  actionLoading !== null && styles.secondaryActionButtonDisabled,
-                ]}
-                onPress={() => {
-                  void handleUnsubscribe();
-                }}
-                disabled={actionLoading !== null}
-              >
-                <Text style={styles.secondaryActionButtonText}>
-                  {actionLoading === "unsubscribe"
-                    ? "Отписываем..."
-                    : "Отписаться от курса"}
-                </Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <Button
-              text={
-                actionLoading === "subscribe"
-                  ? "Добавляем..."
-                  : userId
-                    ? "Добавить в мои курсы"
-                    : "Войдите, чтобы подписаться"
-              }
-              handler={() => {
-                void handleSubscribe();
-              }}
-              color="#fff"
-              backgroundColor="#9F0FA7"
-              disabled={actionLoading !== null || !userId}
-            />
-          )}
-
-          {subscriptionError ? (
-            <Text style={styles.actionErrorText}>{subscriptionError}</Text>
-          ) : null}
         </View>
 
         <Modal
