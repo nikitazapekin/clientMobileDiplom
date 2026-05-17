@@ -336,13 +336,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   reactionBadge: {
-    backgroundColor: "#9F0FA7",
+    backgroundColor: COLORS.GRAY_LIGHT,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 7,
   },
   reactionBadgeText: {
-    color: "white",
+    color: COLORS.BLACK,
     fontSize: 12,
     fontWeight: "800",
   },

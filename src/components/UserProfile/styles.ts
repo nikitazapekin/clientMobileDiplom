@@ -266,7 +266,7 @@ export  const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#880000',
     marginHorizontal: 20,
     marginTop: 20,
     marginBottom: 30,
@@ -282,7 +282,7 @@ export  const styles = StyleSheet.create({
   },
   logoutText: {
     fontSize: 16,
-    color: '#f56565',
+    color: '#fff',
     fontWeight: '600',
   },
   certSection: {

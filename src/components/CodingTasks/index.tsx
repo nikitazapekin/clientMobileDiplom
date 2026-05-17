@@ -20,7 +20,7 @@ import {s} from "./styles"
 const DIFFICULTIES: Record<string, { label: string; color: string }> = {
   easy: { label: "Легкий", color: "#4caf50" },
   medium: { label: "Средний", color: "#ff9800" },
-  hard: { label: "Сложный", color: "#f44336" },
+  hard: { label: "Сложный", color: "#880000" },
 };
 
 const LANGUAGE_LABELS: Record<string, string> = {
@@ -157,7 +157,7 @@ const CodingTasksList = () => {
       <TextInput
         value={searchQuery}
         onChangeText={setSearchQuery}
-        placeholder="Поиск по названию или тегу"
+        placeholder="Поиск по названию"
         placeholderTextColor={COLORS.GRAY_400}
         style={s.searchInput}
       />

@@ -273,9 +273,9 @@ export default function ArticleScreen() {
                           articleId: article.id,
                         })
                       }
-                      style={styles.outlineButton}
+                      style={styles.manageEditButton}
                     >
-                      <Text style={styles.outlineButtonText}>Редактировать</Text>
+                      <Text style={styles.manageEditButtonText}>Редактировать</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -493,14 +493,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
   },
+  manageEditButton: {
+    backgroundColor: COLORS.ACCENT,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  manageEditButtonText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700",
+  },
   dangerButton: {
-    backgroundColor: "#FCEEEE",
+    backgroundColor: "#880000",
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
   dangerButtonText: {
-    color: COLORS.ERROR,
+    color: "#fff",
     fontSize: 13,
     fontWeight: "800",
   },

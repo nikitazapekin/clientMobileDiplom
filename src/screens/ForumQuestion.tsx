@@ -429,10 +429,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   statusOpen: {
-    backgroundColor: "#EAF7E1",
+    backgroundColor: "#4caf50",
   },
   statusClosed: {
-    backgroundColor: "#FCEEEE",
+    backgroundColor: "#880000",
   },
   statusText: {
     fontSize: 12,
@@ -440,10 +440,10 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   statusOpenText: {
-    color: COLORS.PRIMARY,
+    color: COLORS.WHITE,
   },
   statusClosedText: {
-    color: COLORS.ERROR,
+    color: COLORS.WHITE,
   },
   dateText: {
     color: COLORS.GRAY_500,
@@ -523,13 +523,13 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   dangerButton: {
-    backgroundColor: "#FCEEEE",
+    backgroundColor: "#880000",
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
   dangerButtonText: {
-    color: COLORS.ERROR,
+    color: COLORS.WHITE,
     fontSize: 13,
     fontWeight: "800",
   },

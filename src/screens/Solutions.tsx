@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -34,6 +35,7 @@ interface Props {
 type SolutionSortMode = "all" | "fastest" | "popular";
 
 const UNKNOWN_NAME = "unknown";
+const THUMB_ICON = require("../../assets/dislike.png");
 
 const getErrorMessage = (error: unknown, fallbackMessage: string): string =>
   error instanceof Error && error.message ? error.message : fallbackMessage;
@@ -196,7 +198,7 @@ const SolutionsScreen = ({ route }: Props) => {
         <View style={st.content}>
           <View style={st.titleBlock}>
             <Text style={st.title}>{taskTitle}</Text>
-            <Text style={st.subtitle}>Решенные решения студентов: {solvedSolutions.length}</Text>
+            <Text style={st.subtitle}>Решенния студентов: {solvedSolutions.length}</Text>
           </View>
 
           <View style={st.controlsCard}>
@@ -334,7 +336,19 @@ const SolutionsScreen = ({ route }: Props) => {
                           ]}
                           onPress={() => handleLike(solution.id)}
                         >
-                          <Text style={st.likeBtnText}>👍 {solution.likes || 0}</Text>
+                          <Image
+                            source={THUMB_ICON}
+                            style={[st.reactionIcon, st.reactionIconRotated]}
+                            resizeMode="contain"
+                          />
+                          <Text
+                            style={[
+                              st.reactionText,
+                              solution.likedBy?.includes(currentClientId || "") && st.reactionTextActive,
+                            ]}
+                          >
+                            {solution.likes || 0}
+                          </Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -345,7 +359,20 @@ const SolutionsScreen = ({ route }: Props) => {
                           ]}
                           onPress={() => handleDislike(solution.id)}
                         >
-                          <Text style={st.dislikeBtnText}>👎 {solution.dislikes || 0}</Text>
+                          <Image
+                            source={THUMB_ICON}
+                            style={st.reactionIcon}
+                            resizeMode="contain"
+                          />
+                          <Text
+                            style={[
+                              st.reactionText,
+                              solution.dislikedBy?.includes(currentClientId || "") &&
+                                st.reactionTextActive,
+                            ]}
+                          >
+                            {solution.dislikes || 0}
+                          </Text>
                         </TouchableOpacity>
                       </View>
 
@@ -502,22 +529,22 @@ const st = StyleSheet.create({
   languageBadge: {
     fontSize: 10,
     fontWeight: "700",
-    color: COLORS.WHITE,
-    backgroundColor: COLORS.ACCENT,
+    color: COLORS.BLACK,
+    backgroundColor: COLORS.GRAY_LIGHT,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 999,
   },
   timeBadge: {
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: "#e8f5e9",
+    paddingVertical: 3,
+    borderRadius: 10,
+    backgroundColor: "#4caf50",
   },
   timeBadgeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
-    color: "#2e7d32",
+    color: COLORS.WHITE,
   },
   codePreview: {
     backgroundColor: "#1e1e1e",
@@ -547,6 +574,7 @@ const st = StyleSheet.create({
   likeBtn: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 5,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -555,13 +583,10 @@ const st = StyleSheet.create({
   likeBtnActive: {
     backgroundColor: "#e3f2fd",
   },
-  likeBtnText: {
-    fontSize: 14,
-    color: COLORS.GRAY_700,
-  },
   dislikeBtn: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 5,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -570,9 +595,21 @@ const st = StyleSheet.create({
   dislikeBtnActive: {
     backgroundColor: "#ffebee",
   },
-  dislikeBtnText: {
-    fontSize: 14,
-    color: COLORS.GRAY_700,
+  reactionIcon: {
+    width: 20,
+    height: 20,
+  },
+  reactionIconRotated: {
+    transform: [{ rotate: "180deg" }],
+  },
+  reactionText: {
+    fontSize: 13,
+    color: "#666",
+  },
+  reactionTextActive: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#9F0FA7",
   },
   timestamp: {
     fontSize: 11,

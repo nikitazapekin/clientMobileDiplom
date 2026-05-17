@@ -383,10 +383,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   statusOpen: {
-    backgroundColor: "#EAF7E1",
+    backgroundColor: "#4caf50",
   },
   statusClosed: {
-    backgroundColor: "#FCEEEE",
+    backgroundColor: "#880000",
   },
   statusText: {
     fontSize: 12,
@@ -394,10 +394,10 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   statusOpenText: {
-    color: COLORS.PRIMARY,
+    color: COLORS.WHITE,
   },
   statusClosedText: {
-    color: COLORS.ERROR,
+    color: COLORS.WHITE,
   },
   cardDate: {
     color: COLORS.GRAY_500,
