@@ -33,6 +33,7 @@ export interface StudentCourseResponse extends CoursePreviewResponse {
   status: CourseStatus;
   subscribedAt: string;
   publishedAt?: string | null;
+  isSubscribed: boolean;
 }
 
 export interface CourseResponse extends CoursePreviewResponse {
@@ -41,6 +42,11 @@ export interface CourseResponse extends CoursePreviewResponse {
   createdAt: string;
   updatedAt: string;
   publishedAt?: string;
+  fullDescription?: string;
+}
+
+export interface AuthorizedCourseResponse extends CourseResponse {
+  isSubscribed: boolean;
 }
 
 export interface CourseStatsResponse {

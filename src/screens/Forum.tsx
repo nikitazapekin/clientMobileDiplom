@@ -258,9 +258,10 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   heroTitle: {
+  
     color: COLORS.WHITE,
     fontSize: FONTS.SIZE.LG,
-    fontWeight: "800",
+    fontWeight: "400",
     lineHeight: 30,
     marginBottom: 20
   },

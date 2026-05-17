@@ -1,7 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { isAxiosError } from "axios";
 
-import type { CourseResponse, StudentCourseResponse } from "./types/course";
+import type {
+  AuthorizedCourseResponse,
+  CourseResponse,
+  StudentCourseResponse,
+} from "./types/course";
 import $api from "./api";
 
 export interface SubscriptionResponse {
@@ -103,6 +107,44 @@ export default class SubscriptionService {
     } catch (error: unknown) {
       logSubscriptionError("Get student courses error:", error);
       throw new Error(getErrorMessage(error, "Failed to fetch student courses"));
+    }
+  }
+
+  static async getAllCourses(): Promise<AuthorizedCourseResponse[]> {
+    try {
+      const token = await this.getToken();
+      const response = await $api.get<AuthorizedCourseResponse[]>(
+        `/course-subscriptions/allcourses`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error: unknown) {
+      logSubscriptionError("Get all courses error:", error);
+      throw new Error(getErrorMessage(error, "Failed to fetch all courses"));
+    }
+  }
+
+  static async getMyCourses(): Promise<StudentCourseResponse[]> {
+    try {
+      const token = await this.getToken();
+      const response = await $api.get<StudentCourseResponse[]>(
+        `/course-subscriptions/mycourses`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error: unknown) {
+      logSubscriptionError("Get my courses error:", error);
+      throw new Error(getErrorMessage(error, "Failed to fetch my courses"));
     }
   }
 

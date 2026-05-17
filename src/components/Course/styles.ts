@@ -54,15 +54,16 @@ export const styles = StyleSheet.create({
     lineHeight: 22,
   },
   statusBadge: {
-    backgroundColor: "#F3F3F3",
-    borderRadius: 999,
+    backgroundColor: "#4caf50",
+    borderRadius: 10,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 3,
   },
   statusBadgeText: {
-    color: COLORS.GRAY_600,
+    color: COLORS.WHITE,
     fontSize: 11,
-    fontWeight: "600",
+    fontWeight: "700",
+    textTransform: "uppercase",
   },
   courseDescription: {
     color: COLORS.GRAY_600,

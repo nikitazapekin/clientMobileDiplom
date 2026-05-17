@@ -10,7 +10,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { COLORS } from "appStyles";
 
@@ -22,6 +21,7 @@ import { styles } from "./styled";
 import CourseService from "@/http/courses";
 import SubscriptionService from "@/http/subscribtion";
 import type {
+  AuthorizedCourseResponse,
   CourseResponse,
   CourseStatsResponse,
   StudentCourseResponse,
@@ -61,7 +61,7 @@ const splitFilterTerms = (value: string) =>
     .filter(Boolean);
 
 type CoursesMode = "all" | "subscribed";
-type CourseListItem = CourseResponse | StudentCourseResponse;
+type CourseListItem = CourseResponse | StudentCourseResponse | AuthorizedCourseResponse;
 
 interface CourseFilters {
   createdFrom: string;
@@ -130,12 +130,8 @@ export default function CoursesList({ mode = "all" }: CoursesListProps) {
 
       const response =
         mode === "subscribed"
-          ? await (async () => {
-            const auditoryId = await AsyncStorage.getItem("userId");
-
-            return SubscriptionService.getStudentCourses(auditoryId ?? "");
-          })()
-          : await CourseService.getPublishedCourses();
+          ? await SubscriptionService.getMyCourses()
+          : await SubscriptionService.getAllCourses();
 
       const sortedCourses = [...response].sort((left, right) => {
         const rightDate = isSubscribedCourse(right)
@@ -273,15 +269,8 @@ export default function CoursesList({ mode = "all" }: CoursesListProps) {
 
   const activeFilterCount = Object.values(filters).filter((value) => value.trim().length > 0).length;
   const isSearchActive = searchQuery.length > 0 || activeFilterCount > 0;
-
-  const publishedCount = courses.filter((course) => course.status === "published").length;
   const heroOverline = mode === "subscribed" ? "Личный кабинет" : "Каталог";
   const heroTitle = mode === "subscribed" ? "Мои курсы" : "Все курсы";
-  const heroDescription =
-    mode === "subscribed"
-      ? "Все подписки студента в одном месте: открывайте курсы, продолжайте обучение и быстро возвращайтесь к нужным материалам."
-      : "Здесь собраны все доступные курсы. Открывайте программы, изучайте описание и подписывайтесь на интересующие направления.";
-  const secondaryLabel = mode === "subscribed" ? "Активных" : "Опубликовано";
   const emptyTitle = isSearchActive
     ? "Ничего не найдено"
     : mode === "subscribed"
@@ -334,8 +323,6 @@ export default function CoursesList({ mode = "all" }: CoursesListProps) {
       <View style={styles.heroCard}>
         <Text style={styles.heroOverline}>{heroOverline}</Text>
         <Text style={styles.heroTitle}>{heroTitle}</Text>
-        
-   
       </View>
 
       <View style={styles.searchRow}>
@@ -413,7 +400,13 @@ export default function CoursesList({ mode = "all" }: CoursesListProps) {
             tintColor={COLORS.ACCENT}
           />
         }
-        renderItem={({ item }) => <Course item={item} stats={courseStats[item.id]} />}
+        renderItem={({ item }) => (
+          <Course
+            item={item}
+            showSubscriptionBadge={mode === "all"}
+            stats={courseStats[item.id]}
+          />
+        )}
         showsVerticalScrollIndicator={false}
       />
 

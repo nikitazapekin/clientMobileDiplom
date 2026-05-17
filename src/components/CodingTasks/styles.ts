@@ -133,10 +133,10 @@ export  const s = StyleSheet.create({
     paddingVertical: 3,
     paddingHorizontal: 10,
     borderRadius: 10,
-    backgroundColor: "#e8f5ec",
+    backgroundColor: "#4caf50",
   },
   solvedBadgeText: {
-    color: "#2f6b3f",
+    color: COLORS.WHITE,
     fontSize: 11,
     fontWeight: "700",
     textTransform: "uppercase",

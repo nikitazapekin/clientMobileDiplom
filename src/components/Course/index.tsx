@@ -12,6 +12,7 @@ import { styles } from "./styles";
 import { BASE_URL } from "@/http/api";
 import CourseService from "@/http/courses";
 import type {
+  AuthorizedCourseResponse,
   CourseResponse,
   CourseStatsResponse,
   StudentCourseResponse,
@@ -20,10 +21,16 @@ import { ROUTES } from "@/navigation/routes";
 import type { RootStackNavigationProp } from "@/navigation/types";
 
 interface CourseProps {
-  item: CourseResponse | StudentCourseResponse;
+  item: CourseResponse | StudentCourseResponse | AuthorizedCourseResponse;
   onPress?: () => void;
   stats?: CourseStatsResponse | null;
+  showSubscriptionBadge?: boolean;
 }
+
+const hasSubscribedBadge = (
+  course: CourseResponse | StudentCourseResponse | AuthorizedCourseResponse,
+): course is StudentCourseResponse | AuthorizedCourseResponse =>
+  "isSubscribed" in course;
 
 const getValidImageSrc = (logo: string): string | null => {
   if (!logo || typeof logo !== "string" || !logo.trim()) {
@@ -53,7 +60,12 @@ const getValidImageSrc = (logo: string): string | null => {
   return null;
 };
 
-export default function Course({ item, onPress, stats: providedStats }: CourseProps) {
+export default function Course({
+  item,
+  onPress,
+  stats: providedStats,
+  showSubscriptionBadge = false,
+}: CourseProps) {
   const navigation = useNavigation<RootStackNavigationProp>();
   const imageSrc = getValidImageSrc(item.logo);
   const [stats, setStats] = useState<CourseStatsResponse | null>(providedStats ?? null);
@@ -124,6 +136,12 @@ export default function Course({ item, onPress, stats: providedStats }: CoursePr
           <Text numberOfLines={2} style={styles.courseTitle}>
             {item.title}
           </Text>
+
+          {showSubscriptionBadge && hasSubscribedBadge(item) && item.isSubscribed ? (
+            <View style={styles.statusBadge}>
+              <Text style={styles.statusBadgeText}>Подписан</Text>
+            </View>
+          ) : null}
         </View>
 
         <Text numberOfLines={3} style={styles.courseDescription}>

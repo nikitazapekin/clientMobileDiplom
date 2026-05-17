@@ -84,7 +84,7 @@ export default function ArticlesScreen() {
         <View style={styles.heroCard}>
           <Text style={styles.heroEyebrow}>Статьи</Text>
          
-          <Text style={styles.heroText}>
+          <Text style={styles.heroTitle}>
             Публикуй свои статьи и делитесь ими с другими пользователями!
           </Text>
 
@@ -234,10 +234,11 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
    
+    color: COLORS.WHITE,
     fontSize: FONTS.SIZE.LG,
-    fontWeight: "800",
+    fontWeight: "400",
     lineHeight: 30,
-    color: "white",
+    marginBottom: 20
   },
   heroText: {
     color: "white",
