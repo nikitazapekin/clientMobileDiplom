@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   reactionActionTextActive: {
-    color: BRAND_COLOR,
+    color: "black",
     fontSize: 13,
     fontWeight: "600",
   },

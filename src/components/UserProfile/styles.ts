@@ -38,14 +38,28 @@ export  const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    width: '100%',
     paddingTop: 40,
     paddingBottom: 30,
+    paddingHorizontal: 20,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
+  },
+  profileInfoContainer: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nameContainer: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 5,
+  
   },
   avatarContainer: {
     position: 'relative',
@@ -98,17 +112,22 @@ export  const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: 'bold',
     color: '#000000',
-    marginTop: 5,
+    textAlign: 'center',
+    width: '100%',
+    maxWidth: '100%',
   },
   emailContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 5,
+    justifyContent: 'center',
+    width: '100%',
   },
   email: {
     fontSize: 16,
     color: '#000000',
     opacity: 0.9,
+    textAlign: 'center',
   },
   friendsButton: {
     marginTop: 15,

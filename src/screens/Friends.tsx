@@ -58,6 +58,20 @@ const getAvatarUri = (item: Record<string, any>): string | null => {
   );
 };
 
+const getRequestSenderFullName = (item: FriendRequestResponse): string => {
+  const sender = (item as Record<string, any>).sender as Record<string, any> | undefined;
+  const firstName = item.senderFirstName || sender?.firstName || '';
+  const middleName = item.senderMiddleName || sender?.middleName || '';
+  const lastName = item.senderLastName || sender?.lastName || '';
+
+  return `${firstName} ${middleName} ${lastName}`.trim();
+};
+
+const getRequestSenderInitial = (item: FriendRequestResponse): string | undefined => {
+  const sender = (item as Record<string, any>).sender as Record<string, any> | undefined;
+  return (item.senderFirstName || sender?.firstName)?.[0]?.toUpperCase();
+};
+
 const FriendsScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const activeFooterTab: TabName = 'profile';
@@ -306,7 +320,7 @@ const FriendsScreen = () => {
         <View style={styles.friendInfo}>
           <Text style={styles.friendName}>{fullName || 'Unknown'}</Text>
           <Text style={styles.friendSince}>
-            Friends since {new Date(item.createdAt).toLocaleDateString()}
+          Добавлен {new Date(item.createdAt).toLocaleDateString()}
           </Text>
         </View>
       </TouchableOpacity>
@@ -314,12 +328,12 @@ const FriendsScreen = () => {
   };
 
   const renderRequestCard = ({ item }: { item: FriendRequestResponse }) => {
-    const fullName = `${item.senderFirstName || ''} ${item.senderMiddleName || ''} ${item.senderLastName || ''}`.trim();
+    const fullName = getRequestSenderFullName(item);
 
     return (
       <View style={styles.requestCard}>
         <View style={styles.avatarContainer}>
-          {renderAvatar(item as Record<string, any>, item.senderFirstName?.[0]?.toUpperCase())}
+          {renderAvatar(item as Record<string, any>, getRequestSenderInitial(item))}
         </View>
         <View style={styles.requestInfo}>
           <Text style={styles.requestName}>{fullName || 'Unknown'}</Text>

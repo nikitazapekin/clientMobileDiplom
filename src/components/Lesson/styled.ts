@@ -365,6 +365,10 @@ export const styles = StyleSheet.create({
     color: COLORS.BLACK,
     marginBottom: 10,
   },
+  theoryQuestionCode: {
+    marginBottom: 12,
+    minHeight: 220,
+  },
   optionsList: {
     marginVertical: 10,
   },

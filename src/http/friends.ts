@@ -17,9 +17,11 @@ export interface FriendRequestResponse {
   senderId: string;
   receiverId: string;
   status: 'pending' | 'accepted' | 'rejected';
+  senderAuditoryId?: string;
   senderFirstName?: string;
   senderLastName?: string;
   senderMiddleName?: string;
+  receiverAuditoryId?: string;
   receiverFirstName?: string;
   receiverLastName?: string;
   receiverMiddleName?: string;

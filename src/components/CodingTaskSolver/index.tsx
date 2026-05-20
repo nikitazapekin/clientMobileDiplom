@@ -746,7 +746,7 @@ const CodingTaskSolver = ({ id }: Props) => {
 
       {consoleOutput !== "" && (
         <View style={st.consoleCard}>
-          <Text style={st.consoleTitle}>Консоль</Text>
+         
           <Text style={st.consoleText}>{consoleOutput}</Text>
         </View>
       )}

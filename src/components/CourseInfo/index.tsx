@@ -227,6 +227,8 @@ const CourseInfo = ({ id }: CourseInfoProps) => {
     );
   }
 
+  const detailedDescription = course.fullDescription?.trim() || course.description;
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
@@ -321,11 +323,7 @@ const CourseInfo = ({ id }: CourseInfoProps) => {
 
         <View style={styles.aboutSection}>
           <Text style={styles.sectionTitle}>О курсе</Text>
-          <Text style={styles.aboutText}>
-            {course.description}
-            {"\n\n"}
-         
-          </Text>
+          <Text style={styles.aboutText}>{detailedDescription}</Text>
         </View>
 
         <View style={styles.certificateSection}>

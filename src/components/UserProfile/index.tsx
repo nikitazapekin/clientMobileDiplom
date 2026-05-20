@@ -510,43 +510,47 @@ const UserProfile = () => {
       >
      
         <View style={styles.header}>
-          <TouchableOpacity
-            onPress={handleAvatarPress}
-            onLongPress={handleAvatarLongPress}
-            delayLongPress={500}
-            style={styles.avatarContainer}
-          >
-            {uploadingAvatar ? (
-              <View style={[styles.avatar, styles.avatarUploading]}>
-                <ActivityIndicator size="large" color="#fff" />
-              </View>
-            ) : profile.avatar ? (
-              <Image
-                source={{ uri: profile.avatar.imageUrl }}
-                style={styles.avatar}
-              />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Text style={styles.avatarPlaceholderText}>
-                  {profile.firstName?.[0]}{profile.lastName?.[0]}
-                </Text>
-              </View>
-            )}
+          <View style={styles.profileInfoContainer}>
+            <TouchableOpacity
+              onPress={handleAvatarPress}
+              onLongPress={handleAvatarLongPress}
+              delayLongPress={500}
+              style={styles.avatarContainer}
+            >
+              {uploadingAvatar ? (
+                <View style={[styles.avatar, styles.avatarUploading]}>
+                  <ActivityIndicator size="large" color="#fff" />
+                </View>
+              ) : profile.avatar ? (
+                <Image
+                  source={{ uri: profile.avatar.imageUrl }}
+                  style={styles.avatar}
+                />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <Text style={styles.avatarPlaceholderText}>
+                    {profile.firstName?.[0]}{profile.lastName?.[0]}
+                  </Text>
+                </View>
+              )}
 
-            {!profile.avatar && (
-              <View style={styles.cameraBadge}>
-                <Text style={styles.cameraBadgeText}>+</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+              {!profile.avatar && (
+                <View style={styles.cameraBadge}>
+                  <Text style={styles.cameraBadgeText}>+</Text>
+                </View>
+              )}
+            </TouchableOpacity>
 
-          <Text style={styles.name}>
-            {profile.firstName} {profile.lastName}
-            {profile.middleName ? ` ${profile.middleName}` : ''}
-          </Text>
+            <View style={styles.nameContainer}>
+              <Text style={styles.name}>
+                {profile.firstName} {profile.lastName}
+                {profile.middleName ? ` ${profile.middleName}` : ''}
+              </Text>
+            </View>
 
-          <View style={styles.emailContainer}>
-            <Text style={styles.email}>{profile.email}</Text>
+            <View style={styles.emailContainer}>
+              <Text style={styles.email}>{profile.email}</Text>
+            </View>
           </View>
 
         

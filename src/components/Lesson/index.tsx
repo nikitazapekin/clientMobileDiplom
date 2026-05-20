@@ -339,7 +339,7 @@ const CodeTaskBlockView = ({
 
       {output !== "" && output !== undefined && (
         <View style={styles.consoleOutput}>
-          <Text style={styles.consoleTitle}>Консоль</Text>
+       
           <Text style={styles.consoleText}>{output}</Text>
         </View>
       )}
@@ -1892,13 +1892,15 @@ const Lesson = ({ id, mode = "lesson" }: { id: string; mode?: "lesson" | "checkp
         {block.text && <Text style={styles.questionText}>{block.text}</Text>}
 
         {block.code && (
-          <CodeEditor
-            value={block.code}
-            onChange={() => {}}
-            language="javascript"
-            readOnly
-            height={100}
-          />
+          <View style={styles.theoryQuestionCode}>
+            <CodeEditor
+              value={block.code}
+              onChange={() => {}}
+              language="javascript"
+              readOnly
+              height={220}
+            />
+          </View>
         )}
 
         {block.imageUrl && (
